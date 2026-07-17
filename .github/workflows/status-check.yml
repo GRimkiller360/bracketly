@@ -50,6 +50,15 @@ jobs:
           GSC_SERVICE_ACCOUNT_KEY: ${{ secrets.GSC_SERVICE_ACCOUNT_KEY }}
         run: node .github/scripts/gsc-query.mjs > gsc.json
 
+      - name: Query AdSense revenue
+        id: adsense
+        continue-on-error: true
+        env:
+          ADSENSE_CLIENT_ID: ${{ secrets.ADSENSE_CLIENT_ID }}
+          ADSENSE_CLIENT_SECRET: ${{ secrets.ADSENSE_CLIENT_SECRET }}
+          ADSENSE_REFRESH_TOKEN: ${{ secrets.ADSENSE_REFRESH_TOKEN }}
+        run: node .github/scripts/adsense-query.mjs > adsense.json
+
       - name: Gather site + analytics data
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -65,6 +74,8 @@ jobs:
           LH_FILE=$(ls .lighthouseci/lhr-*.json 2>/dev/null | head -1 || echo "")
           GSC_FILE="gsc.json"
           [ -s "$GSC_FILE" ] || echo '{}' > "$GSC_FILE"
+          ADSENSE_FILE="adsense.json"
+          [ -s "$ADSENSE_FILE" ] || echo '{}' > "$ADSENSE_FILE"
 
           node -e "
             const fs = require('fs');
@@ -73,6 +84,7 @@ jobs:
             const broken = JSON.parse(fs.readFileSync('broken.json', 'utf8'));
             const lhFile = process.argv[3];
             const gsc = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
+            const adsense = JSON.parse(fs.readFileSync(process.argv[5], 'utf8'));
 
             let lighthouse = null;
             if (lhFile && fs.existsSync(lhFile)) {
@@ -98,6 +110,11 @@ jobs:
                 top_queries: gsc.top_queries ?? [],
                 top_pages: gsc.top_pages ?? [],
               },
+              adsense: {
+                note: 'account_state NEEDS_ATTENTION means AdSense has not approved the account for ad serving yet — earnings will be null until approved, this is expected and not a bug to fix.',
+                account_state: adsense.account_state ?? 'UNKNOWN',
+                earnings_last_7_days: adsense.earnings ?? null,
+              },
               last_7_days: {
                 daily_pageloads: groups.daily ?? [],
                 total_pageloads: totalPageloads,
@@ -115,9 +132,11 @@ jobs:
               broken_page_count: broken.length,
               lighthouse_performance: lighthouse?.performance ?? null,
               gsc_total_query_clicks: (gsc.top_queries ?? []).reduce((a, r) => a + (r.clicks ?? 0), 0),
+              adsense_account_state: adsense.account_state ?? null,
+              adsense_estimated_earnings: adsense.earnings?.estimated_earnings ?? null,
             });
             fs.appendFileSync('status/history.jsonl', historyEntry + '\n');
-          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE" "$GSC_FILE"
+          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE" "$GSC_FILE" "$ADSENSE_FILE"
 
           cat status/latest.json
 
