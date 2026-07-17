@@ -1,27 +1,32 @@
 {
-  "generated_at": "2026-07-17T12:40:13.610Z",
+  "generated_at": "2026-07-17T12:56:08.105Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 73,
+    "performance": 99,
     "accessibility": 88,
     "best-practices": 78,
     "seo": 100,
     "pwa": 25
   },
+  "search_console": {
+    "note": "Search Console data lags ~2-3 days and needs time after indexing to populate; empty arrays are expected for a new/low-traffic site, not a bug.",
+    "top_queries": [],
+    "top_pages": []
+  },
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 30,
+        "count": 31,
         "dimensions": {
           "date": "2026-07-17"
         }
       }
     ],
-    "total_pageloads": 30,
+    "total_pageloads": 31,
     "top_requests": [
       {
-        "count": 9,
+        "count": 10,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
