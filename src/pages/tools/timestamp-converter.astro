@@ -1,0 +1,175 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('timestamp-converter')!;
+---
+
+<ToolLayout tool={tool}>
+  <!-- Unix → Human-readable -->
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <span>Unix timestamp → Human-readable date</span>
+      <button class="btn" id="btn-now" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Use Now</button>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <input
+        id="ts-input"
+        type="text"
+        placeholder="e.g.  1700000000  or  1700000000000"
+        style="flex:1;min-width:200px;"
+      />
+      <button class="btn btn-primary" id="btn-ts-convert">Convert</button>
+    </div>
+    <div id="ts-results" style="display:none;margin-top:1rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <tbody id="ts-table"></tbody>
+      </table>
+    </div>
+    <div id="ts-status" class="status" style="margin-top:0.4rem;"></div>
+  </div>
+
+  <!-- Date → Unix -->
+  <div class="panel">
+    <div class="field-label">
+      <span>Date / time → Unix timestamp</span>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <input
+        id="date-input"
+        type="datetime-local"
+        style="flex:1;min-width:220px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.9rem;color:var(--text);"
+      />
+      <button class="btn btn-primary" id="btn-date-convert">Convert</button>
+    </div>
+    <div id="date-results" style="display:none;margin-top:1rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <tbody id="date-table"></tbody>
+      </table>
+    </div>
+    <div id="date-status" class="status" style="margin-top:0.4rem;"></div>
+  </div>
+</ToolLayout>
+
+<style>
+  #ts-table tr td,
+  #date-table tr td {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+  #ts-table tr td:first-child,
+  #date-table tr td:first-child {
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    white-space: nowrap;
+    width: 160px;
+  }
+</style>
+
+<script is:inline>
+  function makeRows(rows, tableId) {
+    var tbody = document.getElementById(tableId);
+    tbody.innerHTML = rows.map(function (r) {
+      return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>';
+    }).join('');
+  }
+
+  function relativeTime(date) {
+    var diff = Date.now() - date.getTime();
+    var abs  = Math.abs(diff);
+    var s = Math.floor(abs / 1000);
+    var m = Math.floor(s / 60);
+    var h = Math.floor(m / 60);
+    var d = Math.floor(h / 24);
+    var str = d > 0 ? d + ' day' + (d !== 1 ? 's' : '')
+            : h > 0 ? h + ' hour' + (h !== 1 ? 's' : '')
+            : m > 0 ? m + ' minute' + (m !== 1 ? 's' : '')
+            : s + ' second' + (s !== 1 ? 's' : '');
+    return diff > 0 ? str + ' ago' : 'in ' + str;
+  }
+
+  // Timestamp → Date
+  document.getElementById('btn-now').addEventListener('click', function () {
+    document.getElementById('ts-input').value = Math.floor(Date.now() / 1000).toString();
+    document.getElementById('btn-ts-convert').click();
+  });
+
+  document.getElementById('btn-ts-convert').addEventListener('click', function () {
+    var raw = document.getElementById('ts-input').value.trim();
+    var tsStatus = document.getElementById('ts-status');
+    var tsResults = document.getElementById('ts-results');
+    if (!raw) { tsStatus.textContent = ''; tsResults.style.display = 'none'; return; }
+
+    var n = Number(raw);
+    if (isNaN(n)) {
+      tsStatus.textContent = '✗ Not a number';
+      tsStatus.className = 'status error';
+      tsResults.style.display = 'none';
+      return;
+    }
+
+    // Auto-detect seconds vs milliseconds
+    var ms = n > 1e12 ? n : n * 1000;
+    var date = new Date(ms);
+    if (isNaN(date.getTime())) {
+      tsStatus.textContent = '✗ Invalid timestamp';
+      tsStatus.className = 'status error';
+      tsResults.style.display = 'none';
+      return;
+    }
+
+    makeRows([
+      ['UTC',        date.toUTCString()],
+      ['ISO 8601',   date.toISOString()],
+      ['Local',      date.toLocaleString()],
+      ['Relative',   relativeTime(date)],
+      ['Seconds',    Math.floor(ms / 1000).toString()],
+      ['Milliseconds', ms.toString()],
+    ], 'ts-table');
+
+    tsResults.style.display = 'block';
+    tsStatus.textContent = '';
+    tsStatus.className = 'status';
+  });
+
+  // Date → Timestamp
+  document.getElementById('btn-date-convert').addEventListener('click', function () {
+    var val = document.getElementById('date-input').value;
+    var dateStatus = document.getElementById('date-status');
+    var dateResults = document.getElementById('date-results');
+    if (!val) { dateStatus.textContent = ''; dateResults.style.display = 'none'; return; }
+
+    var date = new Date(val);
+    if (isNaN(date.getTime())) {
+      dateStatus.textContent = '✗ Invalid date';
+      dateStatus.className = 'status error';
+      dateResults.style.display = 'none';
+      return;
+    }
+
+    var ms  = date.getTime();
+    var sec = Math.floor(ms / 1000);
+
+    makeRows([
+      ['Seconds (Unix)',  sec.toString()],
+      ['Milliseconds',    ms.toString()],
+      ['ISO 8601',        date.toISOString()],
+      ['UTC',             date.toUTCString()],
+      ['Relative',        relativeTime(date)],
+    ], 'date-table');
+
+    dateResults.style.display = 'block';
+    dateStatus.textContent = '';
+    dateStatus.className = 'status';
+  });
+
+  // Pre-fill with current time in datetime-local format
+  var now = new Date();
+  var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+  document.getElementById('date-input').value = local;
+</script>

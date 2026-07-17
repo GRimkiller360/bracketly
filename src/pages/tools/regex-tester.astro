@@ -1,0 +1,109 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('regex-tester')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem;">
+      <div style="flex:1;min-width:200px;">
+        <div class="field-label"><span>Pattern</span></div>
+        <input
+          id="pattern"
+          type="text"
+          placeholder="e.g.  \b\w+@\w+\.\w+\b"
+          style="font-family:var(--font-mono);font-size:0.9rem;"
+        />
+      </div>
+      <div style="width:120px;">
+        <div class="field-label"><span>Flags</span></div>
+        <input
+          id="flags"
+          type="text"
+          value="gm"
+          placeholder="gim"
+          style="font-family:var(--font-mono);font-size:0.9rem;"
+        />
+      </div>
+    </div>
+    <div class="field-label">
+      <span>Test string</span>
+      <span id="match-count" style="font-weight:700;color:var(--accent);"></span>
+    </div>
+    <textarea id="test-string" rows="7" placeholder="Paste text to test against…"></textarea>
+    <div id="status" class="status" style="margin-top:0.4rem;"></div>
+  </div>
+
+  <div id="matches-panel" style="display:none;">
+    <div class="field-label"><span>Matches &amp; capture groups</span></div>
+    <textarea id="matches-out" rows="10" readonly style="font-size:0.82rem;"></textarea>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  var patternEl   = document.getElementById('pattern');
+  var flagsEl     = document.getElementById('flags');
+  var testStr     = document.getElementById('test-string');
+  var matchCount  = document.getElementById('match-count');
+  var statusEl    = document.getElementById('status');
+  var matchesPanel = document.getElementById('matches-panel');
+  var matchesOut  = document.getElementById('matches-out');
+
+  function test() {
+    var pat = patternEl.value;
+    var fl  = flagsEl.value.replace(/[^gimsuy]/g, '');
+
+    statusEl.textContent = '';
+    statusEl.className   = 'status';
+    matchCount.textContent = '';
+    matchesPanel.style.display = 'none';
+
+    if (!pat) return;
+
+    var text = testStr.value;
+    var re;
+    try {
+      // Ensure global flag is present for matchAll
+      var flags = fl.includes('g') ? fl : fl + 'g';
+      re = new RegExp(pat, flags);
+    } catch (e) {
+      statusEl.textContent = '✗ Invalid pattern: ' + e.message;
+      statusEl.className   = 'status error';
+      return;
+    }
+
+    var matches = Array.from(text.matchAll(re));
+    matchCount.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
+
+    if (matches.length === 0) {
+      statusEl.textContent = 'No matches found.';
+      statusEl.className   = 'status';
+      return;
+    }
+
+    var lines = matches.map(function (m, i) {
+      var line = 'Match ' + (i + 1) + ' [' + m.index + '–' + (m.index + m[0].length) + ']: ' + JSON.stringify(m[0]);
+      if (m.length > 1) {
+        var groups = m.slice(1).map(function (g, gi) {
+          return '  Group ' + (gi + 1) + ': ' + (g === undefined ? '(no match)' : JSON.stringify(g));
+        });
+        line += '\n' + groups.join('\n');
+      }
+      if (m.groups && Object.keys(m.groups).length) {
+        line += '\n  Named: ' + JSON.stringify(m.groups);
+      }
+      return line;
+    });
+
+    matchesOut.value = lines.join('\n\n');
+    matchesPanel.style.display = 'block';
+    statusEl.textContent = '✓ ' + matches.length + ' match' + (matches.length !== 1 ? 'es' : '') + ' found';
+    statusEl.className   = 'status ok';
+  }
+
+  patternEl.addEventListener('input', test);
+  flagsEl.addEventListener('input', test);
+  testStr.addEventListener('input', test);
+</script>

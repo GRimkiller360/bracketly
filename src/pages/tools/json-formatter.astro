@@ -1,0 +1,104 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('json-formatter')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="grid-2">
+    <div>
+      <div class="field-label">
+        <span>Input JSON</span>
+        <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+      </div>
+      <textarea id="input" rows="18" placeholder="Paste JSON here…"></textarea>
+      <div id="status" class="status"></div>
+    </div>
+    <div>
+      <div class="field-label">
+        <span>Output</span>
+        <button class="btn" id="btn-copy" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+      </div>
+      <textarea id="output" rows="18" readonly placeholder="Formatted JSON will appear here…"></textarea>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btn-format">Format / Prettify</button>
+    <button class="btn" id="btn-compact">Compact</button>
+    <button class="btn" id="btn-sort">Sort Keys</button>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input  = document.getElementById('input');
+  const output = document.getElementById('output');
+  const status = document.getElementById('status');
+
+  function setStatus(msg, ok) {
+    status.textContent = msg;
+    status.className = 'status ' + (ok ? 'ok' : 'error');
+  }
+
+  function tryParse() {
+    try {
+      return JSON.parse(input.value);
+    } catch (e) {
+      setStatus('✗ ' + e.message, false);
+      output.value = '';
+      return null;
+    }
+  }
+
+  function sortObj(obj) {
+    if (Array.isArray(obj)) return obj.map(sortObj);
+    if (obj !== null && typeof obj === 'object') {
+      return Object.fromEntries(
+        Object.keys(obj).sort().map(k => [k, sortObj(obj[k])])
+      );
+    }
+    return obj;
+  }
+
+  function format() {
+    const val = input.value.trim();
+    if (!val) { output.value = ''; status.textContent = ''; return; }
+    const parsed = tryParse();
+    if (parsed === null) return;
+    output.value = JSON.stringify(parsed, null, 2);
+    setStatus('✓ Valid JSON', true);
+  }
+
+  document.getElementById('btn-format').addEventListener('click', format);
+
+  document.getElementById('btn-compact').addEventListener('click', function () {
+    if (!input.value.trim()) return;
+    const parsed = tryParse();
+    if (parsed === null) return;
+    output.value = JSON.stringify(parsed);
+    setStatus('✓ Compacted', true);
+  });
+
+  document.getElementById('btn-sort').addEventListener('click', function () {
+    if (!input.value.trim()) return;
+    const parsed = tryParse();
+    if (parsed === null) return;
+    output.value = JSON.stringify(sortObj(parsed), null, 2);
+    setStatus('✓ Keys sorted alphabetically', true);
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    if (!output.value) return;
+    navigator.clipboard.writeText(output.value);
+    this.textContent = 'Copied!';
+    setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    output.value = '';
+    status.textContent = '';
+  });
+
+  input.addEventListener('input', format);
+</script>

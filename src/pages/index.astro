@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AdUnit from '../components/AdUnit.astro';
+import { tools } from '../data/tools';
+
+const categories = [...new Set(tools.map((t) => t.category))];
+---
+
+<BaseLayout
+  title="Free Developer Tools"
+  description="Fast, free, privacy-first developer utilities. JSON formatter, Base64 encoder, JWT decoder, UUID generator, Regex tester and more — all run entirely in your browser."
+  keywords="developer tools, json formatter online, base64 encoder, jwt decoder, uuid generator, regex tester, unix timestamp converter"
+>
+  <div class="container">
+    <div class="hero">
+      <h1>Free Developer Tools</h1>
+      <p>
+        Fast, privacy-first utilities for developers. Everything runs in your browser —
+        nothing you enter is ever sent to a server.
+      </p>
+    </div>
+
+    <AdUnit />
+
+    {
+      categories.map((cat) => (
+        <section style="margin-bottom:2.5rem;">
+          <h2
+            style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;
+                   color:var(--text-muted);margin:0 0 0.75rem;font-weight:700;"
+          >
+            {cat}
+          </h2>
+          <div class="tool-grid">
+            {tools
+              .filter((t) => t.category === cat)
+              .map((tool) => (
+                <a href={`/tools/${tool.slug}`} class="tool-card">
+                  <div class="icon">{tool.icon}</div>
+                  <h3>{tool.shortTitle}</h3>
+                  <p>{tool.description.split('.')[0]}.</p>
+                </a>
+              ))}
+          </div>
+        </section>
+      ))
+    }
+
+    <div class="panel" style="text-align:center;padding:2.25rem;margin-top:0.5rem;">
+      <p style="margin:0 0 1rem;font-size:1.05rem;">
+        Bracketly is free and open-source. If it saves you time, consider supporting it.
+      </p>
+      <a href="/donate" class="btn btn-support" style="font-size:1rem;padding:0.65rem 1.4rem;">
+        ☕ Buy me a coffee
+      </a>
+    </div>
+  </div>
+</BaseLayout>

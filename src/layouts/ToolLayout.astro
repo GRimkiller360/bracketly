@@ -1,0 +1,37 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import AdUnit from '../components/AdUnit.astro';
+import type { Tool } from '../data/tools';
+
+interface Props {
+  tool: Tool;
+}
+
+const { tool } = Astro.props;
+---
+
+<BaseLayout
+  title={tool.title}
+  description={tool.description}
+  keywords={tool.keywords.join(', ')}
+>
+  <div class="container">
+    <a
+      href="/"
+      style="color:var(--text-muted);font-size:0.88rem;display:inline-flex;align-items:center;gap:0.3rem;margin-bottom:1.5rem;"
+    >
+      ← All tools
+    </a>
+
+    <div class="tool-header">
+      <span class="pill">{tool.category}</span>
+      <h1>{tool.title}</h1>
+      <p>{tool.description}</p>
+      <span class="privacy-note">🔒 Runs entirely in your browser — no data is ever sent anywhere</span>
+    </div>
+
+    <slot />
+
+    <AdUnit />
+  </div>
+</BaseLayout>

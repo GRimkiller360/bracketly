@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Support Bracketly"
+  description="Bracketly is free, open-source, and privacy-first. If these tools save you time, consider buying me a coffee or sponsoring on GitHub."
+>
+  <div class="container" style="max-width:600px;">
+    <div style="padding:3rem 0 1rem;">
+      <h1 style="font-size:2rem;letter-spacing:-0.03em;margin:0 0 0.75rem;">Support Bracketly ☕</h1>
+      <p style="color:var(--text-muted);font-size:1.05rem;margin:0 0 2.5rem;">
+        Bracketly is free, no accounts, no tracking, and no ads. If these tools save you
+        time, a small contribution helps keep the project going and motivates more tools.
+      </p>
+
+      <!-- PayPal Donation -->
+      <div class="panel" style="margin-bottom:1.5rem;">
+        <h2 style="margin:0 0 0.4rem;font-size:1.1rem;">PayPal</h2>
+        <p style="color:var(--text-muted);margin:0 0 1.25rem;font-size:0.95rem;">
+          One-time donation — any amount is welcome.
+        </p>
+        <!--
+          ═══ PAYPAL SETUP ══════════════════════════════════════════════════
+          1. Log in to paypal.com
+          2. Go to: Tools → All Tools → PayPal Buttons → Donate
+             (direct link: https://www.paypal.com/donate/buttons/partner)
+          3. Create a Donate button and copy the hosted_button_id
+          4. Replace YOUR_PAYPAL_BUTTON_ID below with that ID
+          OR simply replace YOUR_PAYPAL_EMAIL with your PayPal email to use
+          the direct PayPal pay link approach.
+          ══════════════════════════════════════════════════════════════════
+        -->
+        <form action="https://www.paypal.com/donate" method="post" target="_blank">
+          <input type="hidden" name="hosted_button_id" value="YOUR_PAYPAL_BUTTON_ID" />
+          <input type="hidden" name="currency_code" value="USD" />
+          <button type="submit" class="btn btn-support" style="font-size:1rem;padding:0.65rem 1.5rem;border:none;cursor:pointer;">
+            ☕ Donate via PayPal
+          </button>
+        </form>
+      </div>
+
+      <!-- GitHub Sponsors -->
+      <div class="panel" style="margin-bottom:1.5rem;">
+        <h2 style="margin:0 0 0.4rem;font-size:1.1rem;">GitHub Sponsors</h2>
+        <p style="color:var(--text-muted);margin:0 0 1.25rem;font-size:0.95rem;">
+          Monthly sponsorship — great if you use Bracketly regularly at work.
+        </p>
+        <!--
+          ═══ GITHUB SPONSORS SETUP ════════════════════════════════════════
+          Apply at github.com/sponsors (free, takes 1–5 days) to activate
+          this link — it 404s until your application is approved.
+          ══════════════════════════════════════════════════════════════════
+        -->
+        <a
+          href="https://github.com/sponsors/GRimkiller360"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn"
+          style="font-size:1rem;padding:0.65rem 1.5rem;"
+        >
+          ❤️ Sponsor on GitHub
+        </a>
+      </div>
+
+      <!-- Other ways to help -->
+      <div class="panel">
+        <h2 style="margin:0 0 0.4rem;font-size:1.1rem;">Other ways to help (free)</h2>
+        <ul style="color:var(--text-muted);font-size:0.95rem;margin:0;padding-left:1.25rem;line-height:1.9;">
+          <li>
+            ⭐ Star the project on
+            <a href="https://github.com/GRimkiller360/bracketly" target="_blank" rel="noopener noreferrer">GitHub</a>
+            — helps others find it
+          </li>
+          <li>Share Bracketly with a colleague or on social media</li>
+          <li>Open an issue to suggest a new tool</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

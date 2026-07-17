@@ -1,0 +1,95 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('uuid-generator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="toolbar" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <label for="type-select" style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">Type:</label>
+        <select
+          id="type-select"
+          style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);"
+        >
+          <option value="uuid">UUID v4</option>
+          <option value="ulid">ULID</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <label for="count-input" style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">Count:</label>
+        <input
+          id="count-input"
+          type="number"
+          min="1"
+          max="100"
+          value="1"
+          style="width:70px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);font-family:var(--font-sans);"
+        />
+      </div>
+      <button class="btn btn-primary" id="btn-generate">Generate</button>
+      <button class="btn" id="btn-copy-all">Copy All</button>
+    </div>
+
+    <div class="field-label"><span>Results (one per line)</span></div>
+    <textarea id="output" rows="12" readonly placeholder="Click Generate…" style="user-select:all;"></textarea>
+    <p id="status" class="status" style="margin-top:0.4rem;"></p>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const output     = document.getElementById('output');
+  const statusEl   = document.getElementById('status');
+  const countInput = document.getElementById('count-input');
+  const typeSelect = document.getElementById('type-select');
+
+  // Crockford Base32 alphabet used by ULID
+  var ULID_CHARS = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+  function generateULID() {
+    var now = Date.now();
+    var ts = [];
+    var t = now;
+    for (var i = 9; i >= 0; i--) {
+      ts[i] = ULID_CHARS[t & 31];
+      t = Math.floor(t / 32);
+    }
+    var randomBytes = crypto.getRandomValues(new Uint8Array(10));
+    var bits = BigInt(0);
+    for (var j = 0; j < randomBytes.length; j++) {
+      bits = (bits << BigInt(8)) | BigInt(randomBytes[j]);
+    }
+    var rand = [];
+    for (var k = 15; k >= 0; k--) {
+      rand[k] = ULID_CHARS[Number(bits & BigInt(31))];
+      bits >>= BigInt(5);
+    }
+    return ts.join('') + rand.join('');
+  }
+
+  function generate() {
+    var count = Math.max(1, Math.min(100, parseInt(countInput.value, 10) || 1));
+    var type  = typeSelect.value;
+    var lines = [];
+    for (var i = 0; i < count; i++) {
+      lines.push(type === 'ulid' ? generateULID() : crypto.randomUUID());
+    }
+    output.value = lines.join('\n');
+    statusEl.textContent = '✓ Generated ' + count + ' ' + type.toUpperCase() + (count > 1 ? 's' : '');
+    statusEl.className = 'status ok';
+  }
+
+  document.getElementById('btn-generate').addEventListener('click', generate);
+
+  document.getElementById('btn-copy-all').addEventListener('click', function () {
+    if (!output.value) return;
+    navigator.clipboard.writeText(output.value);
+    this.textContent = 'Copied!';
+    setTimeout(() => { this.textContent = 'Copy All'; }, 1500);
+  });
+
+  // Generate one on load
+  generate();
+</script>

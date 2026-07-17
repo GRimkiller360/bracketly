@@ -1,0 +1,126 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('jwt-decoder')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <span>JSON Web Token</span>
+      <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+    </div>
+    <textarea
+      id="jwt-input"
+      rows="4"
+      placeholder="Paste your JWT here…  e.g. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+      style="font-size:0.82rem;"
+    ></textarea>
+    <div id="status" class="status" style="margin-top:0.5rem;"></div>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="grid-2" style="margin-bottom:1rem;">
+      <div class="panel">
+        <div class="field-label"><span>Header</span></div>
+        <pre id="header-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
+      </div>
+      <div class="panel">
+        <div class="field-label"><span>Payload</span></div>
+        <pre id="payload-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
+      </div>
+    </div>
+    <div class="panel" id="expiry-panel">
+      <div class="field-label"><span>Expiry</span></div>
+      <p id="expiry-out" style="margin:0;font-size:0.95rem;"></p>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const jwtInput  = document.getElementById('jwt-input');
+  const status    = document.getElementById('status');
+  const results   = document.getElementById('results');
+  const headerOut = document.getElementById('header-out');
+  const payloadOut = document.getElementById('payload-out');
+  const expiryOut = document.getElementById('expiry-out');
+
+  function setStatus(msg, ok) {
+    status.textContent = msg;
+    status.className = 'status ' + (ok ? 'ok' : 'error');
+  }
+
+  function b64urlDecode(seg) {
+    const b64 = seg.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '==='.slice((b64.length + 3) % 4);
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function decode() {
+    const val = jwtInput.value.trim();
+    if (!val) {
+      results.style.display = 'none';
+      status.textContent = '';
+      return;
+    }
+
+    const parts = val.split('.');
+    if (parts.length !== 3) {
+      setStatus('✗ Not a valid JWT — expected 3 dot-separated segments', false);
+      results.style.display = 'none';
+      return;
+    }
+
+    try {
+      const header  = b64urlDecode(parts[0]);
+      const payload = b64urlDecode(parts[1]);
+
+      headerOut.textContent  = JSON.stringify(header, null, 2);
+      payloadOut.textContent = JSON.stringify(payload, null, 2);
+
+      // Expiry
+      if (payload.exp) {
+        const expMs  = payload.exp * 1000;
+        const expDate = new Date(expMs);
+        const now    = Date.now();
+        const diff   = expMs - now;
+        const absMin = Math.abs(Math.floor(diff / 60000));
+        const absH   = Math.floor(absMin / 60);
+        const absDays = Math.floor(absH / 24);
+
+        let timeStr = '';
+        if (absDays > 0)     timeStr = absDays + ' day(s)';
+        else if (absH > 0)   timeStr = absH + ' hour(s)';
+        else                 timeStr = absMin + ' minute(s)';
+
+        if (diff < 0) {
+          expiryOut.innerHTML = '<span style="color:var(--danger)">✗ Expired ' + timeStr + ' ago</span> — ' + expDate.toLocaleString();
+        } else if (diff < 3600000) {
+          expiryOut.innerHTML = '<span style="color:#e08c00">⚠ Expires in ' + timeStr + '</span> — ' + expDate.toLocaleString();
+        } else {
+          expiryOut.innerHTML = '<span style="color:var(--success)">✓ Valid for ' + timeStr + '</span> — ' + expDate.toLocaleString();
+        }
+      } else {
+        expiryOut.textContent = 'No exp claim — token does not expire.';
+      }
+
+      results.style.display = 'block';
+      setStatus('✓ Decoded', true);
+    } catch (e) {
+      setStatus('✗ Failed to decode: ' + e.message, false);
+      results.style.display = 'none';
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    jwtInput.value = '';
+    results.style.display = 'none';
+    status.textContent = '';
+  });
+
+  jwtInput.addEventListener('input', decode);
+</script>

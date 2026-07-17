@@ -1,0 +1,78 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  keywords?: string;
+  canonical?: string;
+}
+
+const { title, description, keywords, canonical } = Astro.props;
+const siteTitle = 'Bracketly';
+const fullTitle = `${title} | ${siteTitle}`;
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {keywords && <meta name="keywords" content={keywords} />}
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content={siteTitle} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <!-- Sitemap -->
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!--
+      ═══ GOOGLE ADSENSE ═══════════════════════════════════════
+      After your site is approved:
+        1. Sign up at https://adsense.google.com
+        2. Replace ca-pub-XXXXXXXXXXXXXXXX with your publisher ID
+        3. Uncomment the script tag below
+        4. Uncomment the <ins> blocks in src/components/AdUnit.astro
+      ══════════════════════════════════════════════════════════
+    -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="logo">Dev<span>Kit</span></a>
+        <nav class="nav-links">
+          <a href="/">Tools</a>
+          <a href="/donate" class="btn btn-support">☕ Support</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <span>© {new Date().getFullYear()} Bracketly — Free tools, forever.</span>
+        <nav style="display:flex;gap:1rem;">
+          <a href="/donate">Support this project</a>
+          <a href="https://github.com/GRimkiller360/bracketly" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
