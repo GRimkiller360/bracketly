@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { tools } from '../data/tools';
+---
+
+<BaseLayout
+  title="Page Not Found"
+  description="This page doesn't exist on Bracketly. Browse the full list of free developer tools instead."
+>
+  <div class="container" style="max-width:600px;padding:3.5rem 0;text-align:center;">
+    <h1 style="font-size:2.2rem;letter-spacing:-0.03em;margin:0 0 0.75rem;">404</h1>
+    <p style="color:var(--text-muted);font-size:1.05rem;margin:0 0 2rem;">
+      This page doesn't exist. It might have moved, or the link might be wrong.
+    </p>
+    <a href="/" class="btn btn-primary" style="font-size:1rem;padding:0.65rem 1.4rem;margin-bottom:2.5rem;display:inline-flex;">
+      ← Back to all tools
+    </a>
+
+    <div class="tool-grid" style="text-align:left;">
+      {tools.slice(0, 6).map((tool) => (
+        <a href={`/tools/${tool.slug}`} class="tool-card">
+          <div class="icon">{tool.icon}</div>
+          <h3>{tool.shortTitle}</h3>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
