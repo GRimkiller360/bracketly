@@ -20,24 +20,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <p style="color:var(--text-muted);margin:0 0 1.25rem;font-size:0.95rem;">
           One-time donation — any amount is welcome.
         </p>
-        <!--
-          ═══ PAYPAL SETUP ══════════════════════════════════════════════════
-          1. Log in to paypal.com
-          2. Go to: Tools → All Tools → PayPal Buttons → Donate
-             (direct link: https://www.paypal.com/donate/buttons/partner)
-          3. Create a Donate button and copy the hosted_button_id
-          4. Replace YOUR_PAYPAL_BUTTON_ID below with that ID
-          OR simply replace YOUR_PAYPAL_EMAIL with your PayPal email to use
-          the direct PayPal pay link approach.
-          ══════════════════════════════════════════════════════════════════
-        -->
-        <form action="https://www.paypal.com/donate" method="post" target="_blank">
-          <input type="hidden" name="hosted_button_id" value="YOUR_PAYPAL_BUTTON_ID" />
-          <input type="hidden" name="currency_code" value="USD" />
-          <button type="submit" class="btn btn-support" style="font-size:1rem;padding:0.65rem 1.5rem;border:none;cursor:pointer;">
-            ☕ Donate via PayPal
-          </button>
-        </form>
+        <a
+          href="https://paypal.me/bracketly"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-support"
+          style="font-size:1rem;padding:0.65rem 1.5rem;"
+        >
+          ☕ Donate via PayPal
+        </a>
       </div>
 
       <!-- GitHub Sponsors -->
