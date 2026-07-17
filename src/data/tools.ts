@@ -72,6 +72,36 @@ export const tools: Tool[] = [
     icon: "T:00",
     category: "Data",
   },
+  {
+    slug: "url-encoder",
+    title: "URL Encoder & Decoder",
+    shortTitle: "URL Encode/Decode",
+    description:
+      "Encode text or full URLs into percent-encoded form, or decode them back to readable text, instantly. 100% client-side.",
+    keywords: ["url encoder", "url decoder", "percent encoding", "urlencode online"],
+    icon: "%20",
+    category: "Encoding",
+  },
+  {
+    slug: "hash-generator",
+    title: "Hash Generator — MD5, SHA-1, SHA-256, SHA-512",
+    shortTitle: "Hash Generator",
+    description:
+      "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes from text instantly. Runs entirely in your browser using the Web Crypto API — nothing you type is ever sent anywhere.",
+    keywords: ["hash generator", "md5 hash online", "sha256 online", "sha1 generator"],
+    icon: "#H",
+    category: "Security",
+  },
+  {
+    slug: "color-converter",
+    title: "Color Converter — HEX, RGB, HSL",
+    shortTitle: "Color Converter",
+    description:
+      "Convert colors between HEX, RGB, and HSL formats live, with an instant preview swatch.",
+    keywords: ["color converter", "hex to rgb", "rgb to hsl", "color picker online"],
+    icon: "◍",
+    category: "Design",
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

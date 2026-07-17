@@ -1,0 +1,108 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('url-encoder')!;
+---
+
+<ToolLayout tool={tool}>
+  <div style="margin-bottom:0.75rem;">
+    <div class="toolbar" style="margin:0 0 1rem;">
+      <label style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">Mode:</label>
+      <button class="btn btn-primary" id="btn-encode">Encode</button>
+      <button class="btn" id="btn-decode">Decode</button>
+      <button class="btn" id="btn-swap">⇄ Swap</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="field-label">
+        <span id="label-input">Plain text / URL</span>
+        <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+      </div>
+      <textarea id="input" rows="14" placeholder="Type or paste text here…"></textarea>
+    </div>
+    <div>
+      <div class="field-label">
+        <span id="label-output">Encoded output</span>
+        <button class="btn" id="btn-copy" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+      </div>
+      <textarea id="output" rows="14" readonly placeholder="Output will appear here…"></textarea>
+    </div>
+  </div>
+  <div id="status" class="status" style="margin-top:0.5rem;"></div>
+</ToolLayout>
+
+<script is:inline>
+  const input    = document.getElementById('input');
+  const output   = document.getElementById('output');
+  const status   = document.getElementById('status');
+  const labelIn  = document.getElementById('label-input');
+  const labelOut = document.getElementById('label-output');
+  let mode = 'encode';
+
+  function setStatus(msg, ok) {
+    status.textContent = msg;
+    status.className = 'status ' + (ok ? 'ok' : 'error');
+  }
+
+  function run() {
+    const val = input.value;
+    if (!val) { output.value = ''; status.textContent = ''; return; }
+    if (mode === 'encode') {
+      output.value = encodeURIComponent(val);
+      setStatus('✓ Encoded', true);
+    } else {
+      try {
+        output.value = decodeURIComponent(val);
+        setStatus('✓ Decoded', true);
+      } catch (e) {
+        setStatus('✗ Invalid percent-encoding — ' + e.message, false);
+      }
+    }
+  }
+
+  function setMode(m) {
+    mode = m;
+    if (m === 'encode') {
+      labelIn.textContent  = 'Plain text / URL';
+      labelOut.textContent = 'Encoded output';
+      document.getElementById('btn-encode').classList.add('btn-primary');
+      document.getElementById('btn-decode').classList.remove('btn-primary');
+      input.placeholder  = 'Type or paste text here…';
+      output.placeholder = 'Encoded output will appear here…';
+    } else {
+      labelIn.textContent  = 'Percent-encoded input';
+      labelOut.textContent = 'Decoded text';
+      document.getElementById('btn-decode').classList.add('btn-primary');
+      document.getElementById('btn-encode').classList.remove('btn-primary');
+      input.placeholder  = 'Paste percent-encoded text here…';
+      output.placeholder = 'Decoded text will appear here…';
+    }
+    run();
+  }
+
+  document.getElementById('btn-encode').addEventListener('click', () => setMode('encode'));
+  document.getElementById('btn-decode').addEventListener('click', () => setMode('decode'));
+
+  document.getElementById('btn-swap').addEventListener('click', function () {
+    input.value = output.value;
+    setMode(mode === 'encode' ? 'decode' : 'encode');
+    run();
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    if (!output.value) return;
+    navigator.clipboard.writeText(output.value);
+    this.textContent = 'Copied!';
+    setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    output.value = '';
+    status.textContent = '';
+  });
+
+  input.addEventListener('input', run);
+</script>
