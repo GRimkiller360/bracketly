@@ -146,3 +146,15 @@ jobs:
           git config user.email "actions@github.com"
           git add status/latest.json status/history.jsonl
           git diff --staged --quiet && echo "No changes" || (git commit -m "Update daily status snapshot" && git push)
+
+      - name: Push snapshot to loan-dashboard
+        continue-on-error: true
+        env:
+          DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
+          BRACKETLY_INGEST_SECRET: ${{ secrets.BRACKETLY_INGEST_SECRET }}
+        run: |
+          curl -s -X POST "$DASHBOARD_URL/api/bracketly-status/ingest" \
+            -H "X-Ingest-Secret: $BRACKETLY_INGEST_SECRET" \
+            -H "Content-Type: application/json" \
+            --data-binary @status/latest.json \
+            -w "\nHTTP_STATUS:%{http_code}\n"
