@@ -1,0 +1,58 @@
+name: Push agent activity to dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'status/agent-log.jsonl'
+
+permissions:
+  contents: read
+
+jobs:
+  push-log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build and push payload
+        env:
+          DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
+          BRACKETLY_INGEST_SECRET: ${{ secrets.BRACKETLY_INGEST_SECRET }}
+        run: |
+          LAST_LINE=$(tail -1 status/agent-log.jsonl)
+
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.event.after }}"
+          EXCLUDES=':(exclude)status/latest.json :(exclude)status/history.jsonl :(exclude)status/agent-log.jsonl'
+
+          if git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
+            DIFF_STAT=$(git diff --stat "$BEFORE_SHA" "$AFTER_SHA" -- . $EXCLUDES || echo "")
+            DIFF_FULL=$(git diff "$BEFORE_SHA" "$AFTER_SHA" -- . $EXCLUDES | head -c 20000 || echo "")
+            COMMITS=$(git log "$BEFORE_SHA..$AFTER_SHA" --pretty=format:'%s' || echo "")
+          else
+            DIFF_STAT=""
+            DIFF_FULL=""
+            COMMITS=$(git log -1 --pretty=format:'%s')
+          fi
+
+          node -e "
+            const fs = require('fs');
+            const entry = JSON.parse(process.argv[1]);
+            const payload = {
+              ...entry,
+              commit_messages: process.argv[2] || null,
+              diff_stat: process.argv[3] || null,
+              diff: process.argv[4] || null,
+            };
+            fs.writeFileSync('agent_log_payload.json', JSON.stringify(payload));
+          " "$LAST_LINE" "$COMMITS" "$DIFF_STAT" "$DIFF_FULL"
+
+          curl -s -X POST "$DASHBOARD_URL/api/bracketly-status/agent-log-ingest" \
+            -H "X-Ingest-Secret: $BRACKETLY_INGEST_SECRET" \
+            -H "Content-Type: application/json" \
+            --data-binary @agent_log_payload.json \
+            -w "\nHTTP_STATUS:%{http_code}\n"
