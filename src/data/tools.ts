@@ -234,3 +234,18 @@ export const tools: Tool[] = [
 export function getTool(slug: string): Tool | undefined {
   return tools.find((t) => t.slug === slug);
 }
+
+// One accent color per category, used for tool card icons, hover glow, and
+// the category pill on tool pages. Keeps the site colorful without every
+// page needing its own palette decision.
+export const categoryColors: Record<string, string> = {
+  Data: "#4f46e5",
+  Encoding: "#0891b2",
+  Security: "#e11d48",
+  Text: "#7c3aed",
+  Design: "#db2777",
+};
+
+export function getCategoryColor(category: string): string {
+  return categoryColors[category] ?? "#3457d5";
+}

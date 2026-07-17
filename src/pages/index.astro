@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AdUnit from '../components/AdUnit.astro';
-import { tools } from '../data/tools';
+import { tools, getCategoryColor } from '../data/tools';
 
 const categories = [...new Set(tools.map((t) => t.category))];
 ---
@@ -13,6 +13,7 @@ const categories = [...new Set(tools.map((t) => t.category))];
 >
   <div class="container">
     <div class="hero">
+      <span class="pill" style="margin-bottom:0.9rem;">✦ {tools.length} free tools, zero tracking</span>
       <h1>Free Developer Tools</h1>
       <p>
         Fast, privacy-first utilities for developers. Everything runs in your browser —
@@ -26,8 +27,8 @@ const categories = [...new Set(tools.map((t) => t.category))];
       categories.map((cat) => (
         <section style="margin-bottom:2.5rem;">
           <h2
-            style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;
-                   color:var(--text-muted);margin:0 0 0.75rem;font-weight:700;"
+            style={`font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;
+                   color:${getCategoryColor(cat)};margin:0 0 0.75rem;font-weight:700;`}
           >
             {cat}
           </h2>
@@ -35,7 +36,11 @@ const categories = [...new Set(tools.map((t) => t.category))];
             {tools
               .filter((t) => t.category === cat)
               .map((tool) => (
-                <a href={`/tools/${tool.slug}`} class="tool-card">
+                <a
+                  href={`/tools/${tool.slug}`}
+                  class="tool-card"
+                  style={`--card-accent:${getCategoryColor(tool.category)};`}
+                >
                   <div class="icon">{tool.icon}</div>
                   <h3>{tool.shortTitle}</h3>
                   <p>{tool.description.split('.')[0]}.</p>
@@ -46,7 +51,7 @@ const categories = [...new Set(tools.map((t) => t.category))];
       ))
     }
 
-    <div class="panel" style="text-align:center;padding:2.25rem;margin-top:0.5rem;">
+    <div class="panel" style="text-align:center;padding:2.25rem;margin-top:0.5rem;position:relative;overflow:hidden;">
       <p style="margin:0 0 1rem;font-size:1.05rem;">
         Bracketly is free and open-source. If it saves you time, consider supporting it.
       </p>

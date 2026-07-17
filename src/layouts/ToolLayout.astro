@@ -1,7 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import AdUnit from '../components/AdUnit.astro';
-import type { Tool } from '../data/tools';
+import { getCategoryColor, type Tool } from '../data/tools';
 
 interface Props {
   tool: Tool;
@@ -49,7 +49,8 @@ const faqSchema = {
       ← All tools
     </a>
 
-    <div class="tool-header">
+    <div class="tool-header" style={`--card-accent:${getCategoryColor(tool.category)};`}>
+      <div class="icon" style="margin-bottom:0.6rem;">{tool.icon}</div>
       <span class="pill">{tool.category}</span>
       <h1>{tool.title}</h1>
       <p>{tool.description}</p>
