@@ -43,6 +43,13 @@ jobs:
           temporaryPublicStorage: false
         continue-on-error: true
 
+      - name: Query Search Console
+        id: gsc
+        continue-on-error: true
+        env:
+          GSC_SERVICE_ACCOUNT_KEY: ${{ secrets.GSC_SERVICE_ACCOUNT_KEY }}
+        run: node .github/scripts/gsc-query.mjs > gsc.json
+
       - name: Gather site + analytics data
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -56,6 +63,8 @@ jobs:
             -d "{\"query\":\"query { viewer { accounts(filter: {accountTag: \\\"$CLOUDFLARE_ACCOUNT_ID\\\"}) { daily: rumPageloadEventsAdaptiveGroups(limit: 20, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [date_DESC]) { count dimensions { date } } pages: rumPageloadEventsAdaptiveGroups(limit: 30, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [count_DESC]) { count dimensions { requestPath refererHost countryName } } } } }\"}")
 
           LH_FILE=$(ls .lighthouseci/lhr-*.json 2>/dev/null | head -1 || echo "")
+          GSC_FILE="gsc.json"
+          [ -s "$GSC_FILE" ] || echo '{}' > "$GSC_FILE"
 
           node -e "
             const fs = require('fs');
@@ -63,6 +72,7 @@ jobs:
             const groups = analytics?.data?.viewer?.accounts?.[0] ?? { daily: [], pages: [] };
             const broken = JSON.parse(fs.readFileSync('broken.json', 'utf8'));
             const lhFile = process.argv[3];
+            const gsc = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 
             let lighthouse = null;
             if (lhFile && fs.existsSync(lhFile)) {
@@ -83,6 +93,11 @@ jobs:
               site_status_code: process.argv[1],
               broken_pages: broken,
               lighthouse,
+              search_console: {
+                note: 'Search Console data lags ~2-3 days and needs time after indexing to populate; empty arrays are expected for a new/low-traffic site, not a bug.',
+                top_queries: gsc.top_queries ?? [],
+                top_pages: gsc.top_pages ?? [],
+              },
               last_7_days: {
                 daily_pageloads: groups.daily ?? [],
                 total_pageloads: totalPageloads,
@@ -99,9 +114,10 @@ jobs:
               site_status_code: process.argv[1],
               broken_page_count: broken.length,
               lighthouse_performance: lighthouse?.performance ?? null,
+              gsc_total_query_clicks: (gsc.top_queries ?? []).reduce((a, r) => a + (r.clicks ?? 0), 0),
             });
             fs.appendFileSync('status/history.jsonl', historyEntry + '\n');
-          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE"
+          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE" "$GSC_FILE"
 
           cat status/latest.json
 
