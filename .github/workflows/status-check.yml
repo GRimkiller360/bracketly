@@ -1,0 +1,54 @@
+name: Daily Status Snapshot
+
+on:
+  schedule:
+    - cron: "45 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gather site + analytics data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mkdir -p status
+          SITE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://bracketly.pages.dev/)
+          SEVEN_DAYS_AGO=$(date -u -d '7 days ago' +%Y-%m-%d)
+
+          ANALYTICS=$(curl -s -X POST "https://api.cloudflare.com/client/v4/graphql" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"query\":\"query { viewer { accounts(filter: {accountTag: \\\"$CLOUDFLARE_ACCOUNT_ID\\\"}) { daily: rumPageloadEventsAdaptiveGroups(limit: 20, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [date_DESC]) { count dimensions { date } } pages: rumPageloadEventsAdaptiveGroups(limit: 30, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [count_DESC]) { count dimensions { requestPath refererHost countryName } } } } }\"}")
+
+          node -e "
+            const fs = require('fs');
+            const analytics = JSON.parse(process.argv[2]);
+            const groups = analytics?.data?.viewer?.accounts?.[0] ?? { daily: [], pages: [] };
+            const out = {
+              generated_at: new Date().toISOString(),
+              site_status_code: process.argv[1],
+              last_7_days: {
+                daily_pageloads: groups.daily ?? [],
+                total_pageloads: (groups.daily ?? []).reduce((a, d) => a + d.count, 0),
+                top_requests: groups.pages ?? [],
+              },
+            };
+            fs.writeFileSync('status/latest.json', JSON.stringify(out, null, 2));
+          " "$SITE_STATUS" "$ANALYTICS"
+
+          cat status/latest.json
+
+      - name: Commit snapshot
+        run: |
+          git config user.name "bracketly-bot"
+          git config user.email "actions@github.com"
+          git add status/latest.json
+          git diff --staged --quiet && echo "No changes" || (git commit -m "Update daily status snapshot" && git push)
