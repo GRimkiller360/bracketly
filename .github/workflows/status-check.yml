@@ -15,12 +15,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check every page for broken responses
+        id: pages
+        run: |
+          mkdir -p status
+          curl -s https://bracketly.pages.dev/sitemap-0.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' > urls.txt
+          echo "[]" > broken.json
+          while read -r url; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$url")
+            if [ "$code" != "200" ]; then
+              node -e "
+                const fs = require('fs');
+                const b = JSON.parse(fs.readFileSync('broken.json', 'utf8'));
+                b.push({ url: process.argv[1], status: process.argv[2] });
+                fs.writeFileSync('broken.json', JSON.stringify(b));
+              " "$url" "$code"
+            fi
+          done < urls.txt
+          echo "checked $(wc -l < urls.txt) pages"
+          cat broken.json
+
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: https://bracketly.pages.dev/
+          uploadArtifacts: false
+          temporaryPublicStorage: false
+        continue-on-error: true
+
       - name: Gather site + analytics data
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          mkdir -p status
           SITE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://bracketly.pages.dev/)
           SEVEN_DAYS_AGO=$(date -u -d '7 days ago' +%Y-%m-%d)
 
@@ -28,21 +55,53 @@ jobs:
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
             -d "{\"query\":\"query { viewer { accounts(filter: {accountTag: \\\"$CLOUDFLARE_ACCOUNT_ID\\\"}) { daily: rumPageloadEventsAdaptiveGroups(limit: 20, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [date_DESC]) { count dimensions { date } } pages: rumPageloadEventsAdaptiveGroups(limit: 30, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [count_DESC]) { count dimensions { requestPath refererHost countryName } } } } }\"}")
 
+          LH_FILE=$(ls .lighthouseci/lhr-*.json 2>/dev/null | head -1 || echo "")
+
           node -e "
             const fs = require('fs');
             const analytics = JSON.parse(process.argv[2]);
             const groups = analytics?.data?.viewer?.accounts?.[0] ?? { daily: [], pages: [] };
+            const broken = JSON.parse(fs.readFileSync('broken.json', 'utf8'));
+            const lhFile = process.argv[3];
+
+            let lighthouse = null;
+            if (lhFile && fs.existsSync(lhFile)) {
+              try {
+                const lhr = JSON.parse(fs.readFileSync(lhFile, 'utf8'));
+                lighthouse = Object.fromEntries(
+                  Object.entries(lhr.categories).map(([k, v]) => [k, Math.round(v.score * 100)])
+                );
+              } catch (e) {
+                lighthouse = { error: 'failed to parse lighthouse report' };
+              }
+            }
+
+            const totalPageloads = (groups.daily ?? []).reduce((a, d) => a + d.count, 0);
+
             const out = {
               generated_at: new Date().toISOString(),
               site_status_code: process.argv[1],
+              broken_pages: broken,
+              lighthouse,
               last_7_days: {
                 daily_pageloads: groups.daily ?? [],
-                total_pageloads: (groups.daily ?? []).reduce((a, d) => a + d.count, 0),
+                total_pageloads: totalPageloads,
                 top_requests: groups.pages ?? [],
               },
             };
+            fs.mkdirSync('status', { recursive: true });
             fs.writeFileSync('status/latest.json', JSON.stringify(out, null, 2));
-          " "$SITE_STATUS" "$ANALYTICS"
+
+            // Append a compact entry to the running history log for trend comparison.
+            const historyEntry = JSON.stringify({
+              date: new Date().toISOString().slice(0, 10),
+              total_pageloads_7d: totalPageloads,
+              site_status_code: process.argv[1],
+              broken_page_count: broken.length,
+              lighthouse_performance: lighthouse?.performance ?? null,
+            });
+            fs.appendFileSync('status/history.jsonl', historyEntry + '\n');
+          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE"
 
           cat status/latest.json
 
@@ -50,5 +109,5 @@ jobs:
         run: |
           git config user.name "bracketly-bot"
           git config user.email "actions@github.com"
-          git add status/latest.json
+          git add status/latest.json status/history.jsonl
           git diff --staged --quiet && echo "No changes" || (git commit -m "Update daily status snapshot" && git push)
