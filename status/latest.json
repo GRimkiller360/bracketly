@@ -1,0 +1,121 @@
+{
+  "generated_at": "2026-07-17T12:31:40.916Z",
+  "site_status_code": "200",
+  "last_7_days": {
+    "daily_pageloads": [
+      {
+        "count": 30,
+        "dimensions": {
+          "date": "2026-07-17"
+        }
+      }
+    ],
+    "total_pageloads": 30,
+    "top_requests": [
+      {
+        "count": 9,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 7,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/json-formatter/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/regex-tester/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/hash-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/color-converter/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/url-encoder/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/timestamp-converter/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/jwt-decoder/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/base64/"
+        }
+      }
+    ]
+  }
+}
