@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-19T15:40:54.722Z",
+  "generated_at": "2026-07-19T15:48:46.140Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 92,
+    "performance": 79,
     "accessibility": 88,
     "best-practices": 78,
     "seo": 100,
@@ -22,7 +22,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 1,
+        "count": 4,
         "dimensions": {
           "date": "2026-07-19"
         }
@@ -40,10 +40,10 @@
         }
       }
     ],
-    "total_pageloads": 44,
+    "total_pageloads": 47,
     "top_requests": [
       {
-        "count": 21,
+        "count": 22,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -51,7 +51,7 @@
         }
       },
       {
-        "count": 8,
+        "count": 9,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
@@ -120,6 +120,14 @@
           "countryName": "US",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/url-encoder/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/"
         }
       },
       {
