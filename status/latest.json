@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-19T15:48:46.140Z",
+  "generated_at": "2026-07-19T19:29:42.591Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 79,
+    "performance": 100,
     "accessibility": 88,
     "best-practices": 78,
     "seo": 100,
@@ -16,13 +16,13 @@
   },
   "adsense": {
     "note": "account_state NEEDS_ATTENTION means AdSense has not approved the account for ad serving yet — earnings will be null until approved, this is expected and not a bug to fix.",
-    "account_state": "NEEDS_ATTENTION",
+    "account_state": "READY",
     "earnings_last_7_days": null
   },
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 4,
+        "count": 15,
         "dimensions": {
           "date": "2026-07-19"
         }
@@ -40,10 +40,10 @@
         }
       }
     ],
-    "total_pageloads": 47,
+    "total_pageloads": 58,
     "top_requests": [
       {
-        "count": 22,
+        "count": 29,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -64,6 +64,22 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/json-formatter/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/tools/base64/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/tools/base64"
         }
       },
       {
