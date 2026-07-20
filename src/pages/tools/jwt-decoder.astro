@@ -23,11 +23,17 @@ const tool = getTool('jwt-decoder')!;
   <div id="results" style="display:none;">
     <div class="grid-2" style="margin-bottom:1rem;">
       <div class="panel">
-        <div class="field-label"><span>Header</span></div>
+        <div class="field-label">
+          <span>Header</span>
+          <button class="btn" id="btn-copy-header" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+        </div>
         <pre id="header-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
       </div>
       <div class="panel">
-        <div class="field-label"><span>Payload</span></div>
+        <div class="field-label">
+          <span>Payload</span>
+          <button class="btn" id="btn-copy-payload" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+        </div>
         <pre id="payload-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
       </div>
     </div>
@@ -121,6 +127,19 @@ const tool = getTool('jwt-decoder')!;
     results.style.display = 'none';
     status.textContent = '';
   });
+
+  function copyBtn(id, source) {
+    document.getElementById(id).addEventListener('click', function () {
+      var text = source.textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text);
+      this.textContent = 'Copied!';
+      var btn = this;
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
+  }
+  copyBtn('btn-copy-header', headerOut);
+  copyBtn('btn-copy-payload', payloadOut);
 
   jwtInput.addEventListener('input', decode);
 </script>

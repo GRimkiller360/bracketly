@@ -37,7 +37,10 @@ const tool = getTool('regex-tester')!;
   </div>
 
   <div id="matches-panel" style="display:none;">
-    <div class="field-label"><span>Matches &amp; capture groups</span></div>
+    <div class="field-label">
+      <span>Matches &amp; capture groups</span>
+      <button class="btn" id="btn-copy-matches" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+    </div>
     <textarea id="matches-out" rows="10" readonly style="font-size:0.82rem;"></textarea>
   </div>
 </ToolLayout>
@@ -106,4 +109,12 @@ const tool = getTool('regex-tester')!;
   patternEl.addEventListener('input', test);
   flagsEl.addEventListener('input', test);
   testStr.addEventListener('input', test);
+
+  document.getElementById('btn-copy-matches').addEventListener('click', function () {
+    if (!matchesOut.value) return;
+    navigator.clipboard.writeText(matchesOut.value);
+    this.textContent = 'Copied!';
+    var btn = this;
+    setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+  });
 </script>
