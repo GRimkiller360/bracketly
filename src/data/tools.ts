@@ -206,6 +206,30 @@ export const tools: Tool[] = [
     ],
   },
   {
+    slug: "cron-parser",
+    title: "Cron Expression Parser & Explainer",
+    shortTitle: "Cron Parser",
+    description:
+      "Paste a cron expression to get a plain-English explanation and the next 5 scheduled run times. Supports ranges, steps, lists, and @daily/@hourly shortcuts. 100% client-side.",
+    keywords: ["cron parser", "crontab explainer", "cron expression generator", "what does this cron mean"],
+    icon: "⏱",
+    category: "Data",
+    faq: [
+      {
+        q: "What cron syntax does this support?",
+        a: "The standard 5-field format (minute, hour, day-of-month, month, day-of-week), including *, ranges like 1-5, steps like */15, comma-separated lists like 1,15, and the common @yearly/@monthly/@weekly/@daily/@hourly/@midnight shortcuts. Named months or weekdays (e.g. 'MON' or 'JAN') aren't supported — use numbers.",
+      },
+      {
+        q: "Why does 'day-of-month' say 'or' with 'day-of-week' instead of 'and'?",
+        a: "This matches real cron behavior: when both the day-of-month and day-of-week fields are restricted (not *), a date matches if it satisfies either one, not both. If only one of the two is restricted, only that one is used.",
+      },
+      {
+        q: "How are the next run times calculated?",
+        a: "This tool simulates forward minute-by-minute from the current time on your device, checking each candidate against the parsed schedule, until it finds 5 matches (capped at 2 years out). Everything happens locally in your browser — your cron expression is never sent anywhere.",
+      },
+    ],
+  },
+  {
     slug: "color-converter",
     title: "Color Converter — HEX, RGB, HSL",
     shortTitle: "Color Converter",
