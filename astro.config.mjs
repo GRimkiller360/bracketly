@@ -10,5 +10,5 @@ export default defineConfig({
   // no base path needed unless you set a custom path in the dashboard.
   site: 'https://bracketly.pages.dev',
 
-  integrations: [sitemap()]
+  integrations: [sitemap({ xslURL: '/sitemap.xsl' })]
 });
