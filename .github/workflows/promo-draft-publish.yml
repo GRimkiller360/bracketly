@@ -1,4 +1,4 @@
-name: Publish promo drafts to Dev.to
+name: Publish promo drafts to Dev.to and Mastodon
 
 on:
   push:
@@ -58,5 +58,36 @@ jobs:
                 .then((r) => r.json())
                 .then((d) => console.log('Published:', d.url || JSON.stringify(d)))
                 .catch((e) => { console.error('Publish failed:', e); process.exit(1); });
+            " "$file"
+          done <<< "${{ steps.files.outputs.files }}"
+
+      - name: Post each new draft to Mastodon
+        if: steps.files.outputs.files != ''
+        env:
+          MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+          MASTODON_INSTANCE_URL: https://mastodon.social
+        run: |
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Posting $file to Mastodon"
+            node -e "
+              const fs = require('fs');
+              const raw = fs.readFileSync(process.argv[1], 'utf8');
+              const titleMatch = raw.match(/^#\s+(.+)$/m);
+              const title = titleMatch ? titleMatch[1].trim() : 'Bracketly update';
+              const linkMatch = raw.match(/https:\/\/bracketly\.pages\.dev[^\s)\]]*/);
+              const link = linkMatch ? linkMatch[0] : 'https://bracketly.pages.dev/';
+              const status = title + '\n\n' + link + '\n\n#buildinpublic #devtools #webdev';
+              fetch(process.env.MASTODON_INSTANCE_URL + '/api/v1/statuses', {
+                method: 'POST',
+                headers: {
+                  Authorization: 'Bearer ' + process.env.MASTODON_ACCESS_TOKEN,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status, visibility: 'public' }),
+              })
+                .then((r) => r.json())
+                .then((d) => console.log('Posted:', d.url || JSON.stringify(d)))
+                .catch((e) => { console.error('Mastodon post failed:', e); process.exit(1); });
             " "$file"
           done <<< "${{ steps.files.outputs.files }}"
