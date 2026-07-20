@@ -24,31 +24,34 @@ const categories = [...new Set(tools.map((t) => t.category))];
     <AdUnit />
 
     {
-      categories.map((cat) => (
-        <section style="margin-bottom:2.5rem;">
-          <h2
-            style={`font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;
-                   color:${getCategoryColor(cat)};margin:0 0 0.75rem;font-weight:700;`}
-          >
-            {cat}
-          </h2>
-          <div class="tool-grid">
-            {tools
-              .filter((t) => t.category === cat)
-              .map((tool) => (
-                <a
-                  href={`/tools/${tool.slug}`}
-                  class="tool-card"
-                  style={`--card-accent:${getCategoryColor(tool.category)};`}
-                >
-                  <div class="icon">{tool.icon}</div>
-                  <h3>{tool.shortTitle}</h3>
-                  <p>{tool.description.split('.')[0]}.</p>
-                </a>
-              ))}
-          </div>
-        </section>
-      ))
+      categories.map((cat) => {
+        const c = getCategoryColor(cat);
+        return (
+          <section style="margin-bottom:2.5rem;">
+            <h2
+              class="category-label"
+              style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
+            >
+              {cat}
+            </h2>
+            <div class="tool-grid">
+              {tools
+                .filter((t) => t.category === cat)
+                .map((tool) => (
+                  <a
+                    href={`/tools/${tool.slug}`}
+                    class="tool-card"
+                    style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
+                  >
+                    <div class="icon">{tool.icon}</div>
+                    <h3>{tool.shortTitle}</h3>
+                    <p>{tool.description.split('.')[0]}.</p>
+                  </a>
+                ))}
+            </div>
+          </section>
+        );
+      })
     }
 
     <div class="panel" style="text-align:center;padding:2.25rem;margin-top:0.5rem;position:relative;overflow:hidden;">

@@ -237,15 +237,18 @@ export function getTool(slug: string): Tool | undefined {
 
 // One accent color per category, used for tool card icons, hover glow, and
 // the category pill on tool pages. Keeps the site colorful without every
-// page needing its own palette decision.
-export const categoryColors: Record<string, string> = {
-  Data: "#4f46e5",
-  Encoding: "#066f89",
-  Security: "#c71a40",
-  Text: "#7c3aed",
-  Design: "#c02067",
+// page needing its own palette decision. Each category has a light- and
+// dark-mode variant so accent text stays at/above WCAG AA (4.5:1) against
+// both the light and dark theme backgrounds — a single shared hex can't
+// satisfy both since dark mode needs a lighter shade of the same hue.
+export const categoryColors: Record<string, { light: string; dark: string }> = {
+  Data: { light: "#4f46e5", dark: "#8b85ee" },
+  Encoding: { light: "#066f89", dark: "#089bbf" },
+  Security: { light: "#c71a40", dark: "#ea5d7c" },
+  Text: { light: "#7c3aed", dark: "#a477f3" },
+  Design: { light: "#c02067", dark: "#e5619c" },
 };
 
-export function getCategoryColor(category: string): string {
-  return categoryColors[category] ?? "#3457d5";
+export function getCategoryColor(category: string): { light: string; dark: string } {
+  return categoryColors[category] ?? { light: "#3457d5", dark: "#6d8bff" };
 }

@@ -10,6 +10,7 @@ interface Props {
 const { tool } = Astro.props;
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const pageUrl = siteUrl + Astro.url.pathname;
+const categoryColor = getCategoryColor(tool.category);
 
 const webAppSchema = {
   '@context': 'https://schema.org',
@@ -49,7 +50,7 @@ const faqSchema = {
       ← All tools
     </a>
 
-    <div class="tool-header" style={`--card-accent:${getCategoryColor(tool.category)};`}>
+    <div class="tool-header" style={`--card-accent-light:${categoryColor.light};--card-accent-dark:${categoryColor.dark};`}>
       <div class="icon" style="margin-bottom:0.6rem;">{tool.icon}</div>
       <span class="pill">{tool.category}</span>
       <h1>{tool.title}</h1>

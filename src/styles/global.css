@@ -250,10 +250,10 @@ main {
   animation: fadeInUp 0.5s ease both;
 }
 .tool-card:hover {
-  border-color: var(--card-accent, var(--accent));
+  border-color: var(--card-accent-light, var(--accent));
   text-decoration: none;
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lift), 0 0 0 1px var(--card-accent, var(--accent)) inset;
+  box-shadow: var(--shadow-lift), 0 0 0 1px var(--card-accent-light, var(--accent)) inset;
 }
 .tool-grid .tool-card:nth-child(1) { animation-delay: 0.02s; }
 .tool-grid .tool-card:nth-child(2) { animation-delay: 0.06s; }
@@ -261,12 +261,13 @@ main {
 .tool-grid .tool-card:nth-child(4) { animation-delay: 0.14s; }
 .tool-grid .tool-card:nth-child(5) { animation-delay: 0.18s; }
 .tool-grid .tool-card:nth-child(6) { animation-delay: 0.22s; }
-.tool-card .icon {
+.tool-card .icon,
+.tool-header .icon {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--card-accent, var(--accent));
-  background: color-mix(in srgb, var(--card-accent, var(--accent)) 14%, transparent);
+  color: var(--card-accent-light, var(--accent));
+  background: color-mix(in srgb, var(--card-accent-light, var(--accent)) 14%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -416,8 +417,32 @@ input[type="text"]:focus {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--card-accent, var(--text-muted));
-  background: color-mix(in srgb, var(--card-accent, var(--bg-subtle)) 14%, transparent);
+  color: var(--card-accent-light, var(--text-muted));
+  background: color-mix(in srgb, var(--card-accent-light, var(--bg-subtle)) 14%, transparent);
   border-radius: 999px;
   padding: 0.25rem 0.65rem;
+}
+
+.category-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--card-accent-light, var(--text-muted));
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tool-card .icon,
+  .tool-header .icon {
+    color: var(--card-accent-dark, var(--accent));
+    background: color-mix(in srgb, var(--card-accent-dark, var(--accent)) 14%, transparent);
+  }
+  .pill {
+    color: var(--card-accent-dark, var(--text-muted));
+    background: color-mix(in srgb, var(--card-accent-dark, var(--bg-subtle)) 14%, transparent);
+  }
+  .category-label {
+    color: var(--card-accent-dark, var(--text-muted));
+  }
 }
