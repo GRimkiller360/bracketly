@@ -1,0 +1,62 @@
+name: Publish promo drafts to Dev.to
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'status/promo-drafts/*.md'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find newly added draft files
+        id: files
+        run: |
+          # Only ADDED files (status A) — never re-publish on an edit to an
+          # existing draft, only on a genuinely new one.
+          ADDED=$(git diff --diff-filter=A --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- 'status/promo-drafts/*.md' || echo "")
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$ADDED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "Added files: $ADDED"
+
+      - name: Publish each new draft
+        if: steps.files.outputs.files != ''
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+        run: |
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Publishing $file"
+            node -e "
+              const fs = require('fs');
+              const raw = fs.readFileSync(process.argv[1], 'utf8');
+              const titleMatch = raw.match(/^#\s+(.+)$/m);
+              const title = titleMatch ? titleMatch[1].trim() : 'Bracketly update';
+              const payload = {
+                article: {
+                  title,
+                  published: true,
+                  body_markdown: raw,
+                  tags: ['webdev', 'showdev', 'javascript'],
+                },
+              };
+              fetch('https://dev.to/api/articles', {
+                method: 'POST',
+                headers: { 'api-key': process.env.DEVTO_API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              })
+                .then((r) => r.json())
+                .then((d) => console.log('Published:', d.url || JSON.stringify(d)))
+                .catch((e) => { console.error('Publish failed:', e); process.exit(1); });
+            " "$file"
+          done <<< "${{ steps.files.outputs.files }}"
