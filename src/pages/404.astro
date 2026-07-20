@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { tools } from '../data/tools';
+import { tools, getCategoryColor } from '../data/tools';
 ---
 
 <BaseLayout
@@ -17,12 +17,19 @@ import { tools } from '../data/tools';
     </a>
 
     <div class="tool-grid" style="text-align:left;">
-      {tools.slice(0, 6).map((tool) => (
-        <a href={`/tools/${tool.slug}`} class="tool-card">
-          <div class="icon">{tool.icon}</div>
-          <h3>{tool.shortTitle}</h3>
-        </a>
-      ))}
+      {tools.slice(0, 6).map((tool) => {
+        const c = getCategoryColor(tool.category);
+        return (
+          <a
+            href={`/tools/${tool.slug}`}
+            class="tool-card"
+            style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
+          >
+            <div class="icon">{tool.icon}</div>
+            <h3>{tool.shortTitle}</h3>
+          </a>
+        );
+      })}
     </div>
   </div>
 </BaseLayout>
