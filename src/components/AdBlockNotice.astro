@@ -72,11 +72,16 @@
     document.body.appendChild(bait);
 
     setTimeout(function () {
-      var blocked =
+      // Two independent signals, since blockers work two different ways:
+      // cosmetic filters hide the bait div via CSS, network-level blockers
+      // instead stop the real AdSense script from ever loading at all.
+      var cosmeticBlock =
         bait.offsetHeight === 0 ||
         bait.clientHeight === 0 ||
         getComputedStyle(bait).display === 'none';
+      var networkBlock = window.__bracketlyAdsFailed === true;
       document.body.removeChild(bait);
+      var blocked = cosmeticBlock || networkBlock;
       if (!blocked) return;
 
       var notice = document.getElementById('adblock-notice');
@@ -90,6 +95,6 @@
           localStorage.setItem(STORAGE_KEY, '1');
         } catch (e) {}
       });
-    }, 400);
+    }, 800);
   })();
 </script>
