@@ -25,14 +25,14 @@ const tool = getTool('jwt-decoder')!;
       <div class="panel">
         <div class="field-label">
           <span>Header</span>
-          <button class="btn" id="btn-copy-header" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+          <button class="btn" id="btn-copy-header" aria-label="Copy decoded header JSON" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
         </div>
         <pre id="header-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
       </div>
       <div class="panel">
         <div class="field-label">
           <span>Payload</span>
-          <button class="btn" id="btn-copy-payload" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+          <button class="btn" id="btn-copy-payload" aria-label="Copy decoded payload JSON" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
         </div>
         <pre id="payload-out" style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono);font-size:0.85rem;color:var(--code-text);background:var(--code-bg);padding:0.75rem;border-radius:6px;overflow:auto;"></pre>
       </div>

@@ -17,7 +17,7 @@ const tool = getTool('hash-generator')!;
       <div class="panel">
         <div class="field-label">
           <span>{algo}</span>
-          <button class="btn btn-copy-hash" data-target={`out-${algo}`} style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+          <button class="btn btn-copy-hash" data-target={`out-${algo}`} aria-label={`Copy ${algo} hash`} style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
         </div>
         <textarea id={`out-${algo}`} rows="2" readonly style="font-size:0.8rem;"></textarea>
       </div>
