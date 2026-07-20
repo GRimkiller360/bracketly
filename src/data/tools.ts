@@ -240,10 +240,10 @@ export function getTool(slug: string): Tool | undefined {
 // page needing its own palette decision.
 export const categoryColors: Record<string, string> = {
   Data: "#4f46e5",
-  Encoding: "#0891b2",
-  Security: "#e11d48",
+  Encoding: "#066f89",
+  Security: "#c71a40",
   Text: "#7c3aed",
-  Design: "#db2777",
+  Design: "#c02067",
 };
 
 export function getCategoryColor(category: string): string {
