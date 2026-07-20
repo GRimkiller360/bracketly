@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="How Bracketly handles data: what runs client-side, what analytics and ads are used, and what data (if any) is collected."
+>
+  <div class="container" style="max-width:680px;">
+    <div style="padding:3rem 0 1rem;">
+      <h1 style="font-size:2rem;letter-spacing:-0.03em;margin:0 0 0.75rem;">Privacy Policy</h1>
+      <p style="color:var(--text-muted);font-size:0.95rem;margin:0 0 2rem;">Last updated: July 2026</p>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">The tools themselves</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Bracketly has no backend and no accounts. Every tool (JSON formatter, Base64
+          encoder, JWT decoder, hash generator, and the rest) runs entirely in your
+          browser using standard JavaScript and Web APIs. Whatever you type or paste
+          into a tool is processed locally on your device and is never transmitted to
+          or stored on any server.
+        </p>
+      </div>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Analytics</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Bracketly uses Cloudflare Web Analytics to understand overall site traffic
+          (which pages are visited, roughly how many people visit). It's cookieless
+          and doesn't build a profile of individual visitors — Cloudflare's own
+          documentation covers exactly what it collects.
+        </p>
+      </div>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Advertising</h2>
+        <p style="color:var(--text-muted);margin:0 0 0.9rem;font-size:0.95rem;line-height:1.7;">
+          Bracketly shows ads served by Google AdSense to help cover hosting costs.
+          Google and its advertising partners may use cookies or similar
+          technologies to serve ads, including ads based on your prior visits to
+          this or other websites. Bracketly itself does not access or store any
+          data these cookies collect.
+        </p>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          You can see and adjust what Google knows for ad personalization at{" "}
+          <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">adssettings.google.com</a>,
+          and read Google's own policy at{" "}
+          <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a>.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Questions</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Bracketly is open-source. If you have a question about this policy or want
+          to check exactly what a page loads, the full source is on{" "}
+          <a href="https://github.com/GRimkiller360/bracketly" target="_blank" rel="noopener noreferrer">GitHub</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
