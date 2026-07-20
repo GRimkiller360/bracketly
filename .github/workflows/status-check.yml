@@ -67,6 +67,13 @@ jobs:
           SITE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://bracketly.pages.dev/)
           SEVEN_DAYS_AGO=$(date -u -d '7 days ago' +%Y-%m-%d)
 
+          AD_SLOT="8066491572"
+          if curl -s https://bracketly.pages.dev/ | grep -q "data-ad-slot=\"$AD_SLOT\""; then
+            AD_RENDERING="true"
+          else
+            AD_RENDERING="false"
+          fi
+
           ANALYTICS=$(curl -s -X POST "https://api.cloudflare.com/client/v4/graphql" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
             -d "{\"query\":\"query { viewer { accounts(filter: {accountTag: \\\"$CLOUDFLARE_ACCOUNT_ID\\\"}) { daily: rumPageloadEventsAdaptiveGroups(limit: 20, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [date_DESC]) { count dimensions { date } } pages: rumPageloadEventsAdaptiveGroups(limit: 30, filter: {date_geq: \\\"$SEVEN_DAYS_AGO\\\"}, orderBy: [count_DESC]) { count dimensions { requestPath refererHost countryName } } } } }\"}")
@@ -114,6 +121,8 @@ jobs:
                 note: 'account_state NEEDS_ATTENTION means AdSense has not approved the account for ad serving yet — earnings will be null until approved, this is expected and not a bug to fix.',
                 account_state: adsense.account_state ?? 'UNKNOWN',
                 earnings_last_7_days: adsense.earnings ?? null,
+                ad_unit_slot: process.argv[6],
+                ad_unit_rendering: process.argv[7] === 'true',
               },
               last_7_days: {
                 daily_pageloads: groups.daily ?? [],
@@ -134,9 +143,10 @@ jobs:
               gsc_total_query_clicks: (gsc.top_queries ?? []).reduce((a, r) => a + (r.clicks ?? 0), 0),
               adsense_account_state: adsense.account_state ?? null,
               adsense_estimated_earnings: adsense.earnings?.estimated_earnings ?? null,
+              ad_unit_rendering: process.argv[7] === 'true',
             });
             fs.appendFileSync('status/history.jsonl', historyEntry + '\n');
-          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE" "$GSC_FILE" "$ADSENSE_FILE"
+          " "$SITE_STATUS" "$ANALYTICS" "$LH_FILE" "$GSC_FILE" "$ADSENSE_FILE" "$AD_SLOT" "$AD_RENDERING"
 
           cat status/latest.json
 
