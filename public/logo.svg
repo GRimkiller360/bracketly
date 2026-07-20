@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+    <defs>
+        <linearGradient id="bracketly-gradient" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#3457d5" />
+            <stop offset="55%" stop-color="#7c3aed" />
+            <stop offset="100%" stop-color="#db2777" />
+        </linearGradient>
+    </defs>
+    <path d="M56 32H38v64h18" stroke="url(#bracketly-gradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M72 32h18v64H72" stroke="url(#bracketly-gradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

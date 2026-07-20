@@ -114,10 +114,17 @@ a:hover {
   gap: 1rem;
 }
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 800;
   font-size: 1.2rem;
   color: var(--text);
   letter-spacing: -0.02em;
+}
+.logo-mark {
+  display: block;
+  flex-shrink: 0;
 }
 .logo span {
   background: var(--gradient);
