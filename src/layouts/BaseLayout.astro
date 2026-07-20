@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import AdBlockNotice from '../components/AdBlockNotice.astro';
 
 interface Props {
   title: string;
@@ -71,5 +72,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
         </nav>
       </div>
     </footer>
+
+    <AdBlockNotice />
   </body>
 </html>
