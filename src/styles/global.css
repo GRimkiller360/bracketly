@@ -12,7 +12,7 @@
   --accent-2: #7c3aed;
   --accent-3: #db2777;
   --gradient: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 55%, var(--accent-3) 100%);
-  --success: #17845a;
+  --success: #157953;
   --danger: #c23838;
   --code-bg: #0f1117;
   --code-text: #e5e7eb;
@@ -171,7 +171,7 @@ a:hover {
   filter: brightness(1.08);
   box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.45);
 }
-.btn-support {
+a.btn-support {
   background: #ffd140;
   border-color: #ffd140;
   color: #17181c;
