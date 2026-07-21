@@ -90,6 +90,14 @@ a {
 a:hover {
   text-decoration: underline;
 }
+/* Inline links inside a run of prose can't rely on color alone (WCAG 1.4.1) —
+   underline them by default; nav/logo/button links stay untouched since
+   they aren't sitting inside a sentence of surrounding text. */
+p a,
+li a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+}
 
 .container {
   max-width: 880px;
