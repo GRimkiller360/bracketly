@@ -19,40 +19,82 @@ const categories = [...new Set(tools.map((t) => t.category))];
         Fast, privacy-first utilities for developers. Everything runs in your browser —
         nothing you enter is ever sent to a server.
       </p>
+      <input
+        type="search"
+        id="tool-search"
+        class="tool-search"
+        placeholder="Search tools…"
+        aria-label="Search tools"
+        autocomplete="off"
+      />
     </div>
 
     <AdUnit />
 
-    {
-      categories.map((cat) => {
-        const c = getCategoryColor(cat);
-        return (
-          <section style="margin-bottom:2.5rem;">
-            <h2
-              class="category-label"
-              style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
-            >
-              {cat}
-            </h2>
-            <div class="tool-grid">
-              {tools
-                .filter((t) => t.category === cat)
-                .map((tool) => (
-                  <a
-                    href={`/tools/${tool.slug}`}
-                    class="tool-card"
-                    style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
-                  >
-                    <div class="icon">{tool.icon}</div>
-                    <h3>{tool.shortTitle}</h3>
-                    <p>{tool.description.split('.')[0]}.</p>
-                  </a>
-                ))}
-            </div>
-          </section>
-        );
-      })
-    }
+    <div id="tool-sections">
+      {
+        categories.map((cat) => {
+          const c = getCategoryColor(cat);
+          return (
+            <section class="tool-section" data-category={cat} style="margin-bottom:2.5rem;">
+              <h2
+                class="category-label"
+                style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
+              >
+                {cat}
+              </h2>
+              <div class="tool-grid">
+                {tools
+                  .filter((t) => t.category === cat)
+                  .map((tool) => (
+                    <a
+                      href={`/tools/${tool.slug}`}
+                      class="tool-card"
+                      data-search={`${tool.title} ${tool.shortTitle} ${tool.description} ${tool.category}`.toLowerCase()}
+                      style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
+                    >
+                      <div class="icon">{tool.icon}</div>
+                      <h3>{tool.shortTitle}</h3>
+                      <p>{tool.description.split('.')[0]}.</p>
+                    </a>
+                  ))}
+              </div>
+            </section>
+          );
+        })
+      }
+    </div>
+    <p id="tool-search-empty" class="tool-search-empty" role="status">
+      No tools match your search.
+    </p>
+
+    <script is:inline>
+      (function () {
+        var input = document.getElementById('tool-search');
+        var sections = document.querySelectorAll('.tool-section');
+        var empty = document.getElementById('tool-search-empty');
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+          var query = input.value.trim().toLowerCase();
+          var anyVisible = false;
+
+          sections.forEach(function (section) {
+            var cards = section.querySelectorAll('.tool-card');
+            var sectionHasMatch = false;
+            cards.forEach(function (card) {
+              var matches = !query || card.dataset.search.indexOf(query) !== -1;
+              card.style.display = matches ? '' : 'none';
+              if (matches) sectionHasMatch = true;
+            });
+            section.style.display = sectionHasMatch ? '' : 'none';
+            if (sectionHasMatch) anyVisible = true;
+          });
+
+          empty.style.display = anyVisible ? 'none' : 'block';
+        });
+      })();
+    </script>
 
     <div class="panel" style="text-align:center;padding:2.25rem;margin-top:0.5rem;position:relative;overflow:hidden;">
       <p style="margin:0 0 1rem;font-size:1.05rem;">
