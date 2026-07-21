@@ -30,16 +30,16 @@ const tool = getTool('regex-tester')!;
     </div>
     <div class="field-label">
       <span>Test string</span>
-      <span id="match-count" style="font-weight:700;color:var(--accent);"></span>
+      <span id="match-count" aria-live="polite" style="font-weight:700;color:var(--accent);"></span>
     </div>
     <textarea id="test-string" rows="7" placeholder="Paste text to test against…"></textarea>
-    <div id="status" class="status" style="margin-top:0.4rem;"></div>
+    <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></div>
   </div>
 
   <div id="matches-panel" style="display:none;">
     <div class="field-label">
       <span>Matches &amp; capture groups</span>
-      <button class="btn" id="btn-copy-matches" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+      <button class="btn" id="btn-copy-matches" aria-label="Copy matches" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
     </div>
     <textarea id="matches-out" rows="10" readonly style="font-size:0.82rem;"></textarea>
   </div>
@@ -112,9 +112,13 @@ const tool = getTool('regex-tester')!;
 
   document.getElementById('btn-copy-matches').addEventListener('click', function () {
     if (!matchesOut.value) return;
-    navigator.clipboard.writeText(matchesOut.value);
-    this.textContent = 'Copied!';
     var btn = this;
-    setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    navigator.clipboard.writeText(matchesOut.value).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
   });
 </script>

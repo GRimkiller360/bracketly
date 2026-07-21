@@ -27,7 +27,7 @@ const tool = getTool('timestamp-converter')!;
       </table>
       <button class="btn" id="btn-copy-ts" aria-label="Copy human-readable date result" style="padding:0.2rem 0.5rem;font-size:0.75rem;margin-top:0.5rem;">Copy</button>
     </div>
-    <div id="ts-status" class="status" style="margin-top:0.4rem;"></div>
+    <div id="ts-status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></div>
   </div>
 
   <!-- Date → Unix -->
@@ -49,7 +49,7 @@ const tool = getTool('timestamp-converter')!;
       </table>
       <button class="btn" id="btn-copy-date" aria-label="Copy Unix timestamp result" style="padding:0.2rem 0.5rem;font-size:0.75rem;margin-top:0.5rem;">Copy</button>
     </div>
-    <div id="date-status" class="status" style="margin-top:0.4rem;"></div>
+    <div id="date-status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></div>
   </div>
 </ToolLayout>
 
@@ -87,10 +87,14 @@ const tool = getTool('timestamp-converter')!;
       var rows = lastRows[tableId];
       if (!rows) return;
       var text = rows.map(function (r) { return r[0] + ': ' + r[1]; }).join('\n');
-      navigator.clipboard.writeText(text);
-      this.textContent = 'Copied!';
       var btn = this;
-      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      });
     });
   }
 
@@ -128,8 +132,9 @@ const tool = getTool('timestamp-converter')!;
       return;
     }
 
-    // Auto-detect seconds vs milliseconds
-    var ms = n > 1e12 ? n : n * 1000;
+    // Auto-detect seconds vs milliseconds (compare magnitude so negative
+    // pre-1970 millisecond timestamps aren't mistaken for seconds)
+    var ms = Math.abs(n) > 1e12 ? n : n * 1000;
     var date = new Date(ms);
     if (isNaN(date.getTime())) {
       tsStatus.textContent = '✗ Invalid timestamp';

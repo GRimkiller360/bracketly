@@ -25,12 +25,12 @@ const tool = getTool('url-encoder')!;
     <div>
       <div class="field-label">
         <span id="label-output">Encoded output</span>
-        <button class="btn" id="btn-copy" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+        <button class="btn" id="btn-copy" aria-label="Copy output" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
       </div>
       <textarea id="output" rows="14" readonly placeholder="Output will appear here…"></textarea>
     </div>
   </div>
-  <div id="status" class="status" style="margin-top:0.5rem;"></div>
+  <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
 </ToolLayout>
 
 <script is:inline>
@@ -50,8 +50,12 @@ const tool = getTool('url-encoder')!;
     const val = input.value;
     if (!val) { output.value = ''; status.textContent = ''; return; }
     if (mode === 'encode') {
-      output.value = encodeURIComponent(val);
-      setStatus('✓ Encoded', true);
+      try {
+        output.value = encodeURIComponent(val);
+        setStatus('✓ Encoded', true);
+      } catch (e) {
+        setStatus('✗ Encode error — ' + e.message, false);
+      }
     } else {
       try {
         output.value = decodeURIComponent(val);
@@ -88,14 +92,18 @@ const tool = getTool('url-encoder')!;
   document.getElementById('btn-swap').addEventListener('click', function () {
     input.value = output.value;
     setMode(mode === 'encode' ? 'decode' : 'encode');
-    run();
   });
 
   document.getElementById('btn-copy').addEventListener('click', function () {
     if (!output.value) return;
-    navigator.clipboard.writeText(output.value);
-    this.textContent = 'Copied!';
-    setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+    const btn = this;
+    navigator.clipboard.writeText(output.value).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
   });
 
   document.getElementById('btn-clear').addEventListener('click', function () {

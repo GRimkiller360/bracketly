@@ -10,7 +10,7 @@ const tool = getTool('color-converter')!;
     <div>
       <div class="field-label"><span>Enter a color (HEX, RGB, or HSL)</span></div>
       <input type="text" id="input" placeholder="#3457d5, rgb(52,87,213), or hsl(228,66%,52%)" />
-      <div id="status" class="status" style="margin-top:0.5rem;"></div>
+      <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
     </div>
     <div>
       <div class="field-label"><span>Preview</span></div>
@@ -44,6 +44,8 @@ const tool = getTool('color-converter')!;
     status.className = 'status ' + (ok ? 'ok' : 'error');
   }
 
+  function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
+
   function parseColor(str) {
     str = str.trim();
     let m;
@@ -56,10 +58,10 @@ const tool = getTool('color-converter')!;
       return { r, g, b };
     }
     if ((m = str.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i))) {
-      return { r: +m[1], g: +m[2], b: +m[3] };
+      return { r: clamp(+m[1], 0, 255), g: clamp(+m[2], 0, 255), b: clamp(+m[3], 0, 255) };
     }
     if ((m = str.match(/^hsla?\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%/i))) {
-      return hslToRgb(+m[1], +m[2], +m[3]);
+      return hslToRgb(((+m[1] % 360) + 360) % 360, clamp(+m[2], 0, 100), clamp(+m[3], 0, 100));
     }
     return null;
   }
@@ -122,9 +124,14 @@ const tool = getTool('color-converter')!;
     btn.addEventListener('click', function () {
       const target = document.getElementById(this.dataset.target);
       if (!target.value) return;
-      navigator.clipboard.writeText(target.value);
-      this.textContent = 'Copied!';
-      setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+      const b = this;
+      navigator.clipboard.writeText(target.value).then(function () {
+        b.textContent = 'Copied!';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      }, function () {
+        b.textContent = 'Copy failed';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      });
     });
   });
 

@@ -95,16 +95,25 @@ const tool = getTool('hash-generator')!;
     'SHA-512': document.getElementById('out-SHA-512'),
   };
 
+  let runId = 0;
   async function run() {
     const val = input.value;
+    const myRun = ++runId;
     if (!val) {
       Object.values(outputs).forEach((el) => (el.value = ''));
       return;
     }
-    outputs.MD5.value = md5(val);
-    outputs['SHA-1'].value = await sha(val, 'SHA-1');
-    outputs['SHA-256'].value = await sha(val, 'SHA-256');
-    outputs['SHA-512'].value = await sha(val, 'SHA-512');
+    const md5Value = md5(val);
+    const [sha1, sha256, sha512] = await Promise.all([
+      sha(val, 'SHA-1'),
+      sha(val, 'SHA-256'),
+      sha(val, 'SHA-512'),
+    ]);
+    if (myRun !== runId) return; // a newer keystroke already superseded this run
+    outputs.MD5.value = md5Value;
+    outputs['SHA-1'].value = sha1;
+    outputs['SHA-256'].value = sha256;
+    outputs['SHA-512'].value = sha512;
   }
 
   input.addEventListener('input', run);
@@ -118,9 +127,14 @@ const tool = getTool('hash-generator')!;
     btn.addEventListener('click', function () {
       const target = document.getElementById(this.dataset.target);
       if (!target.value) return;
-      navigator.clipboard.writeText(target.value);
-      this.textContent = 'Copied!';
-      setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+      const b = this;
+      navigator.clipboard.writeText(target.value).then(function () {
+        b.textContent = 'Copied!';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      }, function () {
+        b.textContent = 'Copy failed';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      });
     });
   });
 </script>

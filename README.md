@@ -29,3 +29,7 @@ Live at [bracketly.pages.dev](https://bracketly.pages.dev).
 
 - **Google AdSense** — wire-up notes in `src/layouts/BaseLayout.astro` and `src/components/AdUnit.astro`
 - **PayPal / GitHub Sponsors** — `src/pages/donate.astro`, linked from `.github/FUNDING.yml`
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

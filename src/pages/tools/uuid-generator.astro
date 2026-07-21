@@ -35,7 +35,7 @@ const tool = getTool('uuid-generator')!;
 
     <div class="field-label"><span>Results (one per line)</span></div>
     <textarea id="output" rows="12" readonly placeholder="Click Generate…" style="user-select:all;"></textarea>
-    <p id="status" class="status" style="margin-top:0.4rem;"></p>
+    <p id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></p>
   </div>
 </ToolLayout>
 
@@ -85,9 +85,14 @@ const tool = getTool('uuid-generator')!;
 
   document.getElementById('btn-copy-all').addEventListener('click', function () {
     if (!output.value) return;
-    navigator.clipboard.writeText(output.value);
-    this.textContent = 'Copied!';
-    setTimeout(() => { this.textContent = 'Copy All'; }, 1500);
+    const btn = this;
+    navigator.clipboard.writeText(output.value).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy All'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy All'; }, 1500);
+    });
   });
 
   // Generate one on load

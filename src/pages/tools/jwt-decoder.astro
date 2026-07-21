@@ -17,7 +17,7 @@ const tool = getTool('jwt-decoder')!;
       placeholder="Paste your JWT here…  e.g. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
       style="font-size:0.82rem;"
     ></textarea>
-    <div id="status" class="status" style="margin-top:0.5rem;"></div>
+    <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
   </div>
 
   <div id="results" style="display:none;">
@@ -132,10 +132,14 @@ const tool = getTool('jwt-decoder')!;
     document.getElementById(id).addEventListener('click', function () {
       var text = source.textContent;
       if (!text) return;
-      navigator.clipboard.writeText(text);
-      this.textContent = 'Copied!';
       var btn = this;
-      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      });
     });
   }
   copyBtn('btn-copy-header', headerOut);
