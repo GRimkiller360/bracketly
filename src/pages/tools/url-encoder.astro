@@ -54,6 +54,7 @@ const tool = getTool('url-encoder')!;
         output.value = encodeURIComponent(val);
         setStatus('✓ Encoded', true);
       } catch (e) {
+        output.value = '';
         setStatus('✗ Encode error — ' + e.message, false);
       }
     } else {
@@ -61,6 +62,7 @@ const tool = getTool('url-encoder')!;
         output.value = decodeURIComponent(val);
         setStatus('✓ Decoded', true);
       } catch (e) {
+        output.value = '';
         setStatus('✗ Invalid percent-encoding — ' + e.message, false);
       }
     }

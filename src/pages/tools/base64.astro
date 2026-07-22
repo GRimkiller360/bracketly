@@ -57,6 +57,7 @@ const tool = getTool('base64')!;
         output.value = btoa(binary);
         setStatus('✓ Encoded', true);
       } catch (e) {
+        output.value = '';
         setStatus('✗ Encode error: ' + e.message, false);
       }
     } else {
@@ -68,6 +69,7 @@ const tool = getTool('base64')!;
         output.value = new TextDecoder().decode(bytes);
         setStatus('✓ Decoded', true);
       } catch (e) {
+        output.value = '';
         setStatus('✗ Invalid Base64 — ' + e.message, false);
       }
     }

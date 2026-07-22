@@ -106,6 +106,8 @@ const tool = getTool('color-converter')!;
     }
     const rgb = parseColor(val);
     if (!rgb) {
+      [outHex, outRgb, outHsl].forEach((el) => (el.value = ''));
+      swatch.style.background = 'transparent';
       setStatus('✗ Could not parse that as a color', false);
       return;
     }
