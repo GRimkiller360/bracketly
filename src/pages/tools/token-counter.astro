@@ -1,0 +1,138 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('token-counter')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="toolbar" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <label for="model-select" style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">Model:</label>
+        <select
+          id="model-select"
+          style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);"
+        >
+          <optgroup label="o200k_base">
+            <option value="o200k_base" data-label="GPT-5.5">GPT-5.5</option>
+            <option value="o200k_base" data-label="GPT-5.4">GPT-5.4</option>
+            <option value="o200k_base" data-label="GPT-5.1">GPT-5.1</option>
+            <option value="o200k_base" data-label="GPT-4o">GPT-4o</option>
+            <option value="o200k_base" data-label="GPT-4o mini">GPT-4o mini</option>
+            <option value="o200k_base" data-label="GPT-4.1">GPT-4.1</option>
+            <option value="o200k_base" data-label="o1">o1</option>
+            <option value="o200k_base" data-label="o3">o3</option>
+            <option value="o200k_base" data-label="o4-mini">o4-mini</option>
+          </optgroup>
+          <optgroup label="cl100k_base">
+            <option value="cl100k_base" data-label="GPT-4">GPT-4</option>
+            <option value="cl100k_base" data-label="GPT-4 Turbo">GPT-4 Turbo</option>
+            <option value="cl100k_base" data-label="GPT-3.5 Turbo">GPT-3.5 Turbo</option>
+            <option value="cl100k_base" data-label="text-embedding-3-large">text-embedding-3-large</option>
+            <option value="cl100k_base" data-label="text-embedding-3-small">text-embedding-3-small</option>
+          </optgroup>
+        </select>
+      </div>
+      <button class="btn" id="btn-clear" style="padding:0.35rem 0.6rem;font-size:0.85rem;">Clear</button>
+    </div>
+
+    <textarea id="input" rows="12" placeholder="Type or paste text here…"></textarea>
+    <p id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:0.75rem;">
+    <div class="panel" style="text-align:center;padding:0.9rem 0.6rem;">
+      <div id="token-count" style="font-size:1.6rem;font-weight:700;">0</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem;">Tokens</div>
+    </div>
+    <div class="panel" style="text-align:center;padding:0.9rem 0.6rem;">
+      <div id="char-count" style="font-size:1.6rem;font-weight:700;">0</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem;">Characters</div>
+    </div>
+    <div class="panel" style="text-align:center;padding:0.9rem 0.6rem;">
+      <div id="word-count" style="font-size:1.6rem;font-weight:700;">0</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem;">Words</div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  import { Tiktoken } from 'js-tiktoken/lite';
+
+  const input = document.getElementById('input') as HTMLTextAreaElement;
+  const statusEl = document.getElementById('status') as HTMLElement;
+  const modelSelect = document.getElementById('model-select') as HTMLSelectElement;
+  const tokenCountEl = document.getElementById('token-count') as HTMLElement;
+  const charCountEl = document.getElementById('char-count') as HTMLElement;
+  const wordCountEl = document.getElementById('word-count') as HTMLElement;
+  const clearBtn = document.getElementById('btn-clear') as HTMLButtonElement;
+
+  type EncodingName = 'o200k_base' | 'cl100k_base';
+
+  const rankLoaders: Record<EncodingName, () => Promise<{ default: Record<string, number> }>> = {
+    o200k_base: () => import('js-tiktoken/ranks/o200k_base'),
+    cl100k_base: () => import('js-tiktoken/ranks/cl100k_base'),
+  };
+
+  const encoderCache = new Map<EncodingName, Tiktoken>();
+  let loadingEncoding: EncodingName | null = null;
+  let runId = 0;
+
+  async function getEncoder(name: EncodingName): Promise<Tiktoken> {
+    const cached = encoderCache.get(name);
+    if (cached) return cached;
+    const { default: ranks } = await rankLoaders[name]();
+    const enc = new Tiktoken(ranks);
+    encoderCache.set(name, enc);
+    return enc;
+  }
+
+  function currentEncodingName(): EncodingName {
+    return modelSelect.value as EncodingName;
+  }
+
+  async function run() {
+    const text = input.value;
+    const encodingName = currentEncodingName();
+    const myRun = ++runId;
+
+    charCountEl.textContent = String(text.length);
+    wordCountEl.textContent = text.trim() === '' ? '0' : String(text.trim().split(/\s+/).length);
+
+    if (!text) {
+      tokenCountEl.textContent = '0';
+      statusEl.textContent = '';
+      return;
+    }
+
+    if (!encoderCache.has(encodingName)) {
+      loadingEncoding = encodingName;
+      statusEl.textContent = `Loading ${encodingName} tokenizer…`;
+    }
+
+    try {
+      const enc = await getEncoder(encodingName);
+      if (myRun !== runId) return; // a newer keystroke/selection already superseded this run
+      const tokens = enc.encode(text);
+      tokenCountEl.textContent = tokens.length.toLocaleString('en-US');
+      if (loadingEncoding === encodingName) {
+        statusEl.textContent = '';
+        loadingEncoding = null;
+      }
+    } catch {
+      if (myRun !== runId) return;
+      statusEl.textContent = 'Failed to load the tokenizer — check your connection and try again.';
+    }
+  }
+
+  input.addEventListener('input', run);
+  modelSelect.addEventListener('change', run);
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    input.focus();
+    run();
+  });
+
+  run();
+</script>

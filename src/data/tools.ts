@@ -253,6 +253,34 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "token-counter",
+    title: "GPT Token Counter",
+    shortTitle: "Token Counter",
+    description:
+      "Count tokens for GPT-5, GPT-4o, and older OpenAI models as you type, using the exact same tokenizer OpenAI's API uses. 100% client-side — your text is never sent anywhere.",
+    keywords: ["gpt token counter", "openai token counter", "tiktoken online", "count tokens gpt-4o", "llm token counter"],
+    icon: "GPT",
+    category: "AI",
+    faq: [
+      {
+        q: "Which models does this cover?",
+        a: "Two tokenizers, chosen automatically from the model you pick: o200k_base for the GPT-5 and GPT-4o families plus the o-series reasoning models, and cl100k_base for GPT-4, GPT-4 Turbo, GPT-3.5 Turbo, and the text-embedding-3 models. It does not cover Claude, Gemini, or other non-OpenAI models — their tokenizers aren't compatible with tiktoken.",
+      },
+      {
+        q: "Is this the exact same count the OpenAI API would bill me for?",
+        a: "For a plain text prompt, yes — this uses js-tiktoken, the same byte-pair-encoding tokenizer OpenAI's own tiktoken library uses, with the identical vocabulary files. Chat-format requests add a small fixed per-message overhead on top of the raw text tokens (for role/name formatting), which this tool doesn't add since it only tokenizes the raw text you paste.",
+      },
+      {
+        q: "Why do the same words cost different token counts in different models?",
+        a: "o200k_base (GPT-5/GPT-4o) uses a larger 200k-word vocabulary than cl100k_base's 100k, which packs non-English scripts and common multi-word phrases more efficiently — the same sentence can tokenize to noticeably fewer tokens under o200k_base, especially for non-Latin scripts.",
+      },
+      {
+        q: "Why did the page pause briefly when I opened it?",
+        a: "The tokenizer's vocabulary file (roughly 1–2 MB depending on the model) loads on demand the first time you use this tool or switch model families, so it's cached in your browser tab from then on rather than bundled into every page on the site.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
@@ -271,6 +299,7 @@ export const categoryColors: Record<string, { light: string; dark: string }> = {
   Security: { light: "#c71a40", dark: "#ea5d7c" },
   Text: { light: "#7c3aed", dark: "#a477f3" },
   Design: { light: "#c02067", dark: "#e5619c" },
+  AI: { light: "#a15c00", dark: "#f59e0b" },
 };
 
 export function getCategoryColor(category: string): { light: string; dark: string } {
