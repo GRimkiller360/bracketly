@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-07-22T09:14:56.768Z",
+  "generated_at": "2026-07-23T09:14:03.396Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 86,
-    "accessibility": 100,
+    "performance": 89,
+    "accessibility": 95,
     "best-practices": 78,
     "seo": 100,
     "pwa": 25
@@ -28,9 +28,9 @@
           "https://bracketly.pages.dev/"
         ],
         "clicks": 3,
-        "impressions": 4,
-        "ctr": 0.75,
-        "position": 2.75
+        "impressions": 7,
+        "ctr": 0.42857142857142855,
+        "position": 2
       }
     ]
   },
@@ -43,6 +43,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 3,
+        "dimensions": {
+          "date": "2026-07-23"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-07-22"
+        }
+      },
       {
         "count": 15,
         "dimensions": {
@@ -74,8 +86,16 @@
         }
       }
     ],
-    "total_pageloads": 172,
+    "total_pageloads": 176,
     "top_requests": [
+      {
+        "count": 52,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
       {
         "count": 51,
         "dimensions": {
@@ -85,15 +105,7 @@
         }
       },
       {
-        "count": 49,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 13,
+        "count": 14,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
