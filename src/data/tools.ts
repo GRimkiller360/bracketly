@@ -299,7 +299,7 @@ export const categoryColors: Record<string, { light: string; dark: string }> = {
   Security: { light: "#c71a40", dark: "#ea5d7c" },
   Text: { light: "#7c3aed", dark: "#a477f3" },
   Design: { light: "#c02067", dark: "#e5619c" },
-  AI: { light: "#a15c00", dark: "#f59e0b" },
+  AI: { light: "#915300", dark: "#f59e0b" },
 };
 
 export function getCategoryColor(category: string): { light: string; dark: string } {
