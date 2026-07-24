@@ -9,7 +9,7 @@ const tool = getTool('regex-tester')!;
   <div class="panel" style="margin-bottom:1rem;">
     <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem;">
       <div style="flex:1;min-width:200px;">
-        <div class="field-label"><span>Pattern</span></div>
+        <div class="field-label"><label for="pattern">Pattern</label></div>
         <input
           id="pattern"
           type="text"
@@ -18,7 +18,7 @@ const tool = getTool('regex-tester')!;
         />
       </div>
       <div style="width:120px;">
-        <div class="field-label"><span>Flags</span></div>
+        <div class="field-label"><label for="flags">Flags</label></div>
         <input
           id="flags"
           type="text"
@@ -29,7 +29,7 @@ const tool = getTool('regex-tester')!;
       </div>
     </div>
     <div class="field-label">
-      <span>Test string</span>
+      <label for="test-string">Test string</label>
       <span id="match-count" aria-live="polite" style="font-weight:700;color:var(--accent);"></span>
     </div>
     <textarea id="test-string" rows="7" placeholder="Paste text to test against…"></textarea>
@@ -38,7 +38,7 @@ const tool = getTool('regex-tester')!;
 
   <div id="matches-panel" style="display:none;">
     <div class="field-label">
-      <span>Matches &amp; capture groups</span>
+      <label for="matches-out">Matches &amp; capture groups</label>
       <button class="btn" id="btn-copy-matches" aria-label="Copy matches" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
     </div>
     <textarea id="matches-out" rows="10" readonly style="font-size:0.82rem;"></textarea>
@@ -106,9 +106,15 @@ const tool = getTool('regex-tester')!;
     statusEl.className   = 'status ok';
   }
 
-  patternEl.addEventListener('input', test);
-  flagsEl.addEventListener('input', test);
-  testStr.addEventListener('input', test);
+  var debounceTimer = null;
+  function debouncedTest() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(test, 200);
+  }
+
+  patternEl.addEventListener('input', debouncedTest);
+  flagsEl.addEventListener('input', debouncedTest);
+  testStr.addEventListener('input', debouncedTest);
 
   document.getElementById('btn-copy-matches').addEventListener('click', function () {
     if (!matchesOut.value) return;

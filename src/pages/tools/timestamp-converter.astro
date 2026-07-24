@@ -9,7 +9,7 @@ const tool = getTool('timestamp-converter')!;
   <!-- Unix → Human-readable -->
   <div class="panel" style="margin-bottom:1rem;">
     <div class="field-label">
-      <span>Unix timestamp → Human-readable date</span>
+      <label for="ts-input">Unix timestamp → Human-readable date</label>
       <button class="btn" id="btn-now" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Use Now</button>
     </div>
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
@@ -33,7 +33,7 @@ const tool = getTool('timestamp-converter')!;
   <!-- Date → Unix -->
   <div class="panel">
     <div class="field-label">
-      <span>Date / time → Unix timestamp</span>
+      <label for="date-input">Date / time → Unix timestamp</label>
     </div>
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
       <input
@@ -68,6 +68,10 @@ const tool = getTool('timestamp-converter')!;
     font-weight: 600;
     white-space: nowrap;
     width: 160px;
+  }
+  #ts-table tr td:last-child,
+  #date-table tr td:last-child {
+    overflow-wrap: anywhere;
   }
 </style>
 

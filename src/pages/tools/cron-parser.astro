@@ -8,7 +8,7 @@ const tool = getTool('cron-parser')!;
 <ToolLayout tool={tool}>
   <div class="panel" style="margin-bottom:1rem;">
     <div class="field-label">
-      <span>Cron expression</span>
+      <label for="cron-input">Cron expression</label>
     </div>
     <input
       id="cron-input"
@@ -56,6 +56,9 @@ const tool = getTool('cron-parser')!;
     white-space: nowrap;
     width: 90px;
   }
+  #cron-next-table tr td:last-child {
+    overflow-wrap: anywhere;
+  }
 </style>
 
 <script is:inline>
@@ -77,11 +80,11 @@ const tool = getTool('cron-parser')!;
       var stepSplit = part.split('/');
       var base = stepSplit[0];
       var step = 1;
-      if (stepSplit.length > 1) {
+      if (stepSplit.length > 2) {
+        throw new Error('Invalid field "' + part + '"');
+      } else if (stepSplit.length > 1) {
         step = parseInt(stepSplit[1], 10);
         if (isNaN(step) || step <= 0) throw new Error('Invalid step in "' + part + '"');
-      } else if (stepSplit.length > 2) {
-        throw new Error('Invalid field "' + part + '"');
       }
       var rangeStart, rangeEnd;
       if (base === '*') {

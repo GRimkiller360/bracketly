@@ -7,7 +7,7 @@ const tool = getTool('hash-generator')!;
 
 <ToolLayout tool={tool}>
   <div class="field-label">
-    <span>Input text</span>
+    <label for="input">Input text</label>
     <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
   </div>
   <textarea id="input" rows="6" placeholder="Type or paste text here…"></textarea>
@@ -16,7 +16,7 @@ const tool = getTool('hash-generator')!;
     {["MD5", "SHA-1", "SHA-256", "SHA-512"].map((algo) => (
       <div class="panel">
         <div class="field-label">
-          <span>{algo}</span>
+          <label for={`out-${algo}`}>{algo}</label>
           <button class="btn btn-copy-hash" data-target={`out-${algo}`} aria-label={`Copy ${algo} hash`} style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
         </div>
         <textarea id={`out-${algo}`} rows="2" readonly style="font-size:0.8rem;"></textarea>

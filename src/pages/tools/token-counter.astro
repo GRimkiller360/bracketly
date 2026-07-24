@@ -15,28 +15,29 @@ const tool = getTool('token-counter')!;
           style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);"
         >
           <optgroup label="o200k_base">
-            <option value="o200k_base" data-label="GPT-5.5">GPT-5.5</option>
-            <option value="o200k_base" data-label="GPT-5.4">GPT-5.4</option>
-            <option value="o200k_base" data-label="GPT-5.1">GPT-5.1</option>
-            <option value="o200k_base" data-label="GPT-4o">GPT-4o</option>
-            <option value="o200k_base" data-label="GPT-4o mini">GPT-4o mini</option>
-            <option value="o200k_base" data-label="GPT-4.1">GPT-4.1</option>
-            <option value="o200k_base" data-label="o1">o1</option>
-            <option value="o200k_base" data-label="o3">o3</option>
-            <option value="o200k_base" data-label="o4-mini">o4-mini</option>
+            <option value="o200k_base">GPT-5.5</option>
+            <option value="o200k_base">GPT-5.4</option>
+            <option value="o200k_base">GPT-5.1</option>
+            <option value="o200k_base">GPT-4o</option>
+            <option value="o200k_base">GPT-4o mini</option>
+            <option value="o200k_base">GPT-4.1</option>
+            <option value="o200k_base">o1</option>
+            <option value="o200k_base">o3</option>
+            <option value="o200k_base">o4-mini</option>
           </optgroup>
           <optgroup label="cl100k_base">
-            <option value="cl100k_base" data-label="GPT-4">GPT-4</option>
-            <option value="cl100k_base" data-label="GPT-4 Turbo">GPT-4 Turbo</option>
-            <option value="cl100k_base" data-label="GPT-3.5 Turbo">GPT-3.5 Turbo</option>
-            <option value="cl100k_base" data-label="text-embedding-3-large">text-embedding-3-large</option>
-            <option value="cl100k_base" data-label="text-embedding-3-small">text-embedding-3-small</option>
+            <option value="cl100k_base">GPT-4</option>
+            <option value="cl100k_base">GPT-4 Turbo</option>
+            <option value="cl100k_base">GPT-3.5 Turbo</option>
+            <option value="cl100k_base">text-embedding-3-large</option>
+            <option value="cl100k_base">text-embedding-3-small</option>
           </optgroup>
         </select>
       </div>
       <button class="btn" id="btn-clear" style="padding:0.35rem 0.6rem;font-size:0.85rem;">Clear</button>
     </div>
 
+    <div class="field-label"><label for="input">Text to tokenize</label></div>
     <textarea id="input" rows="12" placeholder="Type or paste text here…"></textarea>
     <p id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></p>
   </div>

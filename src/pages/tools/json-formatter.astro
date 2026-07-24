@@ -9,7 +9,7 @@ const tool = getTool('json-formatter')!;
   <div class="grid-2">
     <div>
       <div class="field-label">
-        <span>Input JSON</span>
+        <label for="input">Input JSON</label>
         <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
       </div>
       <textarea id="input" rows="18" placeholder="Paste JSON here…"></textarea>
@@ -17,7 +17,7 @@ const tool = getTool('json-formatter')!;
     </div>
     <div>
       <div class="field-label">
-        <span>Output</span>
+        <label for="output">Output</label>
         <button class="btn" id="btn-copy" aria-label="Copy formatted JSON" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
       </div>
       <textarea id="output" rows="18" readonly placeholder="Formatted JSON will appear here…"></textarea>
