@@ -11,6 +11,7 @@ const tool = getTool('hash-generator')!;
     <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
   </div>
   <textarea id="input" rows="6" placeholder="Type or paste text here…"></textarea>
+  <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
 
   <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
     {["MD5", "SHA-1", "SHA-256", "SHA-512"].map((algo) => (
@@ -88,6 +89,7 @@ const tool = getTool('hash-generator')!;
   }
 
   const input = document.getElementById('input');
+  const status = document.getElementById('status');
   const outputs = {
     MD5: document.getElementById('out-MD5'),
     'SHA-1': document.getElementById('out-SHA-1'),
@@ -95,25 +97,38 @@ const tool = getTool('hash-generator')!;
     'SHA-512': document.getElementById('out-SHA-512'),
   };
 
+  function setStatus(msg, ok) {
+    status.textContent = msg;
+    status.className = 'status ' + (ok ? 'ok' : 'error');
+  }
+
   let runId = 0;
   async function run() {
     const val = input.value;
     const myRun = ++runId;
     if (!val) {
       Object.values(outputs).forEach((el) => (el.value = ''));
+      status.textContent = '';
       return;
     }
-    const md5Value = md5(val);
-    const [sha1, sha256, sha512] = await Promise.all([
-      sha(val, 'SHA-1'),
-      sha(val, 'SHA-256'),
-      sha(val, 'SHA-512'),
-    ]);
-    if (myRun !== runId) return; // a newer keystroke already superseded this run
-    outputs.MD5.value = md5Value;
-    outputs['SHA-1'].value = sha1;
-    outputs['SHA-256'].value = sha256;
-    outputs['SHA-512'].value = sha512;
+    try {
+      const md5Value = md5(val);
+      const [sha1, sha256, sha512] = await Promise.all([
+        sha(val, 'SHA-1'),
+        sha(val, 'SHA-256'),
+        sha(val, 'SHA-512'),
+      ]);
+      if (myRun !== runId) return; // a newer keystroke already superseded this run
+      outputs.MD5.value = md5Value;
+      outputs['SHA-1'].value = sha1;
+      outputs['SHA-256'].value = sha256;
+      outputs['SHA-512'].value = sha512;
+      setStatus('✓ Hashed', true);
+    } catch (e) {
+      if (myRun !== runId) return;
+      Object.values(outputs).forEach((el) => (el.value = ''));
+      setStatus('✗ Failed to hash: ' + e.message, false);
+    }
   }
 
   input.addEventListener('input', run);
@@ -121,6 +136,7 @@ const tool = getTool('hash-generator')!;
   document.getElementById('btn-clear').addEventListener('click', function () {
     input.value = '';
     run();
+    input.focus();
   });
 
   document.querySelectorAll('.btn-copy-hash').forEach((btn) => {

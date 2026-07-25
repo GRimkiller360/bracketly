@@ -30,7 +30,10 @@ const tool = getTool('regex-tester')!;
     </div>
     <div class="field-label">
       <label for="test-string">Test string</label>
-      <span id="match-count" aria-live="polite" style="font-weight:700;color:var(--accent);"></span>
+      <span style="display:flex;align-items:center;gap:0.6rem;">
+        <span id="match-count" aria-live="polite" style="font-weight:700;color:var(--accent);"></span>
+        <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+      </span>
     </div>
     <textarea id="test-string" rows="7" placeholder="Paste text to test against…"></textarea>
     <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></div>
@@ -115,6 +118,14 @@ const tool = getTool('regex-tester')!;
   patternEl.addEventListener('input', debouncedTest);
   flagsEl.addEventListener('input', debouncedTest);
   testStr.addEventListener('input', debouncedTest);
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    patternEl.value = '';
+    flagsEl.value = '';
+    testStr.value = '';
+    test();
+    patternEl.focus();
+  });
 
   document.getElementById('btn-copy-matches').addEventListener('click', function () {
     if (!matchesOut.value) return;

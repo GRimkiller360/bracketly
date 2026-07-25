@@ -106,7 +106,7 @@ const tool = getTool('jwt-decoder')!;
         if (diff < 0) {
           expiryOut.innerHTML = '<span style="color:var(--danger)">✗ Expired ' + timeStr + ' ago</span> — ' + expDate.toLocaleString();
         } else if (diff < 3600000) {
-          expiryOut.innerHTML = '<span style="color:#e08c00">⚠ Expires in ' + timeStr + '</span> — ' + expDate.toLocaleString();
+          expiryOut.innerHTML = '<span style="color:var(--warning)">⚠ Expires in ' + timeStr + '</span> — ' + expDate.toLocaleString();
         } else {
           expiryOut.innerHTML = '<span style="color:var(--success)">✓ Valid for ' + timeStr + '</span> — ' + expDate.toLocaleString();
         }
@@ -126,6 +126,7 @@ const tool = getTool('jwt-decoder')!;
     jwtInput.value = '';
     results.style.display = 'none';
     status.textContent = '';
+    jwtInput.focus();
   });
 
   function copyBtn(id, source) {

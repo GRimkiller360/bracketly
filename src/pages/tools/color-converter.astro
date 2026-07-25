@@ -8,7 +8,10 @@ const tool = getTool('color-converter')!;
 <ToolLayout tool={tool}>
   <div class="grid-2">
     <div>
-      <div class="field-label"><label for="input">Enter a color (HEX, RGB, or HSL)</label></div>
+      <div class="field-label">
+        <label for="input">Enter a color (HEX, RGB, or HSL)</label>
+        <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+      </div>
       <input type="text" id="input" placeholder="#3457d5, rgb(52,87,213), or hsl(228,66%,52%)" />
       <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
     </div>
@@ -121,6 +124,12 @@ const tool = getTool('color-converter')!;
   }
 
   input.addEventListener('input', run);
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    run();
+    input.focus();
+  });
 
   document.querySelectorAll('.btn-copy-color').forEach((btn) => {
     btn.addEventListener('click', function () {

@@ -112,6 +112,7 @@ const tool = getTool('url-encoder')!;
     input.value = '';
     output.value = '';
     status.textContent = '';
+    input.focus();
   });
 
   input.addEventListener('input', run);

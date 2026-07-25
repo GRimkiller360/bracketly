@@ -61,16 +61,23 @@ const tool = getTool('base64')!;
         setStatus('✗ Encode error: ' + e.message, false);
       }
     } else {
+      const clean = val.trim().replace(/\s/g, '');
+      let binary;
       try {
-        const clean = val.trim().replace(/\s/g, '');
-        const binary = atob(clean);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        output.value = new TextDecoder().decode(bytes);
-        setStatus('✓ Decoded', true);
+        binary = atob(clean);
       } catch (e) {
         output.value = '';
         setStatus('✗ Invalid Base64 — ' + e.message, false);
+        return;
+      }
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      try {
+        output.value = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        setStatus('✓ Decoded', true);
+      } catch (e) {
+        output.value = '';
+        setStatus('✗ Decoded bytes are not valid UTF-8 text (likely binary data)', false);
       }
     }
   }
@@ -119,6 +126,7 @@ const tool = getTool('base64')!;
     input.value = '';
     output.value = '';
     status.textContent = '';
+    input.focus();
   });
 
   input.addEventListener('input', run);
