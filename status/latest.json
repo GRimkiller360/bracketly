@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-24T09:10:15.415Z",
+  "generated_at": "2026-07-25T08:50:12.281Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 80,
+    "performance": 68,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -44,7 +44,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 13,
+        "count": 22,
         "dimensions": {
           "date": "2026-07-24"
         }
@@ -84,18 +84,12 @@
         "dimensions": {
           "date": "2026-07-18"
         }
-      },
-      {
-        "count": 35,
-        "dimensions": {
-          "date": "2026-07-17"
-        }
       }
     ],
-    "total_pageloads": 191,
+    "total_pageloads": 165,
     "top_requests": [
       {
-        "count": 56,
+        "count": 48,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
@@ -103,7 +97,7 @@
         }
       },
       {
-        "count": 53,
+        "count": 42,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -111,7 +105,7 @@
         }
       },
       {
-        "count": 16,
+        "count": 15,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -119,19 +113,11 @@
         }
       },
       {
-        "count": 9,
+        "count": 6,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/json-formatter/"
-        }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
         }
       },
       {
@@ -147,7 +133,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/color-converter/"
+          "requestPath": "/tools/uuid-generator/"
         }
       },
       {
@@ -156,14 +142,6 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/token-counter/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
@@ -185,9 +163,33 @@
       {
         "count": 2,
         "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/pricing"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/terms"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
           "requestPath": "/sitemap.xml"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/faq"
         }
       },
       {
@@ -227,15 +229,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/regex-tester/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
+          "requestPath": "/tools/color-converter/"
         }
       },
       {
@@ -247,11 +241,11 @@
         }
       },
       {
-        "count": 1,
+        "count": 2,
         "dimensions": {
-          "countryName": "US",
+          "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/base64/"
+          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
@@ -282,30 +276,6 @@
         "count": 1,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/jwt-decoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.reddit.com",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/url-encoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
           "refererHost": "www.reddit.com",
           "requestPath": "/tools/cron-parser/"
         }
@@ -313,7 +283,31 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "GB",
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/regex-tester/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.reddit.com",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/countries"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/uuid-generator/"
         }
@@ -321,7 +315,7 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "ZA",
+          "countryName": "GB",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/hash-generator/"
         }
@@ -329,9 +323,9 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "JP",
-          "refererHost": "dev.to",
-          "requestPath": "/"
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/privacy/"
         }
       }
     ]
