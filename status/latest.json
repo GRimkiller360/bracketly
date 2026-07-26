@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-25T08:50:12.281Z",
+  "generated_at": "2026-07-26T09:02:25.659Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 68,
+    "performance": 97,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -44,6 +44,12 @@
   "last_7_days": {
     "daily_pageloads": [
       {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-07-25"
+        }
+      },
+      {
         "count": 22,
         "dimensions": {
           "date": "2026-07-24"
@@ -78,15 +84,9 @@
         "dimensions": {
           "date": "2026-07-19"
         }
-      },
-      {
-        "count": 8,
-        "dimensions": {
-          "date": "2026-07-18"
-        }
       }
     ],
-    "total_pageloads": 165,
+    "total_pageloads": 158,
     "top_requests": [
       {
         "count": 48,
@@ -97,7 +97,7 @@
         }
       },
       {
-        "count": 42,
+        "count": 36,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -171,14 +171,6 @@
       {
         "count": 2,
         "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/terms"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
           "requestPath": "/sitemap.xml"
@@ -211,17 +203,17 @@
       {
         "count": 2,
         "dimensions": {
-          "countryName": "US",
+          "countryName": "DE",
           "refererHost": "",
-          "requestPath": "/tools/base64"
+          "requestPath": "/terms"
         }
       },
       {
         "count": 2,
         "dimensions": {
           "countryName": "US",
-          "refererHost": "bing.com",
-          "requestPath": "/"
+          "refererHost": "",
+          "requestPath": "/tools/base64"
         }
       },
       {
@@ -236,16 +228,16 @@
         "count": 2,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "mastodon.social",
-          "requestPath": "/tools/cron-parser/"
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
         "count": 2,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/timestamp-converter/"
+          "refererHost": "mastodon.social",
+          "requestPath": "/tools/cron-parser/"
         }
       },
       {
@@ -315,9 +307,17 @@
       {
         "count": 1,
         "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/privacy/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
           "countryName": "GB",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/hash-generator/"
+          "requestPath": "/tools/uuid-generator/"
         }
       },
       {
@@ -325,7 +325,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/privacy/"
+          "requestPath": "/tools/url-encoder/"
         }
       }
     ]
