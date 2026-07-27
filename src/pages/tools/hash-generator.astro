@@ -8,7 +8,7 @@ const tool = getTool('hash-generator')!;
 <ToolLayout tool={tool}>
   <div class="field-label">
     <label for="input">Input text</label>
-    <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+    <button class="btn btn-sm" id="btn-clear">Clear</button>
   </div>
   <textarea id="input" rows="6" placeholder="Type or paste text here…"></textarea>
   <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
@@ -18,7 +18,7 @@ const tool = getTool('hash-generator')!;
       <div class="panel">
         <div class="field-label">
           <label for={`out-${algo}`}>{algo}</label>
-          <button class="btn btn-copy-hash" data-target={`out-${algo}`} aria-label={`Copy ${algo} hash`} style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+          <button class="btn btn-sm btn-copy-hash" data-target={`out-${algo}`} aria-label={`Copy ${algo} hash`}>Copy</button>
         </div>
         <textarea id={`out-${algo}`} rows="2" readonly style="font-size:0.8rem;"></textarea>
       </div>

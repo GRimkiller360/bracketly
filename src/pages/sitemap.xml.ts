@@ -1,9 +1,8 @@
 import type { APIRoute } from 'astro';
 import { tools } from '../data/tools';
 
-const SITE = 'https://bracketly.pages.dev';
-
-export const GET: APIRoute = () => {
+export const GET: APIRoute = ({ site }) => {
+  const SITE = site!.origin;
   const staticPaths = ['/', '/donate/', '/privacy/'];
   const toolPaths = tools.map((t) => `/tools/${t.slug}/`);
   const urls = [...staticPaths, ...toolPaths];

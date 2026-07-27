@@ -10,7 +10,7 @@ const tool = getTool('color-converter')!;
     <div>
       <div class="field-label">
         <label for="input">Enter a color (HEX, RGB, or HSL)</label>
-        <button class="btn" id="btn-clear" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Clear</button>
+        <button class="btn btn-sm" id="btn-clear">Clear</button>
       </div>
       <input type="text" id="input" placeholder="#3457d5, rgb(52,87,213), or hsl(228,66%,52%)" />
       <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
@@ -26,7 +26,7 @@ const tool = getTool('color-converter')!;
       <div class="panel">
         <div class="field-label">
           <label for={`out-${fmt}`}>{fmt}</label>
-          <button class="btn btn-copy-color" data-target={`out-${fmt}`} aria-label={`Copy ${fmt} value`} style="padding:0.2rem 0.5rem;font-size:0.75rem;">Copy</button>
+          <button class="btn btn-sm btn-copy-color" data-target={`out-${fmt}`} aria-label={`Copy ${fmt} value`}>Copy</button>
         </div>
         <input type="text" id={`out-${fmt}`} readonly />
       </div>
