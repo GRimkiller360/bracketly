@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-27T10:29:40.299Z",
+  "generated_at": "2026-07-28T09:23:47.402Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 68,
+    "performance": 73,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -53,7 +53,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 1,
+        "count": 6,
         "dimensions": {
           "date": "2026-07-27"
         }
@@ -93,26 +93,12 @@
         "dimensions": {
           "date": "2026-07-21"
         }
-      },
-      {
-        "count": 93,
-        "dimensions": {
-          "date": "2026-07-20"
-        }
       }
     ],
-    "total_pageloads": 139,
+    "total_pageloads": 51,
     "top_requests": [
       {
-        "count": 47,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 24,
+        "count": 11,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -120,7 +106,7 @@
         }
       },
       {
-        "count": 16,
+        "count": 10,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -128,27 +114,11 @@
         }
       },
       {
-        "count": 6,
+        "count": 5,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/json-formatter/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "PL",
-          "refererHost": "",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
         }
       },
       {
@@ -162,9 +132,9 @@
       {
         "count": 2,
         "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/terms"
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/donate/"
         }
       },
       {
@@ -173,14 +143,6 @@
           "countryName": "DE",
           "refererHost": "",
           "requestPath": "/pricing"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/sitemap.xml"
         }
       },
       {
@@ -195,136 +157,24 @@
         "count": 2,
         "dimensions": {
           "countryName": "PL",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/color-converter/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/timestamp-converter/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "mastodon.social",
-          "requestPath": "/tools/cron-parser/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
           "refererHost": "",
           "requestPath": "/"
         }
       },
       {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/cron-parser/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/regex-tester/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.reddit.com",
-          "requestPath": "/tools/cron-parser/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.reddit.com",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
+        "count": 2,
         "dimensions": {
           "countryName": "DE",
           "refererHost": "",
-          "requestPath": "/countries"
+          "requestPath": "/terms"
         }
       },
       {
-        "count": 1,
+        "count": 2,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/url-encoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "PL",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/url-encoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "JP",
-          "refererHost": "dev.to",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/hash-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/"
+          "requestPath": "/tools/json-formatter/"
         }
       },
       {
@@ -338,9 +188,73 @@
       {
         "count": 1,
         "dimensions": {
+          "countryName": "GB",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/hash-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "PL",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "GB",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "GB",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/base64/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/donate/"
+          "requestPath": "/tools/color-converter/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "PL",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/color-converter/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/countries"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "PL",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/url-encoder/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/"
         }
       }
     ]
