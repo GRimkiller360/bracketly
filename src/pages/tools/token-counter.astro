@@ -56,6 +56,10 @@ const tool = getTool('token-counter')!;
       <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem;">Words</div>
     </div>
   </div>
+
+  <div style="margin-top:0.75rem;text-align:right;">
+    <button class="btn btn-sm" id="btn-copy-stats" aria-label="Copy token, character, and word counts">Copy counts</button>
+  </div>
 </ToolLayout>
 
 <script>
@@ -133,6 +137,18 @@ const tool = getTool('token-counter')!;
     input.value = '';
     input.focus();
     run();
+  });
+
+  document.getElementById('btn-copy-stats')!.addEventListener('click', function (this: HTMLButtonElement) {
+    const text = `Tokens: ${tokenCountEl.textContent}\nCharacters: ${charCountEl.textContent}\nWords: ${wordCountEl.textContent}`;
+    const btn = this;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy counts'; }, 1500);
+    }, () => {
+      btn.textContent = 'Copy failed';
+      setTimeout(() => { btn.textContent = 'Copy counts'; }, 1500);
+    });
   });
 
   run();
