@@ -36,7 +36,7 @@ const tool = getTool('regex-tester')!;
       </span>
     </div>
     <textarea id="test-string" rows="7" placeholder="Paste text to test against…"></textarea>
-    <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.4rem;"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
   </div>
 
   <div id="matches-panel" style="display:none;">
@@ -121,7 +121,7 @@ const tool = getTool('regex-tester')!;
 
   document.getElementById('btn-clear').addEventListener('click', function () {
     patternEl.value = '';
-    flagsEl.value = '';
+    flagsEl.value = 'gm';
     testStr.value = '';
     test();
     patternEl.focus();

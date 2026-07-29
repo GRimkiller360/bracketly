@@ -281,6 +281,36 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "citations-viewer",
+    title: "Citations API Response Viewer",
+    shortTitle: "Citations Viewer",
+    description:
+      "Paste a Claude Citations API response to see the answer text with each cited passage highlighted and matched to its source document, location, and quoted text. Optionally paste the source document to verify the citation's character indices actually match. 100% client-side.",
+    keywords: [
+      "claude citations api",
+      "anthropic citations viewer",
+      "citations api debugger",
+      "llm citation checker",
+      "claude api citations validator",
+    ],
+    icon: "[1]",
+    category: "AI",
+    faq: [
+      {
+        q: "What is the Claude Citations API?",
+        a: "It's a Messages API feature where you mark a document content block with citations: { enabled: true }. Instead of one plain text response, Claude splits its answer into multiple text blocks, and any block backed by a source document carries a citations array — each entry has the cited_text, which document it came from (document_index / document_title), and a location: a char_location (start_char_index/end_char_index) for plain text, a page_location (start_page_number/end_page_number) for PDFs, or a content_block_location (start_block_index/end_block_index) for custom content blocks.",
+      },
+      {
+        q: "What exactly do I paste into this tool?",
+        a: "The full Messages API response JSON, just its content array, or a single content block — this tool detects which one you gave it. The easiest way to get one is to log response.content (or the whole response) from a request where at least one document block had citations enabled, then paste that straight in.",
+      },
+      {
+        q: "Why does it say a citation's indices don't match my source text?",
+        a: "The verifier slices your pasted document at the citation's start_char_index and end_char_index and compares that exact slice to cited_text. A mismatch almost always means you pasted a different version of the document than the one actually sent in the request — different whitespace, a re-exported copy, or an edited draft — not a bug in the Citations API itself. It's meant as a debugging aid for your own integration.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

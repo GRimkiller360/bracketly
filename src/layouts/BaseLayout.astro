@@ -51,6 +51,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
     <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "ae431799a3564c239a597c057b8fa9f9"}'></script>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <header class="site-header">
       <div class="container">
         <a href="/" class="logo">
@@ -64,7 +65,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
       </div>
     </header>
 
-    <main>
+    <main id="main-content">
       <slot />
     </main>
 

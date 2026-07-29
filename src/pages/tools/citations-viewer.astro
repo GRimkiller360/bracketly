@@ -1,0 +1,354 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('citations-viewer')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Citations API response JSON</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="10"
+      placeholder={`Paste the full Messages API response, its "content" array, or a single content block — e.g.\n{\n  "content": [\n    { "type": "text", "text": "..." },\n    { "type": "text", "text": "...", "citations": [ { "type": "char_location", "cited_text": "...", "document_index": 0, "document_title": "...", "start_char_index": 0, "end_char_index": 10 } ] }\n  ]\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Answer</span>
+        <button class="btn btn-sm" id="btn-copy-answer" aria-label="Copy answer text">Copy</button>
+      </div>
+      <div
+        id="answer-out"
+        style="font-size:0.95rem;line-height:1.7;white-space:pre-wrap;word-break:break-word;"
+      ></div>
+    </div>
+
+    <div class="panel" id="citations-panel" style="margin-bottom:1rem;">
+      <div class="field-label"><span>Citations</span></div>
+      <div id="citations-list" style="display:flex;flex-direction:column;gap:0.9rem;"></div>
+    </div>
+
+    <div class="panel" id="verify-panel" style="display:none;">
+      <div class="field-label"><span>Verify against source documents (optional)</span></div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 0.75rem;">
+        Paste each document's full source text below to check whether its citations' character ranges actually line up with <code>cited_text</code>.
+      </p>
+      <div id="verify-docs" style="display:flex;flex-direction:column;gap:1rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const status = document.getElementById('status');
+  const results = document.getElementById('results');
+  const answerOut = document.getElementById('answer-out');
+  const citationsList = document.getElementById('citations-list');
+  const citationsPanel = document.getElementById('citations-panel');
+  const verifyPanel = document.getElementById('verify-panel');
+  const verifyDocs = document.getElementById('verify-docs');
+
+  let lastPlainAnswer = '';
+  // citation entries needing live verification, keyed by document_index
+  let verifyTargets = [];
+
+  function setStatus(msg, kind) {
+    status.textContent = msg;
+    status.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function extractContentBlocks(parsed) {
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.content)) return parsed.content;
+    if (parsed && typeof parsed === 'object' && parsed.type === 'text') return [parsed];
+    return null;
+  }
+
+  function groupCitations(blocks) {
+    const textBlocks = [];
+    const groups = [];
+    let groupNum = 0;
+    let skippedNonText = 0;
+    for (const block of blocks) {
+      if (!block || typeof block !== 'object') continue;
+      if (block.type !== 'text') { skippedNonText++; continue; }
+      const citations = Array.isArray(block.citations) ? block.citations : [];
+      if (citations.length > 0) {
+        groupNum++;
+        groups.push({ num: groupNum, citations });
+        textBlocks.push({ text: block.text ?? '', groupNum });
+      } else {
+        textBlocks.push({ text: block.text ?? '', groupNum: null });
+      }
+    }
+    return { textBlocks, groups, skippedNonText };
+  }
+
+  function uniqueDocuments(groups) {
+    const docs = new Map();
+    for (const g of groups) {
+      for (const c of g.citations) {
+        if (!docs.has(c.document_index)) docs.set(c.document_index, c.document_title ?? null);
+        else if (docs.get(c.document_index) == null && c.document_title) docs.set(c.document_index, c.document_title);
+      }
+    }
+    return [...docs.entries()].sort((a, b) => a[0] - b[0]);
+  }
+
+  function locationLabel(c) {
+    if (c.type === 'char_location') return 'Characters ' + c.start_char_index + '–' + c.end_char_index;
+    if (c.type === 'page_location') return 'Page ' + c.start_page_number + '–' + c.end_page_number;
+    if (c.type === 'content_block_location') return 'Content block ' + c.start_block_index + '–' + c.end_block_index;
+    return 'Unknown location type: ' + (c.type ?? '(none)');
+  }
+
+  function verifyCitation(sourceText, citation) {
+    if (citation.type !== 'char_location') return null;
+    if (typeof sourceText !== 'string' || sourceText.length === 0) return null;
+    const actual = sourceText.slice(citation.start_char_index, citation.end_char_index);
+    return actual === citation.cited_text ? { match: true } : { match: false, actual };
+  }
+
+  function pulse(el) {
+    el.style.transition = 'none';
+    el.style.boxShadow = '0 0 0 3px rgba(var(--accent-rgb), 0.35)';
+    requestAnimationFrame(() => {
+      el.style.transition = 'box-shadow 0.6s ease';
+      el.style.boxShadow = '';
+    });
+  }
+
+  function renderAnswer(textBlocks) {
+    clearChildren(answerOut);
+    let plain = '';
+    for (const tb of textBlocks) {
+      plain += tb.text;
+      if (tb.groupNum === null) {
+        answerOut.appendChild(document.createTextNode(tb.text));
+        continue;
+      }
+      const span = document.createElement('span');
+      span.textContent = tb.text;
+      span.style.background = 'color-mix(in srgb, var(--accent) 12%, transparent)';
+      span.style.borderRadius = '3px';
+      span.style.padding = '0 1px';
+      answerOut.appendChild(span);
+
+      const marker = document.createElement('button');
+      marker.type = 'button';
+      marker.textContent = '[' + tb.groupNum + ']';
+      marker.setAttribute('aria-label', 'View citation ' + tb.groupNum + ' details');
+      marker.style.cssText =
+        'display:inline-flex;align-items:center;justify-content:center;margin-left:2px;' +
+        'font-size:0.68rem;font-weight:700;min-width:24px;min-height:24px;padding:0 5px;' +
+        'color:var(--accent-contrast);background:var(--accent);border:none;border-radius:4px;' +
+        'cursor:pointer;vertical-align:middle;line-height:1.4;';
+      marker.addEventListener('click', () => {
+        const target = document.getElementById('citation-group-' + tb.groupNum);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          pulse(target);
+        }
+      });
+      answerOut.appendChild(marker);
+    }
+    lastPlainAnswer = plain;
+  }
+
+  function renderCitations(groups) {
+    clearChildren(citationsList);
+    verifyTargets = [];
+    if (groups.length === 0) {
+      citationsPanel.style.display = 'none';
+      return;
+    }
+    citationsPanel.style.display = '';
+    for (const g of groups) {
+      const wrap = document.createElement('div');
+      wrap.id = 'citation-group-' + g.num;
+      wrap.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.85rem;transition:box-shadow 0.3s ease;';
+
+      const head = document.createElement('div');
+      head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:0.45rem;';
+      const numLabel = document.createElement('strong');
+      numLabel.textContent = '[' + g.num + ']';
+      head.appendChild(numLabel);
+
+      const backBtn = document.createElement('button');
+      backBtn.type = 'button';
+      backBtn.className = 'btn btn-sm';
+      backBtn.textContent = '↑ Locate in answer';
+      backBtn.setAttribute('aria-label', 'Scroll to citation ' + g.num + ' in the answer text');
+      backBtn.addEventListener('click', () => {
+        const marker = answerOut.querySelector('button[aria-label="View citation ' + g.num + ' details"]');
+        if (marker) {
+          marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          pulse(marker.parentElement || marker);
+        }
+      });
+      head.appendChild(backBtn);
+      wrap.appendChild(head);
+
+      for (const c of g.citations) {
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--border);';
+
+        const meta = document.createElement('div');
+        meta.style.cssText = 'font-size:0.8rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;';
+        const docLabel = document.createElement('span');
+        docLabel.textContent = (c.document_title ? c.document_title : 'Document') + ' (index ' + c.document_index + ')';
+        meta.appendChild(docLabel);
+        const locLabel = document.createElement('span');
+        locLabel.textContent = '· ' + locationLabel(c);
+        meta.appendChild(locLabel);
+
+        if (c.type === 'char_location') {
+          const badge = document.createElement('span');
+          badge.dataset.verifyDoc = String(c.document_index);
+          badge.dataset.startChar = String(c.start_char_index);
+          badge.dataset.endChar = String(c.end_char_index);
+          badge.dataset.citedText = c.cited_text ?? '';
+          badge.style.cssText = 'font-size:0.76rem;font-weight:600;';
+          meta.appendChild(badge);
+          verifyTargets.push({ documentIndex: c.document_index, citation: c, badgeEl: badge });
+        }
+
+        row.appendChild(meta);
+
+        const quote = document.createElement('blockquote');
+        quote.textContent = c.cited_text ?? '';
+        quote.style.cssText =
+          'margin:0.35rem 0 0;padding:0.5rem 0.75rem;background:var(--code-bg);color:var(--code-text);' +
+          'border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-family:var(--font-mono);font-size:0.83rem;white-space:pre-wrap;word-break:break-word;';
+        row.appendChild(quote);
+
+        wrap.appendChild(row);
+      }
+
+      citationsList.appendChild(wrap);
+    }
+  }
+
+  function renderVerifyDocs(groups) {
+    clearChildren(verifyDocs);
+    const docs = uniqueDocuments(groups);
+    if (docs.length === 0) {
+      verifyPanel.style.display = 'none';
+      return;
+    }
+    verifyPanel.style.display = '';
+    for (const [docIndex, title] of docs) {
+      const block = document.createElement('div');
+
+      const label = document.createElement('div');
+      label.className = 'field-label';
+      const span = document.createElement('span');
+      span.textContent = (title ? title : 'Document') + ' (index ' + docIndex + ')';
+      label.appendChild(span);
+      block.appendChild(label);
+
+      const ta = document.createElement('textarea');
+      ta.rows = 4;
+      ta.placeholder = 'Paste the full source text of this document to verify its citations…';
+      ta.dataset.docIndex = String(docIndex);
+      ta.addEventListener('input', () => runVerification(docIndex, ta.value));
+      block.appendChild(ta);
+
+      verifyDocs.appendChild(block);
+    }
+  }
+
+  function runVerification(docIndex, sourceText) {
+    for (const t of verifyTargets) {
+      if (t.documentIndex !== docIndex) continue;
+      const result = verifyCitation(sourceText, t.citation);
+      if (result === null) {
+        t.badgeEl.textContent = '';
+      } else if (result.match) {
+        t.badgeEl.textContent = '✓ Matches source';
+        t.badgeEl.style.color = 'var(--success)';
+      } else {
+        t.badgeEl.textContent = '✗ Mismatch — source has: "' + result.actual + '"';
+        t.badgeEl.style.color = 'var(--danger)';
+      }
+    }
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      status.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    const blocks = extractContentBlocks(parsed);
+    if (blocks === null) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find a content array — paste the full API response, its "content" array, or a single content block.', 'error');
+      return;
+    }
+
+    const { textBlocks, groups, skippedNonText } = groupCitations(blocks);
+    if (textBlocks.length === 0) {
+      results.style.display = 'none';
+      setStatus('✗ No text content blocks found in the input.', 'error');
+      return;
+    }
+
+    renderAnswer(textBlocks);
+    renderCitations(groups);
+    renderVerifyDocs(groups);
+    results.style.display = 'block';
+
+    if (groups.length === 0) {
+      setStatus('Parsed — no citations found in this response (showing answer text only).', '');
+    } else {
+      let msg = '✓ Found ' + groups.length + ' cited passage' + (groups.length === 1 ? '' : 's') + ' across ' + uniqueDocuments(groups).length + ' document' + (uniqueDocuments(groups).length === 1 ? '' : 's') + '.';
+      if (skippedNonText > 0) msg += ' Skipped ' + skippedNonText + ' non-text block' + (skippedNonText === 1 ? '' : 's') + '.';
+      setStatus(msg, 'ok');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    status.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-answer').addEventListener('click', function () {
+    if (!lastPlainAnswer) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastPlainAnswer).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

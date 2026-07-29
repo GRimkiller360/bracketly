@@ -11,7 +11,7 @@ const tool = getTool('hash-generator')!;
     <button class="btn btn-sm" id="btn-clear">Clear</button>
   </div>
   <textarea id="input" rows="6" placeholder="Type or paste text here…"></textarea>
-  <div id="status" class="status" role="status" aria-live="polite" style="margin-top:0.5rem;"></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
 
   <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
     {["MD5", "SHA-1", "SHA-256", "SHA-512"].map((algo) => (
