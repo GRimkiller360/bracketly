@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-28T09:23:47.402Z",
+  "generated_at": "2026-07-29T09:29:24.501Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 73,
+    "performance": 72,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
-    "pwa": 25
+    "pwa": 38
   },
   "search_console": {
     "note": "Search Console data lags ~2-3 days and needs time after indexing to populate; empty arrays are expected for a new/low-traffic site, not a bug.",
@@ -53,6 +53,12 @@
   "last_7_days": {
     "daily_pageloads": [
       {
+        "count": 2,
+        "dimensions": {
+          "date": "2026-07-28"
+        }
+      },
+      {
         "count": 6,
         "dimensions": {
           "date": "2026-07-27"
@@ -87,18 +93,12 @@
         "dimensions": {
           "date": "2026-07-22"
         }
-      },
-      {
-        "count": 15,
-        "dimensions": {
-          "date": "2026-07-21"
-        }
       }
     ],
-    "total_pageloads": 51,
+    "total_pageloads": 38,
     "top_requests": [
       {
-        "count": 11,
+        "count": 10,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -106,7 +106,7 @@
         }
       },
       {
-        "count": 10,
+        "count": 7,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -156,14 +156,6 @@
       {
         "count": 2,
         "dimensions": {
-          "countryName": "PL",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
           "countryName": "DE",
           "refererHost": "",
           "requestPath": "/terms"
@@ -180,55 +172,7 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "CA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/cron-parser/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/hash-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "PL",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/base64/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
           "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/color-converter/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "PL",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/color-converter/"
         }
@@ -239,14 +183,6 @@
           "countryName": "DE",
           "refererHost": "",
           "requestPath": "/countries"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "PL",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/url-encoder/"
         }
       },
       {
