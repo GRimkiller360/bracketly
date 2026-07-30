@@ -3,7 +3,7 @@ import { tools } from '../data/tools';
 
 export const GET: APIRoute = ({ site }) => {
   const SITE = site!.origin;
-  const staticPaths = ['/', '/donate/', '/privacy/'];
+  const staticPaths = ['/', '/about/', '/donate/', '/privacy/'];
   const toolPaths = tools.map((t) => `/tools/${t.slug}/`);
   const urls = [...staticPaths, ...toolPaths];
 
