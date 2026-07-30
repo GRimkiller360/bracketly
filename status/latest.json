@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-29T09:29:24.501Z",
+  "generated_at": "2026-07-30T09:18:45.036Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 72,
+    "performance": 78,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -53,6 +53,12 @@
   "last_7_days": {
     "daily_pageloads": [
       {
+        "count": 9,
+        "dimensions": {
+          "date": "2026-07-29"
+        }
+      },
+      {
         "count": 2,
         "dimensions": {
           "date": "2026-07-28"
@@ -87,15 +93,9 @@
         "dimensions": {
           "date": "2026-07-23"
         }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-07-22"
-        }
       }
     ],
-    "total_pageloads": 38,
+    "total_pageloads": 46,
     "top_requests": [
       {
         "count": 10,
@@ -122,6 +122,22 @@
         }
       },
       {
+        "count": 4,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/faq"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/pricing"
+        }
+      },
+      {
         "count": 3,
         "dimensions": {
           "countryName": "ZA",
@@ -142,15 +158,7 @@
         "dimensions": {
           "countryName": "DE",
           "refererHost": "",
-          "requestPath": "/pricing"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/faq"
+          "requestPath": "/limits"
         }
       },
       {
@@ -170,6 +178,30 @@
         }
       },
       {
+        "count": 2,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/payment-methods"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/fees"
+        }
+      },
+      {
         "count": 1,
         "dimensions": {
           "countryName": "ZA",
@@ -183,14 +215,6 @@
           "countryName": "DE",
           "refererHost": "",
           "requestPath": "/countries"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/"
         }
       }
     ]
