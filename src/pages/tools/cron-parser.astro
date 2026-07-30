@@ -96,8 +96,11 @@ const tool = getTool('cron-parser')!;
         rangeEnd = parseInt(rp[1], 10);
         if (isNaN(rangeStart) || isNaN(rangeEnd)) throw new Error('Invalid range "' + base + '"');
       } else {
-        rangeStart = rangeEnd = parseInt(base, 10);
+        rangeStart = parseInt(base, 10);
         if (isNaN(rangeStart)) throw new Error('Invalid value "' + base + '"');
+        // A bare "N/step" (no "-" range) means "start at N, step through the field's max" —
+        // e.g. "10/15" in the minute field fires at :10, :25, :40, :55, not just :10.
+        rangeEnd = stepSplit.length > 1 ? max : rangeStart;
       }
       if (rangeStart < min || rangeEnd > max || rangeStart > rangeEnd) {
         throw new Error('Value out of range in "' + part + '" (expected ' + min + '-' + max + ')');

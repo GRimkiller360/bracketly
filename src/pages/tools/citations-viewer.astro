@@ -216,10 +216,6 @@ const tool = getTool('citations-viewer')!;
 
         if (c.type === 'char_location') {
           const badge = document.createElement('span');
-          badge.dataset.verifyDoc = String(c.document_index);
-          badge.dataset.startChar = String(c.start_char_index);
-          badge.dataset.endChar = String(c.end_char_index);
-          badge.dataset.citedText = c.cited_text ?? '';
           badge.style.cssText = 'font-size:0.76rem;font-weight:600;';
           meta.appendChild(badge);
           verifyTargets.push({ documentIndex: c.document_index, citation: c, badgeEl: badge });
@@ -242,6 +238,15 @@ const tool = getTool('citations-viewer')!;
   }
 
   function renderVerifyDocs(groups) {
+    // Preserve whatever the user already typed per document, keyed by doc index,
+    // since this list is rebuilt from scratch on every keystroke of the main
+    // input above — without this, editing the JSON silently wipes any source
+    // text already pasted in for verification.
+    const previousValues = {};
+    verifyDocs.querySelectorAll('textarea[data-doc-index]').forEach((ta) => {
+      previousValues[ta.dataset.docIndex] = ta.value;
+    });
+
     clearChildren(verifyDocs);
     const docs = uniqueDocuments(groups);
     if (docs.length === 0) {
@@ -251,9 +256,11 @@ const tool = getTool('citations-viewer')!;
     verifyPanel.style.display = '';
     for (const [docIndex, title] of docs) {
       const block = document.createElement('div');
+      const labelId = 'verify-doc-label-' + docIndex;
 
       const label = document.createElement('div');
       label.className = 'field-label';
+      label.id = labelId;
       const span = document.createElement('span');
       span.textContent = (title ? title : 'Document') + ' (index ' + docIndex + ')';
       label.appendChild(span);
@@ -261,12 +268,17 @@ const tool = getTool('citations-viewer')!;
 
       const ta = document.createElement('textarea');
       ta.rows = 4;
+      ta.id = 'verify-doc-input-' + docIndex;
+      ta.setAttribute('aria-labelledby', labelId);
       ta.placeholder = 'Paste the full source text of this document to verify its citations…';
       ta.dataset.docIndex = String(docIndex);
+      const restored = previousValues[String(docIndex)];
+      if (restored) ta.value = restored;
       ta.addEventListener('input', () => runVerification(docIndex, ta.value));
       block.appendChild(ta);
 
       verifyDocs.appendChild(block);
+      if (restored) runVerification(docIndex, restored);
     }
   }
 

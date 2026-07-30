@@ -311,6 +311,40 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "gemini-signature-validator",
+    title: "Gemini Thought Signature Validator",
+    shortTitle: "Signature Validator",
+    description:
+      "Paste a Gemini 3 request or response to check its function-calling turns for missing thoughtSignature fields, functionResponse ordering mistakes, and missing id echoes — the exact structural issues that cause a 400 error or silently broken multi-turn tool use. 100% client-side.",
+    keywords: [
+      "gemini thought signature",
+      "gemini 3 function calling 400 error",
+      "gemini functionCall validator",
+      "thoughtSignature missing",
+      "gemini multi-turn tool use debugger",
+    ],
+    icon: "TS",
+    category: "AI",
+    faq: [
+      {
+        q: "What is a Gemini thought signature?",
+        a: "It's an encrypted, opaque string the Gemini 3 API attaches to a functionCall part to preserve the model's internal reasoning state across a multi-turn tool-use conversation. When you replay conversation history back to the API — including that functionCall and its result — you must include the thoughtSignature exactly as it was returned, unmodified. Leaving it out (or stripping it during your own serialization) makes the next request invalid.",
+      },
+      {
+        q: "Why does my request fail with a 400 error?",
+        a: "The most common cause is a missing thoughtSignature on a functionCall part being replayed into history. There are two signature rules: for parallel function calls in one response, only the first functionCall part carries a signature; for sequential function calls across separate turns, each turn's functionCall needs its own. This tool checks both cases and tells you exactly which turn is missing one.",
+      },
+      {
+        q: "Can this tool decode or verify what's inside a thoughtSignature?",
+        a: "No — thought signatures are encrypted by Google and not decodable client-side (or server-side, by anyone but Gemini itself). This tool only checks structure: whether a signature is present where the API requires one, whether functionResponse parts match their functionCall in order and count, and whether the Gemini 3 functionCall id is echoed back correctly. It can't tell you if a signature's contents are valid, only whether one is missing where it shouldn't be.",
+      },
+      {
+        q: "What can I paste in?",
+        a: "A full request body ({ contents: [...] }), a bare contents array, a raw generateContent/streamGenerateContent response ({ candidates: [...] }), or a single content object ({ role, parts }). This tool detects which shape you gave it. Response-only shapes are checked for a missing signature but skip the ordering checks, since there's no conversation history to check against.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

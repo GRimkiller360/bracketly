@@ -1,0 +1,267 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('gemini-signature-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Gemini request or response JSON</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="12"
+      placeholder={`Paste a full request body ({ "contents": [...] }), a bare contents array, a raw generateContent response ({ "candidates": [...] }), or a single content object — e.g.\n{\n  "contents": [\n    { "role": "user", "parts": [{ "text": "..." }] },\n    { "role": "model", "parts": [{ "functionCall": { "name": "..." }, "thoughtSignature": "..." }] },\n    { "role": "user", "parts": [{ "functionResponse": { "name": "...", "response": {} } }] }\n  ]\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Turn breakdown</span></div>
+      <div id="turns-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const turnsList = document.getElementById('turns-list');
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function get(part, camel, snake) {
+    if (part == null || typeof part !== 'object') return undefined;
+    if (part[camel] !== undefined) return part[camel];
+    if (part[snake] !== undefined) return part[snake];
+    return undefined;
+  }
+  function fcOf(part) { return get(part, 'functionCall', 'function_call'); }
+  function frOf(part) { return get(part, 'functionResponse', 'function_response'); }
+  function sigOf(part) { return get(part, 'thoughtSignature', 'thought_signature'); }
+
+  function extractTurns(parsed) {
+    if (Array.isArray(parsed)) return { turns: parsed, singleTurnMode: false };
+    if (parsed && Array.isArray(parsed.contents)) return { turns: parsed.contents, singleTurnMode: false };
+    if (parsed && Array.isArray(parsed.candidates)) {
+      const c = parsed.candidates[0];
+      const content = c && c.content;
+      if (content && Array.isArray(content.parts)) {
+        return { turns: [{ role: content.role || 'model', parts: content.parts }], singleTurnMode: true };
+      }
+      return null;
+    }
+    if (parsed && parsed.content && Array.isArray(parsed.content.parts)) {
+      return { turns: [{ role: parsed.content.role || 'model', parts: parsed.content.parts }], singleTurnMode: true };
+    }
+    if (parsed && Array.isArray(parsed.parts)) {
+      return { turns: [{ role: parsed.role || 'model', parts: parsed.parts }], singleTurnMode: true };
+    }
+    return null;
+  }
+
+  function validate(parsed) {
+    const extracted = extractTurns(parsed);
+    if (!extracted) return null;
+    const { turns, singleTurnMode } = extracted;
+    const issues = [];
+    let totalFunctionCalls = 0;
+
+    turns.forEach((turn, i) => {
+      const role = turn && turn.role;
+      const parts = turn && Array.isArray(turn.parts) ? turn.parts : [];
+      const fcParts = parts.filter((p) => fcOf(p));
+      const frPartsHere = parts.filter((p) => frOf(p));
+      totalFunctionCalls += fcParts.length;
+
+      if (fcParts.length > 0) {
+        if (role !== 'model') {
+          issues.push({ severity: 'high', turn: i, message: 'functionCall found in a "' + role + '" turn (turn ' + i + ') — functionCall parts must be in a "model" turn.' });
+        }
+        const first = fcParts[0];
+        const firstFc = fcOf(first);
+        if (!sigOf(first)) {
+          issues.push({ severity: 'high', turn: i, message: 'Turn ' + i + ': the first functionCall ("' + (firstFc && firstFc.name) + '") is missing "thoughtSignature". Gemini 3 requires this to be replayed exactly as returned, or the API responds with a 400 error.' });
+        }
+
+        if (!singleTurnMode) {
+          const next = turns[i + 1];
+          if (!next) {
+            issues.push({ severity: 'medium', turn: i, message: 'Turn ' + i + ' ends with functionCall(s) and there is no following turn — add a "user" turn with matching functionResponse part(s) before replaying this history.' });
+          } else {
+            const nextRole = next.role;
+            const nextParts = Array.isArray(next.parts) ? next.parts : [];
+            const frParts = nextParts.filter((p) => frOf(p));
+            if (nextRole !== 'user') {
+              issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ' should have role "user" with functionResponse part(s) answering turn ' + i + '\'s functionCall(s), but found role "' + nextRole + '".' });
+            } else if (frParts.length !== fcParts.length) {
+              issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ' has ' + frParts.length + ' functionResponse part(s) but turn ' + i + ' had ' + fcParts.length + ' functionCall part(s) — counts must match.' });
+            } else {
+              fcParts.forEach((p, j) => {
+                const fc = fcOf(p);
+                const fr = frOf(frParts[j]);
+                if (fc.name !== fr.name) {
+                  issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionResponse #' + (j + 1) + ' name "' + fr.name + '" does not match functionCall #' + (j + 1) + ' name "' + fc.name + '" — responses must be in the same order as their calls.' });
+                }
+                if (fc.id !== undefined) {
+                  if (fr.id !== fc.id) {
+                    issues.push({ severity: 'medium', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionCall "' + fc.name + '" has id "' + fc.id + '" but its functionResponse is missing/mismatched id — Gemini 3 expects the exact id echoed back.' });
+                  }
+                }
+              });
+            }
+          }
+        }
+      }
+
+      if (frPartsHere.length > 0) {
+        const prev = turns[i - 1];
+        const prevHasFc = prev && Array.isArray(prev.parts) && prev.parts.some((p) => fcOf(p));
+        if (!prevHasFc) {
+          issues.push({ severity: 'high', turn: i, message: 'Turn ' + i + ' has functionResponse part(s) with no immediately preceding "model" turn containing functionCall(s).' });
+        }
+      }
+    });
+
+    return { issues, totalFunctionCalls, turnCount: turns.length, turns, singleTurnMode };
+  }
+
+  function describeTurn(turn, i) {
+    const role = (turn && turn.role) || '(no role)';
+    const parts = turn && Array.isArray(turn.parts) ? turn.parts : [];
+    const bits = [];
+    for (const p of parts) {
+      const fc = fcOf(p);
+      const fr = frOf(p);
+      if (fc) bits.push('functionCall(' + fc.name + ')' + (sigOf(p) ? ' [signed]' : ' [unsigned]'));
+      else if (fr) bits.push('functionResponse(' + fr.name + ')');
+      else if (p && typeof p.text === 'string') bits.push('text');
+      else bits.push('part');
+    }
+    return 'Turn ' + i + ' — role: ' + role + (bits.length ? ' — ' + bits.join(', ') : ' — (empty)');
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    clearChildren(turnsList);
+
+    result.turns.forEach((turn, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);';
+      row.textContent = describeTurn(turn, i);
+      turnsList.appendChild(row);
+    });
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = result.totalFunctionCalls === 0
+        ? 'No function calls found in this input — nothing to validate.'
+        : '✓ No issues found. Signatures, ordering, and id echoes all look correct.';
+      issuesList.appendChild(ok);
+    } else {
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' +
+          (issue.severity === 'high' ? 'var(--danger)' : 'var(--warning)') + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' +
+          (issue.severity === 'high' ? 'var(--danger)' : 'var(--warning)') + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = issue.severity === 'high' ? 'Will 400 / break' : 'Will misbehave';
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('Gemini thought-signature validation — ' + result.turnCount + ' turn(s), ' + result.totalFunctionCalls + ' functionCall(s)');
+    if (result.issues.length === 0) {
+      lines.push(result.totalFunctionCalls === 0 ? 'No function calls found.' : 'No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    const result = validate(parsed);
+    if (!result) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find a "contents" array, a "candidates" response, or a single content object in this input.', 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    if (result.issues.length === 0) {
+      setStatus(result.totalFunctionCalls === 0 ? 'Parsed — no function calls in this input.' : '✓ Looks correct — no thought-signature or ordering issues found.', 'ok');
+    } else {
+      const highCount = result.issues.filter((x) => x.severity === 'high').length;
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' likely to cause a 400 error)' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>
