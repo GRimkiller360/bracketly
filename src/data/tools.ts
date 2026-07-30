@@ -6,6 +6,7 @@ export interface Tool {
   keywords: string[];
   icon: string;
   category: string;
+  content: { heading: string; body: string }[];
   faq: { q: string; a: string }[];
 }
 
@@ -22,6 +23,16 @@ export const tools: Tool[] = [
     keywords: ["json formatter", "json validator", "json beautifier", "json pretty print"],
     icon: "{ }",
     category: "Data",
+    content: [
+      {
+        heading: "When you need a JSON formatter",
+        body: "API responses, application logs, and config files are often returned or stored as a single unbroken line of JSON — technically valid, but nearly unreadable by eye. Pasting that into a formatter re-indents it into a nested, human-readable structure so you can actually see where one object ends and the next begins, spot a missing field, or compare two payloads side by side. It's also the fastest way to check whether a JSON blob is valid at all before feeding it into code — a parser fails loudly and precisely rather than your application failing somewhere downstream with a less helpful error.",
+      },
+      {
+        heading: "How this tool validates and formats JSON",
+        body: "Under the hood this uses JavaScript's built-in JSON.parse, the same parser every browser and Node.js runtime uses, so a syntax error caught here is a syntax error anywhere. If parsing fails, the browser's own error message — including the character position of the failure — is shown directly, which almost always points at a missing comma, an unquoted object key, or a trailing comma before a closing brace (all invalid in strict JSON, unlike JavaScript object literals). Once parsed successfully, JSON.stringify re-serializes the data with two-space indentation for the formatted view, or with no whitespace at all for the compact view — both are lossless round-trips of the exact same data, just formatted differently.",
+      },
+    ],
     faq: [
       {
         q: "Is it safe to paste sensitive JSON data here?",
@@ -46,6 +57,16 @@ export const tools: Tool[] = [
     keywords: ["base64 encode", "base64 decode", "base64 converter online"],
     icon: "B64",
     category: "Encoding",
+    content: [
+      {
+        heading: "When you need Base64 encoding",
+        body: "Base64 shows up anywhere binary or arbitrary data has to travel through a system that only safely handles plain ASCII text — embedding a small image directly inside a CSS file or HTML page as a data: URI, reading the username:password pair inside an HTTP Basic Authorization header, decoding an email's MIME attachment, or inspecting the header and payload segments of a JWT (which use Base64URL, a close variant). If you've ever seen a long string of letters, numbers, and a few '+', '/', or '=' characters where you expected readable text, it's almost certainly Base64.",
+      },
+      {
+        heading: "How encoding and decoding actually work",
+        body: "Base64 takes data 3 bytes (24 bits) at a time and re-slices those bits into four 6-bit groups, each mapped to one of 64 printable characters (A–Z, a–z, 0–9, '+', '/') — hence the name. That's why encoded output is always roughly 4/3 the length of the input, and why it's padded with '=' characters when the input length isn't a multiple of 3. This tool encodes your text as UTF-8 bytes first, so accented letters, symbols, and emoji round-trip correctly rather than being mangled — a common bug in older tools that assumed plain ASCII input.",
+      },
+    ],
     faq: [
       {
         q: "What is Base64 encoding actually used for?",
@@ -70,6 +91,16 @@ export const tools: Tool[] = [
     keywords: ["jwt decoder", "decode jwt online", "jwt parser"],
     icon: "JWT",
     category: "Security",
+    content: [
+      {
+        heading: "When you need a JWT decoder",
+        body: "JWTs are the backbone of most modern session and API authentication, and when something goes wrong — a user gets logged out unexpectedly, an API call is rejected as unauthorized, an SSO integration returns claims that don't match what you expected — the fastest diagnostic step is almost always to look inside the token itself. Pasting it here shows exactly what claims the issuer put in, whether the token has already expired, and whether the payload matches what your backend or identity provider's documentation says it should contain, without writing a single line of debugging code.",
+      },
+      {
+        heading: "What decoding a JWT actually shows you — and what it doesn't",
+        body: "A JWT is three Base64URL-encoded segments joined by dots: a header (describing the signing algorithm), a payload (the actual claims — things like sub, exp, iat, and any custom fields the issuer added), and a signature. Because the header and payload are just encoded JSON, not encrypted, anyone holding the token can read them — which is exactly what this tool does, entirely in your browser. What it deliberately does not do is verify the signature, since that requires the issuer's secret or public key, something this tool never asks for. A JWT that decodes cleanly here could still be a forged or expired token from a security standpoint — decoding tells you what the token claims, not whether a server should trust it.",
+      },
+    ],
     faq: [
       {
         q: "Is it safe to paste a real JWT into this tool?",
@@ -94,6 +125,16 @@ export const tools: Tool[] = [
     keywords: ["uuid generator", "ulid generator", "generate uuid online"],
     icon: "#ID",
     category: "Data",
+    content: [
+      {
+        heading: "When you need a UUID or ULID",
+        body: "Any time you need a unique identifier that doesn't depend on a central database counter — a primary key for a new database row, an idempotency key for a payment API call, a request ID to trace through distributed logs, or just realistic-looking mock data for a test fixture — a UUID or ULID does the job without any coordination between services. ULIDs specifically are a good fit wherever you also want IDs to sort in the order they were created, something a random UUID can't give you.",
+      },
+      {
+        heading: "v4 UUID vs ULID — and how the randomness is generated",
+        body: "A v4 UUID is 128 bits, of which 122 are genuinely random (the remaining 6 are fixed to mark the version and variant per the UUID spec) — with no relationship to when it was created. A ULID instead spends its first 48 bits on a millisecond timestamp and the remaining 80 on randomness, so ULIDs generated later always sort lexicographically after earlier ones, which is genuinely useful for a database index. Both are generated here using crypto.getRandomValues(), the browser's cryptographically secure random number source — not Math.random(), which isn't designed to be unpredictable and shouldn't be used anywhere uniqueness or security matters.",
+      },
+    ],
     faq: [
       {
         q: "What's the difference between a UUID and a ULID?",
@@ -118,6 +159,16 @@ export const tools: Tool[] = [
     keywords: ["regex tester", "regex101 alternative", "test regular expression online"],
     icon: ".*",
     category: "Text",
+    content: [
+      {
+        heading: "When you need to test a regular expression",
+        body: "Regex is powerful and famously easy to get subtly wrong — a pattern that correctly matches your first three test cases can silently fail on the fourth. Testing against real sample text before dropping a pattern into a validation function, a log-parsing script, or a find-and-replace across a codebase catches those edge cases immediately, with the specific matches and capture groups highlighted rather than a pass/fail guess. It's also just a faster way to build a pattern incrementally — write a small piece, see what it actually matches, extend it — instead of writing the whole thing blind.",
+      },
+      {
+        heading: "Why a pattern might not match what you expect",
+        body: "This tool uses JavaScript's native regex engine, the same one every browser and Node.js run, so behavior matches exactly what your actual code will do (with minor flavor differences from PCRE, Python, or .NET regex in edge cases like lookbehind support). The most common reasons a pattern silently doesn't match: forgetting the 'g' flag when you expect more than one match per string, an unescaped special character like '.', '(', or '$' that needs a backslash to be treated literally, or case sensitivity, fixed by adding the 'i' flag. Capture groups — the parenthesized parts of a pattern — are broken out individually per match here, so you don't have to manually count parentheses to figure out which group captured what.",
+      },
+    ],
     faq: [
       {
         q: "What regex flavor does this tool use?",
@@ -142,6 +193,16 @@ export const tools: Tool[] = [
     keywords: ["unix timestamp converter", "epoch converter", "timestamp to date"],
     icon: "T:00",
     category: "Data",
+    content: [
+      {
+        heading: "When you need a Unix timestamp converter",
+        body: "Databases, server logs, and most APIs store and transmit time as a Unix timestamp rather than a readable date, precisely because it's compact and doesn't depend on timezone or locale. That's efficient for machines and unreadable for humans debugging an issue — converting a raw number like 1732300800 into an actual calendar date and time (and back) is a routine step when you're reading through logs, comparing an API's returned created_at field against 'now', or double-checking a JWT's exp claim without doing the math in your head.",
+      },
+      {
+        heading: "Seconds vs milliseconds, and timezones",
+        body: "This tool auto-detects the two common representations by digit count: a 10-digit number is treated as seconds since the Unix epoch (00:00:00 UTC, January 1, 1970), a 13-digit number as milliseconds — matching how most languages and databases actually represent Unix time (JavaScript's own Date.now() returns milliseconds, for example, while most Unix system calls return seconds). The converted result is shown in both your browser's local timezone and UTC side by side, which is usually the fastest way to sanity-check a timestamp when you're comparing something that happened on a server in one timezone against your own clock.",
+      },
+    ],
     faq: [
       {
         q: "What is a Unix timestamp?",
@@ -166,6 +227,16 @@ export const tools: Tool[] = [
     keywords: ["url encoder", "url decoder", "percent encoding", "urlencode online"],
     icon: "%20",
     category: "Encoding",
+    content: [
+      {
+        heading: "When you need to encode or decode a URL",
+        body: "Any value placed inside a URL — a search query, a path segment, a value in a form submission — needs encoding whenever it might contain a character with special meaning to the URL format itself: a space, '&', '?', '#', or a non-ASCII character. Skip that step and the URL either breaks outright or silently gets parsed wrong (a '&' inside a value getting read as a new parameter, for instance). This tool is also useful in reverse — decoding a percent-encoded string from a webhook payload, a browser address bar, or a log file back into something readable.",
+      },
+      {
+        heading: "encodeURIComponent vs encodeURI, and non-ASCII characters",
+        body: "This tool uses JavaScript's encodeURIComponent, which aggressively escapes almost everything except unreserved characters (letters, digits, '-', '_', '.', '~') — correct for encoding one query parameter or path segment, since it also escapes characters like '&', '=', and '/' that would otherwise be misread as URL structure. Its cousin encodeURI (not used here) is meant for encoding a whole URL rather than one piece of it, so it deliberately leaves those structural characters alone. Non-ASCII characters — accented letters, emoji, non-Latin scripts — are first converted to their UTF-8 byte sequence and each byte percent-encoded separately, exactly matching how a real browser encodes a URL, so an emoji becomes several %XX groups rather than one.",
+      },
+    ],
     faq: [
       {
         q: "When do I need to URL-encode a string?",
@@ -190,6 +261,16 @@ export const tools: Tool[] = [
     keywords: ["hash generator", "md5 hash online", "sha256 online", "sha1 generator"],
     icon: "#H",
     category: "Security",
+    content: [
+      {
+        heading: "When you need to generate a hash",
+        body: "A cryptographic hash gives you a short, fixed-length fingerprint of arbitrary data — useful whenever you need to verify two things are identical without comparing them byte-for-byte, or without transferring the whole thing at all. Checking a downloaded file's SHA-256 against the one published by its source confirms it wasn't corrupted or tampered with in transit; hashing a string is also a common way to generate a stable cache-busting key or a deduplication fingerprint for otherwise-large content.",
+      },
+      {
+        heading: "MD5, SHA-1, SHA-256, SHA-512 — which one to use",
+        body: "All four are generated here using the browser's native Web Crypto API (crypto.subtle.digest), entirely client-side. MD5 and SHA-1 are both cryptographically broken for security purposes — collisions (two different inputs producing the same hash) can be deliberately engineered — but they're still common for non-security uses like file-integrity checksums, which is why they're included. SHA-256 is the current practical standard wherever security actually matters; SHA-512 offers a larger security margin at a small performance cost. Hashing is a one-way function by design: there's no way to reverse a hash back into the original input, which is also why hashing alone (without salting) is insufficient for storing passwords — an attacker can still guess common passwords and check whether their hash matches yours.",
+      },
+    ],
     faq: [
       {
         q: "Is MD5 still safe to use?",
@@ -214,6 +295,16 @@ export const tools: Tool[] = [
     keywords: ["cron parser", "crontab explainer", "cron expression generator", "what does this cron mean"],
     icon: "⏱",
     category: "Data",
+    content: [
+      {
+        heading: "When you need a cron expression parser",
+        body: "Cron syntax is compact by design and correspondingly easy to misread — is */15 every 15 minutes or something else, does 0 9 * * 1-5 actually mean weekday mornings? Before shipping a scheduled job (a deploy pipeline, a backup script, a cron-triggered cloud function), pasting the expression here confirms in plain English exactly when it will run and shows the next five real run times, which catches a mistake — like accidentally scheduling for every hour instead of every day — before it causes a problem in production rather than after.",
+      },
+      {
+        heading: "The day-of-month / day-of-week 'OR' rule most people get wrong",
+        body: "The single most common cron misunderstanding: when both the day-of-month and day-of-week fields are restricted (not *), a real cron scheduler treats a date as a match if it satisfies either field, not both — an AND would be the intuitive reading, but standard cron uses OR in that specific case. This tool implements that exact behavior rather than the more intuitive-but-wrong AND logic. It supports the standard 5-field format plus ranges (1-5), steps (*/15), comma-separated lists (1,15), and the @yearly/@monthly/@weekly/@daily/@hourly/@midnight shortcuts; named months or weekdays like 'MON' or 'JAN' aren't supported, so use numbers instead. Next-run times are computed by simulating forward minute-by-minute from right now, entirely in your browser.",
+      },
+    ],
     faq: [
       {
         q: "What cron syntax does this support?",
@@ -238,6 +329,16 @@ export const tools: Tool[] = [
     keywords: ["color converter", "hex to rgb", "rgb to hsl", "color picker online"],
     icon: "◍",
     category: "Design",
+    content: [
+      {
+        heading: "When you need to convert between color formats",
+        body: "Designers and CSS often speak in different color formats for the same underlying color — a design handoff might specify a hex swatch, while you want HSL specifically because it's far easier to reason about lightening, darkening, or desaturating a color by adjusting one number instead of recalculating three interdependent RGB channels. This tool converts live between all three formats with an instant preview, so you can paste in whatever format you were handed and get back whichever format your codebase actually uses.",
+      },
+      {
+        heading: "RGB vs HSL — and why HSL is easier to tweak",
+        body: "RGB defines a color by the intensity of red, green, and blue light needed to produce it — precise, but not intuitive to a human trying to make a color 'a bit lighter.' HSL (hue, saturation, lightness) describes the same color space in terms people actually think in: hue is the base color itself on a 360° wheel, saturation is how vivid or muted it is, and lightness is how close to black or white it sits. Nudging just the lightness value up or down gives a predictable lighter or darker shade of the exact same hue — something that requires recalculating all three RGB channels together to do correctly. All three output formats here (hex, rgb(), hsl()) are valid CSS values that can be pasted directly into a stylesheet.",
+      },
+    ],
     faq: [
       {
         q: "What's the difference between RGB and HSL?",
@@ -262,6 +363,16 @@ export const tools: Tool[] = [
     keywords: ["gpt token counter", "openai token counter", "tiktoken online", "count tokens gpt-4o", "llm token counter"],
     icon: "GPT",
     category: "AI",
+    content: [
+      {
+        heading: "When you need a GPT token counter",
+        body: "OpenAI's API bills by token, not by character or word, and most models also enforce a hard context-window limit measured in tokens — so before sending a long prompt (a big document for summarization, a lengthy system prompt, a large few-shot example set) it's worth knowing exactly how many tokens it costs and whether it fits, rather than finding out from a truncated response or a failed request. This tool counts as you type, live, which also makes it easy to compare the token cost of two different phrasings of the same prompt.",
+      },
+      {
+        heading: "Why the same text costs different tokens on different models",
+        body: "This uses js-tiktoken, the same byte-pair-encoding tokenizer library OpenAI's own API uses internally, with the identical vocabulary files — so for a plain text prompt, the count here matches exactly what you'd be billed. It automatically picks the right tokenizer for the model you select: o200k_base for the GPT-5 and GPT-4o families plus the o-series reasoning models, or cl100k_base for GPT-4, GPT-4 Turbo, GPT-3.5 Turbo, and the text-embedding-3 models. o200k_base's larger 200k-entry vocabulary packs non-English scripts and common multi-word phrases more efficiently than cl100k_base's 100k, so identical text can tokenize to noticeably fewer tokens depending which family you're targeting — which is exactly why token count isn't simply proportional to character or word count.",
+      },
+    ],
     faq: [
       {
         q: "Which models does this cover?",
@@ -296,6 +407,16 @@ export const tools: Tool[] = [
     ],
     icon: "[1]",
     category: "AI",
+    content: [
+      {
+        heading: "When you need a Citations API response viewer",
+        body: "Anthropic's Citations API feature lets Claude back its answer with specific passages from a source document, but the response comes back as a content array split across multiple blocks, each carrying its own citations with character or page indices into the source — genuinely useful data, but not something you can eyeball in raw JSON. This tool is for exactly the moment you're integrating that feature and need to see, at a glance, whether the highlighted answer text actually lines up with the source passage it claims to cite, before shipping it in front of real users.",
+      },
+      {
+        heading: "What this tool checks, and how to read a mismatch",
+        body: "Paste the full Messages API response, just its content array, or a single content block — this tool detects which shape you gave it. Each citation's location is one of three types depending on the source document format: char_location (plain text, using start/end character indices), page_location (PDFs, using page numbers), or content_block_location (custom content blocks, using block indices). When you also paste the original source document, the viewer slices it at the citation's exact indices and compares that slice to the cited_text Claude returned — a mismatch here almost always means you're comparing against a different version of the document than the one actually sent in the original request (different whitespace, a re-exported copy, an edited draft), not a bug in the Citations API itself.",
+      },
+    ],
     faq: [
       {
         q: "What is the Claude Citations API?",
@@ -326,6 +447,16 @@ export const tools: Tool[] = [
     ],
     icon: "TS",
     category: "AI",
+    content: [
+      {
+        heading: "When you need a Gemini thought signature validator",
+        body: "Gemini 3's function-calling flow attaches an opaque thoughtSignature to each functionCall part, and it has to be replayed back to the API unmodified on the next turn — strip it, reorder it, or serialize your conversation history in a way that drops it, and the next request comes back with a 400 error that doesn't obviously point at the signature as the cause. If you're mid-integration and hitting a mysterious 400 on the second or third turn of a tool-use loop, pasting the request or response here checks the exact structural rules Gemini enforces, rather than guessing which of several possible causes it is.",
+      },
+      {
+        heading: "What this tool checks: signatures, ordering, and id echoes",
+        body: "There are two distinct signature rules depending on the shape of the tool call: for several function calls made in parallel within one response, only the first functionCall part is required to carry a signature; for function calls made sequentially across separate turns, each turn's functionCall needs its own. This tool checks both cases specifically and reports exactly which turn is missing one, along with whether functionResponse parts match their corresponding functionCall in order and count, and whether the functionCall id is echoed back correctly. It accepts a full request body, a bare contents array, a raw API response, or a single content object, and detects which one you gave it — though response-only input skips the ordering checks, since there's no conversation history to check against. It can't verify what's inside a signature, only whether one is present where the API requires it — the contents are encrypted by Google and not decodable by anyone but Gemini itself.",
+      },
+    ],
     faq: [
       {
         q: "What is a Gemini thought signature?",

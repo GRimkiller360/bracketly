@@ -63,6 +63,15 @@ const faqSchema = {
     <AdUnit />
 
     <section style="margin-top:2.5rem;">
+      {tool.content.map((c) => (
+        <div class="panel" style="margin-bottom:1.25rem;">
+          <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">{c.heading}</h2>
+          <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">{c.body}</p>
+        </div>
+      ))}
+    </section>
+
+    <section style="margin-top:2.5rem;">
       <h2 style="font-size:1.15rem;margin:0 0 1rem;">Frequently asked questions</h2>
       <div style="display:flex;flex-direction:column;gap:0.75rem;">
         {tool.faq.map((f) => (

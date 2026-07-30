@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="About Bracketly"
+  description="Why Bracketly exists, how it's built, and what 'runs entirely in your browser' actually means in practice."
+>
+  <div class="container" style="max-width:680px;">
+    <div style="padding:3rem 0 1rem;">
+      <h1 style="font-size:2rem;letter-spacing:-0.03em;margin:0 0 0.75rem;">About Bracketly</h1>
+      <p style="color:var(--text-muted);font-size:0.95rem;margin:0 0 2rem;">
+        A small, growing collection of developer tools, built one at a time.
+      </p>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Why this exists</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Most free online dev tools share the same annoyances: a wall of ads before you
+          can even see the input box, a page that phones home with whatever you paste
+          into it, or a UI that hasn't been touched since 2014. Bracketly started as a
+          personal itch — wanting a JSON formatter and a JWT decoder that were fast,
+          uncluttered, and didn't need to send anything to a server to do their job. It
+          grew from there, one tool at a time, whenever a real task needed something
+          that didn't already exist in a form worth using.
+        </p>
+      </div>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">What "runs entirely in your browser" means</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Bracketly has no backend, no database, and no accounts — every tool on the
+          site is plain JavaScript running on your own device using standard browser
+          and Web APIs (JSON.parse, the Web Crypto API, crypto.getRandomValues, and
+          similar). Whatever you paste into a tool — a JWT, a JSON payload, a document
+          you're checking a citation against — is processed locally and never
+          transmitted anywhere. That's not a policy decision layered on top of the
+          tools; it's the only way most of them work at all, since there's no server
+          for the data to go to. Full details, including what Cloudflare Analytics and
+          Google AdSense do collect, are in the <a href="/privacy">privacy policy</a>.
+        </p>
+      </div>
+
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">What's here, and what's coming</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          The current set spans everyday formatting and encoding tools (JSON, Base64,
+          URL encoding, Unix timestamps), a few security-adjacent utilities (JWT
+          decoding, hash generation), a color converter, a cron expression explainer,
+          and a newer batch of tools for people building against LLM APIs — a GPT
+          token counter, a Citations API response viewer, and a Gemini thought
+          signature validator. New tools get added when a genuine gap shows up,
+          not on a schedule, and always as an original implementation rather than a
+          copy of something that already exists elsewhere.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 0.5rem;font-size:1.1rem;">Who's behind it</h2>
+        <p style="color:var(--text-muted);margin:0;font-size:0.95rem;line-height:1.7;">
+          Bracketly is an independent, self-funded side project — no company, no
+          investors, no roadmap beyond "build the next tool that's actually worth
+          building." It's supported by a single unobtrusive ad per page and optional
+          reader{" "}
+          <a href="/donate">donations</a>, and the full source is open on{" "}
+          <a href="https://github.com/GRimkiller360/bracketly" target="_blank" rel="noopener noreferrer">GitHub</a>{" "}
+          if you want to see exactly how any tool works or suggest a new one.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
