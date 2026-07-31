@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-31T05:47:33.044Z",
+  "generated_at": "2026-07-31T09:32:19.100Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 89,
+    "performance": 96,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -53,7 +53,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 3,
         "dimensions": {
           "date": "2026-07-31"
         }
@@ -101,7 +101,7 @@
         }
       }
     ],
-    "total_pageloads": 135,
+    "total_pageloads": 136,
     "top_requests": [
       {
         "count": 57,
@@ -136,7 +136,7 @@
         }
       },
       {
-        "count": 8,
+        "count": 9,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -194,17 +194,17 @@
       {
         "count": 2,
         "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/terms"
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/cron-parser/"
         }
       },
       {
         "count": 2,
         "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/cron-parser/"
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/terms"
         }
       },
       {
@@ -244,7 +244,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/color-converter/"
+          "requestPath": "/tools/jwt-decoder/"
         }
       },
       {
@@ -252,7 +252,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/jwt-decoder/"
+          "requestPath": "/tools/color-converter/"
         }
       },
       {
