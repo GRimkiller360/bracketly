@@ -1,0 +1,274 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-tool-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">MCP tool definition JSON</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste a single tool object, an array of tools, or a full tools/list response — e.g.\n{\n  "name": "get_weather",\n  "description": "Get current weather for a location",\n  "inputSchema": {\n    "type": "object",\n    "properties": { "location": { "type": "string" } },\n    "required": ["location"]\n  }\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Tool breakdown</span></div>
+      <div id="tools-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const toolsList = document.getElementById('tools-list');
+
+  const NAME_RE = /^[A-Za-z0-9_-]+$/;
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function extractTools(parsed) {
+    if (Array.isArray(parsed)) return { tools: parsed, single: false };
+    if (parsed && Array.isArray(parsed.tools)) return { tools: parsed.tools, single: false };
+    if (parsed && parsed.result && Array.isArray(parsed.result.tools)) return { tools: parsed.result.tools, single: false };
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && (typeof parsed.name === 'string' || parsed.inputSchema !== undefined)) {
+      return { tools: [parsed], single: true };
+    }
+    return null;
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function validateTool(tool, index, nameCounts) {
+    const issues = [];
+    const label = isPlainObject(tool) && typeof tool.name === 'string' && tool.name ? '"' + tool.name + '"' : '#' + (index + 1);
+
+    if (!isPlainObject(tool)) {
+      issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ' is not a JSON object.' });
+      return issues;
+    }
+
+    if (typeof tool.name !== 'string' || tool.name.length === 0) {
+      issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ' is missing a "name" field — required by the MCP spec.' });
+    } else {
+      if (!NAME_RE.test(tool.name)) {
+        issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': name contains characters outside [A-Za-z0-9_-]. The spec itself doesn\'t restrict this, but most MCP clients and OpenAI-compatible bridges treat tool names as function identifiers and reject spaces or punctuation.' });
+      }
+      if (tool.name.length > 64) {
+        issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': name is ' + tool.name.length + ' characters. Many clients cap tool/function names at 64 characters and will truncate or reject longer ones.' });
+      }
+      if (nameCounts.get(tool.name) > 1) {
+        issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ': duplicate name — ' + nameCounts.get(tool.name) + ' tools in this list share it, which is ambiguous for a client calling tools/call.' });
+      }
+    }
+
+    if (tool.inputSchema === undefined) {
+      issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ' is missing "inputSchema" — required by the MCP spec.' });
+    } else if (!isPlainObject(tool.inputSchema)) {
+      issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ': "inputSchema" must be a JSON Schema object, not ' + (Array.isArray(tool.inputSchema) ? 'an array' : typeof tool.inputSchema) + '.' });
+    } else {
+      const s = tool.inputSchema;
+      if (s.type !== 'object') {
+        issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ': inputSchema.type is ' + JSON.stringify(s.type) + ' — it should be "object", since tool arguments are always passed as a JSON object of named parameters.' });
+      }
+      if (s.properties !== undefined && !isPlainObject(s.properties)) {
+        issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': inputSchema.properties should be an object mapping parameter names to their schemas.' });
+      }
+      if (Array.isArray(s.required)) {
+        const propKeys = isPlainObject(s.properties) ? Object.keys(s.properties) : [];
+        for (const r of s.required) {
+          if (!propKeys.includes(r)) {
+            issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': inputSchema.required lists "' + r + '" but it isn\'t defined in inputSchema.properties — likely a typo.' });
+          }
+        }
+      }
+      if (JSON.stringify(s).indexOf('"$ref"') !== -1) {
+        issues.push({ severity: 'low', tool: index, message: 'Tool ' + label + ': inputSchema uses "$ref". Valid JSON Schema, but some MCP clients only resolve a flat schema and may not follow references — worth inlining if a specific client fails to load this tool.' });
+      }
+    }
+
+    if (tool.outputSchema !== undefined) {
+      if (!isPlainObject(tool.outputSchema)) {
+        issues.push({ severity: 'high', tool: index, message: 'Tool ' + label + ': "outputSchema" must be a JSON Schema object, not ' + (Array.isArray(tool.outputSchema) ? 'an array' : typeof tool.outputSchema) + '.' });
+      } else if (tool.outputSchema.type !== 'object') {
+        issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': outputSchema.type is ' + JSON.stringify(tool.outputSchema.type) + ' — a tool result\'s structuredContent is returned as a JSON object, so this should typically be "object".' });
+      }
+    }
+
+    if (typeof tool.description !== 'string' || tool.description.trim().length === 0) {
+      issues.push({ severity: 'low', tool: index, message: 'Tool ' + label + ' has no "description". Not required by the spec, but the model has nothing besides name + description to decide when to call this tool.' });
+    }
+
+    if (tool.annotations !== undefined) {
+      if (!isPlainObject(tool.annotations)) {
+        issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': "annotations" must be an object.' });
+      } else {
+        const a = tool.annotations;
+        for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+          if (a[hint] !== undefined && typeof a[hint] !== 'boolean') {
+            issues.push({ severity: 'medium', tool: index, message: 'Tool ' + label + ': annotations.' + hint + ' should be a boolean, got ' + typeof a[hint] + '.' });
+          }
+        }
+        if (a.title !== undefined && typeof a.title !== 'string') {
+          issues.push({ severity: 'low', tool: index, message: 'Tool ' + label + ': annotations.title should be a string.' });
+        }
+      }
+    }
+
+    return issues;
+  }
+
+  function summarizeTool(tool, index) {
+    if (!isPlainObject(tool)) return 'Tool #' + (index + 1) + ' — not an object';
+    const name = typeof tool.name === 'string' && tool.name ? tool.name : '(no name)';
+    const bits = [];
+    bits.push(tool.inputSchema !== undefined ? 'inputSchema present' : 'inputSchema missing');
+    if (tool.outputSchema !== undefined) bits.push('outputSchema present');
+    if (tool.annotations !== undefined) bits.push('annotations present');
+    const paramCount = isPlainObject(tool.inputSchema) && isPlainObject(tool.inputSchema.properties)
+      ? Object.keys(tool.inputSchema.properties).length
+      : 0;
+    bits.push(paramCount + ' parameter' + (paramCount === 1 ? '' : 's'));
+    return name + ' — ' + bits.join(', ');
+  }
+
+  function render(tools, allIssues) {
+    clearChildren(issuesList);
+    clearChildren(toolsList);
+
+    tools.forEach((tool, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);';
+      row.textContent = summarizeTool(tool, i);
+      toolsList.appendChild(row);
+    });
+
+    if (allIssues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found across ' + tools.length + ' tool' + (tools.length === 1 ? '' : 's') + '.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Recommendation' };
+      for (const issue of allIssues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP tool schema validation — ' + tools.length + ' tool(s)');
+    if (allIssues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of allIssues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    const extracted = extractTools(parsed);
+    if (!extracted) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find a tool object, a tool array, or a "tools" list in this input.', 'error');
+      return;
+    }
+
+    const nameCounts = new Map();
+    for (const t of extracted.tools) {
+      if (isPlainObject(t) && typeof t.name === 'string' && t.name) {
+        nameCounts.set(t.name, (nameCounts.get(t.name) || 0) + 1);
+      }
+    }
+
+    const allIssues = [];
+    extracted.tools.forEach((tool, i) => {
+      allIssues.push(...validateTool(tool, i, nameCounts));
+    });
+
+    render(extracted.tools, allIssues);
+    results.style.display = 'block';
+
+    if (allIssues.length === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + extracted.tools.length + ' tool' + (extracted.tools.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      const highCount = allIssues.filter((x) => x.severity === 'high').length;
+      setStatus('✗ Found ' + allIssues.length + ' issue' + (allIssues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

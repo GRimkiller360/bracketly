@@ -476,6 +476,51 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-tool-validator",
+    title: "MCP Tool Schema Validator",
+    shortTitle: "MCP Validator",
+    description:
+      "Paste a Model Context Protocol tool definition — a single tool object, an array, or a full tools/list response — to check it against the spec: missing name or inputSchema, a name most clients will reject, a required property that doesn't exist, malformed annotations, and more. 100% client-side.",
+    keywords: [
+      "mcp tool validator",
+      "model context protocol schema",
+      "mcp inputSchema validator",
+      "mcp server tool definition checker",
+      "tools/list validator",
+      "mcp tool annotations",
+    ],
+    icon: "MCP",
+    category: "AI",
+    content: [
+      {
+        heading: "When you need an MCP tool schema validator",
+        body: "Building a Model Context Protocol server means hand-writing a JSON Schema for every tool's inputSchema, and it's easy to get something subtly wrong that a JSON.parse won't catch: a required parameter that's misspelled and doesn't actually exist in properties, an inputSchema missing its top-level \"type\": \"object\", a tool name with a space or slash in it that half your clients silently reject. None of these throw a parse error — the JSON is perfectly valid, just structurally wrong in a way that only shows up later as a tool that won't load, won't get called correctly, or gets called with arguments that don't match what your handler expects. Pasting your tool definition (or your whole tools/list response) here checks the same structural rules a client or a careful code reviewer would, before you find out the hard way.",
+      },
+      {
+        heading: "What this tool checks — and what's spec vs. client convention",
+        body: "The MCP spec itself only requires two fields on a Tool object: \"name\" and \"inputSchema\". Everything else — description, title, outputSchema, annotations — is optional, though a tool with no description gives the model nothing to go on when deciding whether to call it. This validator flags the hard spec violations (missing name/inputSchema, an inputSchema without \"type\": \"object\", a required entry that isn't defined in properties) as errors, and flags practical client conventions the spec doesn't technically mandate — like names containing spaces or punctuation, or names over 64 characters — as warnings, since most real MCP clients and OpenAI-compatible bridges treat tool names as function identifiers and reject or truncate ones that don't fit. It also checks annotations (readOnlyHint, destructiveHint, idempotentHint, openWorldHint) are booleans where present, though it's worth remembering these are hints only — the spec is explicit that clients must treat annotations as untrusted unless they come from a server they already trust, so annotations are a UX signal, not an enforced contract.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is a Model Context Protocol (MCP) tool definition?",
+        a: "It's the JSON object an MCP server advertises for each tool it exposes, returned in a tools/list response. Per spec it needs a \"name\" and an \"inputSchema\" (a JSON Schema describing the tool's parameters); \"description\", \"title\", \"outputSchema\", and \"annotations\" are all optional but strongly recommended so a client — and the model calling the tool — knows what it does and what it expects.",
+      },
+      {
+        q: "Does the spec really require inputSchema.type to be \"object\"?",
+        a: "The MCP schema itself just types inputSchema as a generic JSON Schema object, but since tool arguments are always passed as a single JSON object of named parameters, every real client and SDK expects the root of inputSchema to be \"type\": \"object\" — this tool flags it as an error because in practice a schema without that will cause argument validation to fail or be skipped entirely, not because the raw spec text spells out that exact rule.",
+      },
+      {
+        q: "Why does it warn about my tool name even though nothing looks structurally wrong?",
+        a: "The MCP spec doesn't itself restrict which characters a tool name can contain. In practice, though, tool names are used as function identifiers by the model and by any OpenAI-compatible bridge sitting in front of your server — both commonly reject spaces, slashes, or other punctuation, and many cap length at 64 characters. This tool flags those as warnings (not spec errors) since they're the single most common reason a technically-valid tool definition fails to work in a real client.",
+      },
+      {
+        q: "Can this tool verify my server actually implements the tool correctly?",
+        a: "No — it only validates the shape of the tool definition JSON you paste in: required fields, inputSchema/outputSchema structure, name conventions, and annotation types. It can't call your server, so it has no way to check that your handler's actual behavior matches what the schema promises (e.g. that a required parameter is genuinely required by your code, or that responses match outputSchema at runtime).",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
