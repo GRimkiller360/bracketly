@@ -167,7 +167,7 @@ const tool = getTool('mcp-tool-validator')!;
 
     tools.forEach((tool, i) => {
       const row = document.createElement('div');
-      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);';
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
       row.textContent = summarizeTool(tool, i);
       toolsList.appendChild(row);
     });
@@ -182,7 +182,7 @@ const tool = getTool('mcp-tool-validator')!;
       const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Recommendation' };
       for (const issue of allIssues) {
         const row = document.createElement('div');
-        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;';
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
         const badge = document.createElement('strong');
         badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
         badge.textContent = sevLabel[issue.severity];

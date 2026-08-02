@@ -9,6 +9,7 @@ const tool = getTool('cron-parser')!;
   <div class="panel" style="margin-bottom:1rem;">
     <div class="field-label">
       <label for="cron-input">Cron expression</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
     </div>
     <input
       id="cron-input"
@@ -318,6 +319,13 @@ const tool = getTool('cron-parser')!;
       document.getElementById('cron-input').value = btn.getAttribute('data-example');
       render();
     });
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    var cronInput = document.getElementById('cron-input');
+    cronInput.value = '';
+    render();
+    cronInput.focus();
   });
 
   document.getElementById('btn-copy-cron').addEventListener('click', function () {

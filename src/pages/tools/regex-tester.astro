@@ -60,6 +60,7 @@ const tool = getTool('regex-tester')!;
   function test() {
     var pat = patternEl.value;
     var fl  = flagsEl.value.replace(/[^gimsuy]/g, '');
+    fl = fl.split('').filter(function (c, i) { return fl.indexOf(c) === i; }).join('');
 
     statusEl.textContent = '';
     statusEl.className   = 'status';
