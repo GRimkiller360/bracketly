@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-01T08:56:40.544Z",
+  "generated_at": "2026-08-02T08:59:05.416Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
@@ -27,10 +27,19 @@
         "keys": [
           "https://bracketly.pages.dev/"
         ],
-        "clicks": 3,
-        "impressions": 7,
-        "ctr": 0.42857142857142855,
-        "position": 2
+        "clicks": 14,
+        "impressions": 18,
+        "ctr": 0.7777777777777778,
+        "position": 1.7222222222222223
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/privacy/"
+        ],
+        "clicks": 1,
+        "impressions": 3,
+        "ctr": 0.3333333333333333,
+        "position": 1.6666666666666665
       },
       {
         "keys": [
@@ -52,6 +61,12 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-08-01"
+        }
+      },
       {
         "count": 5,
         "dimensions": {
@@ -86,12 +101,6 @@
         "count": 1,
         "dimensions": {
           "date": "2026-07-26"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-07-25"
         }
       }
     ],
