@@ -1,0 +1,13 @@
+{
+  "name": "Bracketly",
+  "short_name": "Bracketly",
+  "description": "Free, privacy-first developer tools that run entirely in your browser.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#3457d5",
+  "icons": [
+    { "src": "/favicon-32x32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/favicon-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

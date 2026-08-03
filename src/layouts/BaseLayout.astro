@@ -33,6 +33,13 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:image" content={siteUrl + '/favicon-512x512.png'} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={siteUrl + '/favicon-512x512.png'} />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -40,6 +47,9 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#3457d5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#6d8bff" media="(prefers-color-scheme: dark)" />
 
     <!-- Sitemap -->
     <link rel="sitemap" href="/sitemap.xml" />

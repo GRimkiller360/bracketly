@@ -29,3 +29,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Search GitHub for current "awesome-mcp-servers" / "awesome-mcp" style lists and open a PR (from a personal GitHub account, not this repo's bot) adding a one-line entry for the validator.
 2. Consider a short, non-spammy post in an MCP-focused subreddit or Discord introducing the tool, if such communities have server-building channels where sharing tools is welcomed by their rules.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
+
+## 2026-08-03 — Submit the new Embedding Vector Truncator to RAG/vector-DB communities
+
+**What it is:** Today's run added `/tools/embedding-truncator/`, a client-side tool for correctly truncating and L2-renormalizing Matryoshka-style embedding vectors (OpenAI, Gemini, Cohere, Nomic) — a real, commonly-hit gotcha for anyone doing manual dimension reduction for vector-DB storage/cost savings. This tool's natural audience (RAG engineers, vector-search/vector-DB users) overlaps heavily with active communities: r/vectordatabase, r/LocalLLaMA, Weaviate/Qdrant/Pinecone/Milvus community Discords and forums, and "awesome-embeddings"/"awesome-vector-search" style curated GitHub lists.
+
+**Why it's a real fit for Bracketly specifically:** Same reasoning as the MCP validator submission below — this is a narrow, technically-specific tool, not a generic dev-tool submission, so it's targeting a small but highly relevant audience where a new low-authority domain has a real shot at visibility rather than competing in a saturated space. The research behind this tool (2026-08-03) also surfaced no existing free tool doing this specific truncate-then-renormalize-then-compare workflow, which strengthens the case that this fills a genuine, current gap worth mentioning by name in any submission.
+
+**Why this agent can't do it directly:** Same permanent limitation as always — most curated lists require a fork + PR from a personal GitHub account (this agent's GitHub App cannot fork third-party repos), and community forum/Discord posts require a human account and human judgment about each community's self-promotion norms.
+
+**What a human needs to do:**
+1. Search GitHub for "awesome-embeddings" / "awesome-vector-search" / "awesome-rag" style lists and open a PR (from a personal account) adding a one-line entry.
+2. Consider a short, non-spammy post in r/vectordatabase or a vector-DB vendor's community forum, framed around the specific renormalization gotcha (a genuinely useful technical point, not just "check out my tool").
+3. No code or account changes needed on the Bracketly side.

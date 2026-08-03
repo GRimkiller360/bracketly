@@ -521,6 +521,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "embedding-truncator",
+    title: "Embedding Vector Truncator & Renormalizer",
+    shortTitle: "Embedding Truncator",
+    description:
+      "Truncate a Matryoshka-style embedding vector to fewer dimensions and correctly L2-renormalize it — the step most people skip when truncating OpenAI, Gemini, Cohere, or Nomic embeddings by hand. Optionally compare cosine similarity before and after. 100% client-side.",
+    keywords: [
+      "matryoshka embedding truncation",
+      "embedding dimension reducer",
+      "l2 renormalize embedding vector",
+      "truncate embedding vector online",
+      "embedding cosine similarity calculator",
+    ],
+    icon: "MRL",
+    category: "AI",
+    content: [
+      {
+        heading: "When you need to truncate an embedding vector",
+        body: "Matryoshka Representation Learning (MRL) is now supported by most major embedding APIs — OpenAI's text-embedding-3 family, Gemini's gemini-embedding models, Cohere embed-v4, and Nomic Embed v1.5 among them — meaning a single embedding can be safely shortened after the fact to cut vector-database storage and search cost, with only a small, predictable accuracy loss. That's useful when you're storing embeddings you already generated at full size and want to shrink them for a cheaper index, or when a provider's own truncation option isn't available to you (a stored vector, an older SDK, a self-hosted Matryoshka-trained model where you slice the array yourself).",
+      },
+      {
+        heading: "The renormalization step people skip",
+        body: "Embedding vectors from these APIs are L2-normalized to unit length (magnitude 1) by default — that's what makes cosine similarity and dot-product search interchangeable and numerically stable. Slicing off the last N dimensions of a unit vector changes its magnitude, so the truncated vector is no longer unit length; skip renormalizing it and every downstream cosine-similarity or dot-product comparison against other vectors is subtly wrong. Providers that offer a native truncation parameter (like OpenAI's dimensions option) renormalize for you automatically — this tool does the same math by hand for the common case where you're truncating a vector yourself: compute the L2 norm of the truncated slice (the square root of the sum of its squared values) and divide every value by that norm.",
+      },
+    ],
+    faq: [
+      {
+        q: "Why do I need to renormalize after truncating an embedding?",
+        a: "Embeddings from Matryoshka-trained models are L2-normalized to unit length by default. Cutting off the last N dimensions changes the vector's magnitude, so the truncated vector is no longer unit length — comparing it to other vectors with cosine similarity or dot product without renormalizing first gives subtly wrong results. Renormalizing (dividing every value by the truncated vector's own L2 norm) restores unit length.",
+      },
+      {
+        q: "Does this work for any embedding model?",
+        a: "The math (truncate, then L2-renormalize) is universal linear algebra and works on any vector. It only meaningfully preserves the embedding's semantic properties if the model was actually trained with Matryoshka Representation Learning (OpenAI text-embedding-3 family, Gemini's gemini-embedding models, Cohere embed-v4, Nomic Embed v1.5, and others). Truncating a non-Matryoshka embedding this way will still run, but the result won't reliably preserve similarity rankings the way a Matryoshka-trained model's does.",
+      },
+      {
+        q: "Why does the cosine similarity change after truncation?",
+        a: "Some information is genuinely discarded when you drop dimensions, so a small, expected shift in cosine similarity between two truncated-and-renormalized vectors compared to their original full-length similarity is normal — that's the accuracy/size tradeoff Matryoshka truncation is designed around. This tool shows both the full-length and truncated similarity side by side so you can see exactly how much it shifted for your specific vectors.",
+      },
+      {
+        q: "Is it safe to paste real embedding vectors here?",
+        a: "Yes — parsing, truncation, renormalization, and similarity math all happen locally in your browser using plain JavaScript arithmetic. Nothing you paste is sent to a server or stored anywhere.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

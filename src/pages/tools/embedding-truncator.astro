@@ -1,0 +1,278 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('embedding-truncator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="vec-a">Embedding vector</label>
+      <button class="btn btn-sm" id="btn-clear-a" aria-label="Clear vector A">Clear</button>
+    </div>
+    <textarea
+      id="vec-a"
+      rows="6"
+      placeholder="Paste a vector — [0.012, -0.034, 0.056, ...], comma-separated, or one value per line"
+    ></textarea>
+    <p id="status-a" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="target-dim">Target dimension</label>
+    </div>
+    <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-bottom:0.6rem;">
+      <input type="number" id="target-dim" min="1" step="1" style="max-width:140px;" placeholder="e.g. 256" />
+      <div id="presets" style="display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">
+      Common truncation sizes shown as presets — the exact dimension you should pick depends on your embedding provider and index; these are just convenient starting points, not a claim about any specific model's default.
+    </p>
+  </div>
+
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="vec-b">Compare against a second vector (optional)</label>
+      <button class="btn btn-sm" id="btn-clear-b" aria-label="Clear vector B">Clear</button>
+    </div>
+    <textarea
+      id="vec-b"
+      rows="6"
+      placeholder="Paste a second vector to see cosine similarity before and after truncation"
+    ></textarea>
+    <p id="status-b" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label"><span>Vector A — truncation result</span></div>
+      <div id="stats-a" style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <label for="out-renormalized">Renormalized vector (target dimension)</label>
+        <button class="btn btn-sm" id="btn-copy" aria-label="Copy renormalized vector as JSON array">Copy</button>
+      </div>
+      <textarea id="out-renormalized" rows="4" readonly></textarea>
+    </div>
+
+    <div id="similarity-panel" class="panel" style="display:none;">
+      <div class="field-label"><span>Cosine similarity — full vs. truncated</span></div>
+      <div id="stats-sim" style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const vecAInput = document.getElementById('vec-a');
+  const vecBInput = document.getElementById('vec-b');
+  const statusA = document.getElementById('status-a');
+  const statusB = document.getElementById('status-b');
+  const targetDimInput = document.getElementById('target-dim');
+  const presetsEl = document.getElementById('presets');
+  const results = document.getElementById('results');
+  const statsA = document.getElementById('stats-a');
+  const outRenormalized = document.getElementById('out-renormalized');
+  const similarityPanel = document.getElementById('similarity-panel');
+  const statsSim = document.getElementById('stats-sim');
+
+  const PRESETS = [64, 128, 256, 512, 768, 1024, 1536, 3072];
+
+  PRESETS.forEach((d) => {
+    const b = document.createElement('button');
+    b.className = 'btn btn-sm';
+    b.type = 'button';
+    b.textContent = String(d);
+    b.addEventListener('click', () => {
+      targetDimInput.value = String(d);
+      process();
+    });
+    presetsEl.appendChild(b);
+  });
+
+  function parseVector(text) {
+    const cleaned = text.trim().replace(/^[\[\(]/, '').replace(/[\]\)]$/, '');
+    if (!cleaned) return { error: 'empty' };
+    const tokens = cleaned.split(/[\s,]+/).filter(Boolean);
+    const values = [];
+    for (const t of tokens) {
+      const n = Number(t);
+      if (!Number.isFinite(n)) return { error: 'bad-token', token: t };
+      values.push(n);
+    }
+    if (values.length === 0) return { error: 'empty' };
+    return { values };
+  }
+
+  function l2norm(arr) {
+    let s = 0;
+    for (const v of arr) s += v * v;
+    return Math.sqrt(s);
+  }
+
+  function truncateAndRenormalize(values, targetDim) {
+    if (targetDim > values.length) return { error: 'target-too-large' };
+    if (!(targetDim > 0)) return { error: 'target-invalid' };
+    const truncated = values.slice(0, targetDim);
+    const norm = l2norm(truncated);
+    if (norm === 0) return { error: 'zero-vector' };
+    const renormalized = truncated.map((v) => v / norm);
+    return { truncated, truncatedNorm: norm, renormalized };
+  }
+
+  function cosineSimilarity(a, b) {
+    if (a.length !== b.length) return null;
+    let dot = 0, na = 0, nb = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      na += a[i] * a[i];
+      nb += b[i] * b[i];
+    }
+    if (na === 0 || nb === 0) return null;
+    return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  }
+
+  function fmt(n) {
+    return Number(n.toFixed(6)).toString();
+  }
+
+  function statRow(label, value) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:1rem;padding:0.3rem 0;border-bottom:1px dashed var(--border);';
+    const l = document.createElement('span');
+    l.style.color = 'var(--text-muted)';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.style.cssText = 'font-family:var(--font-mono);font-weight:600;overflow-wrap:anywhere;word-break:break-word;text-align:right;';
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(v);
+    return row;
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function setStatus(el, msg, kind) {
+    el.textContent = msg;
+    el.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function errorMessage(err, dim, len) {
+    if (err.error === 'bad-token') return '✗ Could not parse "' + err.token + '" as a number.';
+    if (err.error === 'empty') return '✗ Paste at least one number.';
+    if (err.error === 'target-too-large') return '✗ Target dimension (' + dim + ') exceeds this vector\'s length (' + len + ').';
+    if (err.error === 'target-invalid') return '✗ Target dimension must be a positive whole number.';
+    if (err.error === 'zero-vector') return '✗ The first ' + dim + ' values are all zero — can\'t renormalize a zero vector (division by zero).';
+    return '✗ Could not process this vector.';
+  }
+
+  function process() {
+    clearChildren(statsA);
+    clearChildren(statsSim);
+    outRenormalized.value = '';
+    results.style.display = 'none';
+    similarityPanel.style.display = 'none';
+    statusA.textContent = '';
+    statusB.textContent = '';
+
+    const rawA = vecAInput.value;
+    if (!rawA.trim()) return;
+
+    const parsedA = parseVector(rawA);
+    if (parsedA.error) {
+      setStatus(statusA, errorMessage(parsedA, null, null), 'error');
+      return;
+    }
+
+    const dimRaw = targetDimInput.value.trim();
+    if (!dimRaw) {
+      setStatus(statusA, 'Vector parsed (' + parsedA.values.length + ' dimensions). Enter a target dimension above.', 'ok');
+      return;
+    }
+    const targetDim = Math.floor(Number(dimRaw));
+    if (!Number.isFinite(targetDim) || targetDim <= 0) {
+      setStatus(statusA, '✗ Target dimension must be a positive whole number.', 'error');
+      return;
+    }
+
+    const resultA = truncateAndRenormalize(parsedA.values, targetDim);
+    if (resultA.error) {
+      setStatus(statusA, errorMessage(resultA, targetDim, parsedA.values.length), 'error');
+      return;
+    }
+
+    const originalNorm = l2norm(parsedA.values);
+    statsA.appendChild(statRow('Original dimensions', String(parsedA.values.length)));
+    statsA.appendChild(statRow('Original L2 norm', fmt(originalNorm)));
+    statsA.appendChild(statRow('Target dimensions', String(targetDim)));
+    statsA.appendChild(statRow('L2 norm before renormalizing', fmt(resultA.truncatedNorm)));
+    statsA.appendChild(statRow('L2 norm after renormalizing', fmt(l2norm(resultA.renormalized))));
+
+    outRenormalized.value = '[' + resultA.renormalized.map(fmt).join(', ') + ']';
+    results.style.display = 'block';
+    setStatus(statusA, '✓ Truncated ' + parsedA.values.length + ' → ' + targetDim + ' dimensions and renormalized.', 'ok');
+
+    const rawB = vecBInput.value;
+    if (!rawB.trim()) return;
+
+    const parsedB = parseVector(rawB);
+    if (parsedB.error) {
+      setStatus(statusB, errorMessage(parsedB, null, null), 'error');
+      return;
+    }
+
+    const resultB = truncateAndRenormalize(parsedB.values, targetDim);
+    if (resultB.error) {
+      setStatus(statusB, errorMessage(resultB, targetDim, parsedB.values.length), 'error');
+      return;
+    }
+    setStatus(statusB, '✓ Vector B parsed (' + parsedB.values.length + ' dimensions).', 'ok');
+
+    const fullCos = cosineSimilarity(parsedA.values, parsedB.values);
+    const truncCos = cosineSimilarity(resultA.renormalized, resultB.renormalized);
+
+    if (fullCos === null) {
+      statsSim.appendChild(statRow('Full-length cosine similarity', 'n/a — vectors have different original lengths (' + parsedA.values.length + ' vs ' + parsedB.values.length + ')'));
+    } else {
+      statsSim.appendChild(statRow('Full-length cosine similarity', fmt(fullCos)));
+    }
+    statsSim.appendChild(statRow('Truncated (' + targetDim + 'D) cosine similarity', fmt(truncCos)));
+    if (fullCos !== null) {
+      statsSim.appendChild(statRow('Shift from truncation', fmt(truncCos - fullCos)));
+    }
+    similarityPanel.style.display = 'block';
+  }
+
+  document.getElementById('btn-clear-a').addEventListener('click', () => {
+    vecAInput.value = '';
+    process();
+    vecAInput.focus();
+  });
+
+  document.getElementById('btn-clear-b').addEventListener('click', () => {
+    vecBInput.value = '';
+    process();
+    vecBInput.focus();
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    if (!outRenormalized.value) return;
+    const btn = this;
+    navigator.clipboard.writeText(outRenormalized.value).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
+  });
+
+  vecAInput.addEventListener('input', process);
+  vecBInput.addEventListener('input', process);
+  targetDimInput.addEventListener('input', process);
+</script>
