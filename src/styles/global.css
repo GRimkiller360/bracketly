@@ -438,7 +438,9 @@ input[type="text"]:focus {
 .status {
   font-size: 0.84rem;
   font-weight: 600;
-  margin-top: 0.5rem;
+  margin: 0.5rem 0 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .status.ok {
   color: var(--success);

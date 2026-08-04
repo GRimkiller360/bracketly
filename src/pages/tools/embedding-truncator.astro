@@ -24,7 +24,14 @@ const tool = getTool('embedding-truncator')!;
       <label for="target-dim">Target dimension</label>
     </div>
     <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-bottom:0.6rem;">
-      <input type="number" id="target-dim" min="1" step="1" style="max-width:140px;" placeholder="e.g. 256" />
+      <input
+        type="number"
+        id="target-dim"
+        min="1"
+        step="1"
+        placeholder="e.g. 256"
+        style="max-width:140px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);font-family:var(--font-sans);"
+      />
       <div id="presets" style="display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
     </div>
     <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">

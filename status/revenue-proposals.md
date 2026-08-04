@@ -30,6 +30,19 @@ No code change was made for this — only this write-up, per the rule against cr
 2. Consider a short, non-spammy post in an MCP-focused subreddit or Discord introducing the tool, if such communities have server-building channels where sharing tools is welcomed by their rules.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
 
+## 2026-08-04 — Enable AdSense "Auto ads" instead of manually adding more placements
+
+**What it is:** Google AdSense's Auto ads feature lets Google's own placement algorithm decide where and how many ad units to insert on a page, in addition to (or instead of) the existing manually-placed unit. It's a toggle in the AdSense dashboard ("Ads" → "By site" → enable Auto ads for the site/domain) — no code change to enable, though once on it typically requires trimming/removing the existing manual `<ins class="adsbygoogle">` unit if it starts double-serving, or leaving both if Google's guidance for the account says they compose safely.
+
+**Why it's a real fit for Bracketly specifically:** I looked today at whether Bracketly should get a second manual ad placement per page (e.g. below the FAQ section) to increase impressions. I'm rejecting that specific idea for now: `earnings_last_7_days` has been `null` for the full multi-week period the account has shown `account_state: READY` (per `status/latest.json` and every `status/history.jsonl` entry since 2026-07-19) — so there's no revenue signal yet to justify guessing at a second placement's value, and Bracketly's tool pages are short enough that a second manual unit risks tripping AdSense's own "ad density vs. content" policy on the sparser pages (e.g. `uuid-generator`, `hash-generator`). Auto ads sidesteps both problems: Google's placement model is explicitly tuned to their own density/policy limits (it won't over-place on a short page), and it needs zero manual judgment calls about "does this look natural" from this agent — which is exactly the kind of subjective placement risk the standing rules ask this agent to be conservative about.
+
+**Why this agent can't do it directly:** It's a dashboard toggle inside the AdSense account itself, not a repo change — this agent has no access to the AdSense dashboard/account settings, only the publisher ID and slot ID already wired into the code.
+
+**What a human needs to do:**
+1. In the AdSense dashboard, go to Ads → By site → Bracketly → toggle Auto ads on.
+2. Optionally review Auto ads' ad-format settings there (in-page, anchor, vignette) — anchor/vignette ads on a dev-tool site could feel intrusive on top of the existing manual unit, so it's worth checking that first before leaving all formats on.
+3. No code change needed from this agent unless Auto ads' own guidance says the existing manual unit should be removed to avoid duplication — if so, a future run can remove the `<AdUnit />` component usage once told that's the case.
+
 ## 2026-08-03 — Submit the new Embedding Vector Truncator to RAG/vector-DB communities
 
 **What it is:** Today's run added `/tools/embedding-truncator/`, a client-side tool for correctly truncating and L2-renormalizing Matryoshka-style embedding vectors (OpenAI, Gemini, Cohere, Nomic) — a real, commonly-hit gotcha for anyone doing manual dimension reduction for vector-DB storage/cost savings. This tool's natural audience (RAG engineers, vector-search/vector-DB users) overlaps heavily with active communities: r/vectordatabase, r/LocalLLaMA, Weaviate/Qdrant/Pinecone/Milvus community Discords and forums, and "awesome-embeddings"/"awesome-vector-search" style curated GitHub lists.

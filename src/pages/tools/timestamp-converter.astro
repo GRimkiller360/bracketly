@@ -122,7 +122,7 @@ const tool = getTool('timestamp-converter')!;
     document.getElementById('btn-ts-convert').click();
   });
 
-  document.getElementById('btn-ts-convert').addEventListener('click', function () {
+  function convertTsToDate() {
     var raw = document.getElementById('ts-input').value.trim();
     var tsStatus = document.getElementById('ts-status');
     var tsResults = document.getElementById('ts-results');
@@ -159,10 +159,10 @@ const tool = getTool('timestamp-converter')!;
     tsResults.style.display = 'block';
     tsStatus.textContent = '';
     tsStatus.className = 'status';
-  });
+  }
 
   // Date → Timestamp
-  document.getElementById('btn-date-convert').addEventListener('click', function () {
+  function convertDateToTs() {
     var val = document.getElementById('date-input').value;
     var dateStatus = document.getElementById('date-status');
     var dateResults = document.getElementById('date-results');
@@ -190,7 +190,12 @@ const tool = getTool('timestamp-converter')!;
     dateResults.style.display = 'block';
     dateStatus.textContent = '';
     dateStatus.className = 'status';
-  });
+  }
+
+  document.getElementById('btn-ts-convert').addEventListener('click', convertTsToDate);
+  document.getElementById('ts-input').addEventListener('input', convertTsToDate);
+  document.getElementById('btn-date-convert').addEventListener('click', convertDateToTs);
+  document.getElementById('date-input').addEventListener('input', convertDateToTs);
 
   copyRows('ts-table', 'btn-copy-ts');
   copyRows('date-table', 'btn-copy-date');

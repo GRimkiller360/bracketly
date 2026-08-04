@@ -140,6 +140,7 @@ const tool = getTool('token-counter')!;
   });
 
   document.getElementById('btn-copy-stats')!.addEventListener('click', function (this: HTMLButtonElement) {
+    if (!input.value) return;
     const text = `Tokens: ${tokenCountEl.textContent}\nCharacters: ${charCountEl.textContent}\nWords: ${wordCountEl.textContent}`;
     const btn = this;
     navigator.clipboard.writeText(text).then(() => {
