@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-03T10:27:11.256Z",
+  "generated_at": "2026-08-04T09:29:05.070Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 80,
+    "performance": 86,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -71,7 +71,13 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 3,
+        "count": 1,
+        "dimensions": {
+          "date": "2026-08-04"
+        }
+      },
+      {
+        "count": 4,
         "dimensions": {
           "date": "2026-08-03"
         }
@@ -111,15 +117,9 @@
         "dimensions": {
           "date": "2026-07-28"
         }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "date": "2026-07-27"
-        }
       }
     ],
-    "total_pageloads": 119,
+    "total_pageloads": 115,
     "top_requests": [
       {
         "count": 57,
@@ -146,7 +146,7 @@
         }
       },
       {
-        "count": 8,
+        "count": 7,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
@@ -154,7 +154,7 @@
         }
       },
       {
-        "count": 8,
+        "count": 5,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -167,14 +167,6 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/gemini-signature-validator/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "bracketly.pages.dev",
-          "requestPath": "/tools/json-formatter/"
         }
       },
       {
@@ -207,6 +199,14 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/cron-parser/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/json-formatter/"
         }
       },
       {
@@ -279,6 +279,14 @@
           "countryName": "DE",
           "refererHost": "",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
+          "requestPath": "/tools/embedding-truncator/"
         }
       }
     ]
