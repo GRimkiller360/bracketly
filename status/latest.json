@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-04T09:29:05.070Z",
+  "generated_at": "2026-08-05T09:24:13.966Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 86,
+    "performance": 75,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -71,7 +71,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 1,
+        "count": 2,
         "dimensions": {
           "date": "2026-08-04"
         }
@@ -111,15 +111,9 @@
         "dimensions": {
           "date": "2026-07-29"
         }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "date": "2026-07-28"
-        }
       }
     ],
-    "total_pageloads": 115,
+    "total_pageloads": 114,
     "top_requests": [
       {
         "count": 57,
@@ -154,7 +148,7 @@
         }
       },
       {
-        "count": 5,
+        "count": 4,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
