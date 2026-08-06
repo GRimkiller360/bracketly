@@ -1,17 +1,35 @@
 {
-  "generated_at": "2026-08-05T09:24:13.966Z",
+  "generated_at": "2026-08-06T09:29:39.504Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 75,
+    "performance": 97,
     "accessibility": 100,
-    "best-practices": 78,
+    "best-practices": 74,
     "seo": 100,
     "pwa": 63
   },
   "search_console": {
     "note": "Search Console data lags ~2-3 days and needs time after indexing to populate; empty arrays are expected for a new/low-traffic site, not a bug.",
     "top_queries": [
+      {
+        "keys": [
+          "base64 encode"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 78
+      },
+      {
+        "keys": [
+          "base64 encoder & decoder"
+        ],
+        "clicks": 0,
+        "impressions": 2,
+        "ctr": 0,
+        "position": 86
+      },
       {
         "keys": [
           "bracketly"
@@ -58,6 +76,15 @@
         "impressions": 1,
         "ctr": 0,
         "position": 9
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/base64"
+        ],
+        "clicks": 0,
+        "impressions": 3,
+        "ctr": 0,
+        "position": 83.33333333333333
       }
     ]
   },
@@ -70,6 +97,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 5,
+        "dimensions": {
+          "date": "2026-08-06"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "date": "2026-08-05"
+        }
+      },
       {
         "count": 2,
         "dimensions": {
@@ -105,15 +144,9 @@
         "dimensions": {
           "date": "2026-07-30"
         }
-      },
-      {
-        "count": 9,
-        "dimensions": {
-          "date": "2026-07-29"
-        }
       }
     ],
-    "total_pageloads": 114,
+    "total_pageloads": 112,
     "top_requests": [
       {
         "count": 57,
@@ -148,7 +181,7 @@
         }
       },
       {
-        "count": 4,
+        "count": 7,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -161,22 +194,6 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/gemini-signature-validator/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/limits"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/faq"
         }
       },
       {
@@ -214,30 +231,6 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/payment-methods"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/pricing"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/fees"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
           "countryName": "FI",
           "refererHost": "",
           "requestPath": "/tools/gemini-signature-validator/"
@@ -248,7 +241,31 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/embedding-truncator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "www.google.com",
+          "requestPath": "/tools/gemini-signature-validator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/token-counter/"
         }
       },
       {
@@ -265,14 +282,6 @@
           "countryName": "ZA",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/jwt-decoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/"
         }
       },
       {
