@@ -1,0 +1,400 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('ai-sdk-stream-debugger')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Raw SSE stream body</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste the raw response body — e.g.\ndata: {"type":"start","messageId":"msg_1"}\n\ndata: {"type":"text-start","id":"t1"}\n\ndata: {"type":"text-delta","id":"t1","delta":"Hello"}\n\ndata: {"type":"text-end","id":"t1"}\n\ndata: {"type":"finish"}\n\ndata: [DONE]`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label"><span>Reconstructed message</span></div>
+      <div id="preview" style="font-size:0.92rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:var(--text);"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span id="events-count-label">Parsed events</span></div>
+      <div id="events-list" style="display:flex;flex-direction:column;gap:0.35rem;max-height:420px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const eventsList = document.getElementById('events-list');
+  const eventsCountLabel = document.getElementById('events-count-label');
+  const preview = document.getElementById('preview');
+
+  let lastReportText = '';
+
+  // Required fields + JSON-typeof checks for each documented UI Message
+  // Stream Protocol part type. "data-*" (custom app data) is handled
+  // separately as a wildcard since its suffix varies.
+  const KNOWN_TYPES = {
+    'start': { required: ['messageId'], fieldTypes: { messageId: 'string' } },
+    'start-step': { required: [], fieldTypes: {} },
+    'finish-step': { required: [], fieldTypes: {} },
+    'finish': { required: [], fieldTypes: {} },
+    'abort': { required: ['reason'], fieldTypes: { reason: 'string' } },
+    'error': { required: ['errorText'], fieldTypes: { errorText: 'string' } },
+    'text-start': { required: ['id'], fieldTypes: { id: 'string' } },
+    'text-delta': { required: ['id', 'delta'], fieldTypes: { id: 'string', delta: 'string' } },
+    'text-end': { required: ['id'], fieldTypes: { id: 'string' } },
+    'reasoning-start': { required: ['id'], fieldTypes: { id: 'string' } },
+    'reasoning-delta': { required: ['id', 'delta'], fieldTypes: { id: 'string', delta: 'string' } },
+    'reasoning-end': { required: ['id'], fieldTypes: { id: 'string' } },
+    'reasoning-file': { required: ['url', 'mediaType'], fieldTypes: { url: 'string', mediaType: 'string' } },
+    'file': { required: ['url', 'mediaType'], fieldTypes: { url: 'string', mediaType: 'string' } },
+    'source-url': { required: ['sourceId', 'url'], fieldTypes: { sourceId: 'string', url: 'string' } },
+    'source-document': { required: ['sourceId', 'mediaType', 'title'], fieldTypes: { sourceId: 'string', mediaType: 'string', title: 'string' } },
+    'custom': { required: ['kind'], fieldTypes: { kind: 'string' } },
+    'tool-input-start': { required: ['toolCallId', 'toolName'], fieldTypes: { toolCallId: 'string', toolName: 'string' } },
+    'tool-input-delta': { required: ['toolCallId', 'inputTextDelta'], fieldTypes: { toolCallId: 'string', inputTextDelta: 'string' } },
+    'tool-input-available': { required: ['toolCallId', 'toolName', 'input'], fieldTypes: { toolCallId: 'string', toolName: 'string' } },
+    'tool-approval-request': { required: ['toolCallId', 'approvalId', 'isAutomatic'], fieldTypes: { toolCallId: 'string', approvalId: 'string', isAutomatic: 'boolean' } },
+    'tool-approval-response': { required: ['approvalId', 'approved'], fieldTypes: { approvalId: 'string', approved: 'boolean' } },
+    'tool-output-available': { required: ['toolCallId', 'output'], fieldTypes: { toolCallId: 'string' } },
+    'tool-output-denied': { required: ['toolCallId'], fieldTypes: { toolCallId: 'string' } },
+  };
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  // Each `data: ...` line is treated as one SSE event — real AI SDK output
+  // is always single-line JSON per data field, so this is more robust
+  // against pasted text that's missing the blank-line separators than
+  // trying to buffer multi-line SSE fields would be.
+  function parseSSE(raw) {
+    const lines = raw.replace(/\r\n/g, '\n').split('\n');
+    const events = [];
+    let sawDone = false;
+    let sawAnyDataLine = false;
+
+    lines.forEach(function (line, i) {
+      const m = /^data:\s?(.*)$/.exec(line);
+      if (!m) return;
+      sawAnyDataLine = true;
+      const value = m[1];
+      if (value.trim() === '[DONE]') {
+        sawDone = true;
+        return;
+      }
+      if (value.trim() === '') return;
+      let json, parseError;
+      try {
+        json = JSON.parse(value);
+      } catch (e) {
+        parseError = e.message;
+      }
+      events.push({ lineNo: i + 1, raw: value, json: json, parseError: parseError });
+    });
+
+    // Fallback: no `data:` prefixes found at all — treat every non-empty
+    // line as a bare JSON payload instead.
+    if (!sawAnyDataLine) {
+      lines.forEach(function (line, i) {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        if (trimmed === '[DONE]') {
+          sawDone = true;
+          return;
+        }
+        let json, parseError;
+        try {
+          json = JSON.parse(trimmed);
+        } catch (e) {
+          parseError = e.message;
+        }
+        events.push({ lineNo: i + 1, raw: trimmed, json: json, parseError: parseError });
+      });
+    }
+
+    return { events: events, sawDone: sawDone };
+  }
+
+  function validateStream(events) {
+    const issues = [];
+    const openText = new Set();
+    const openReasoning = new Set();
+    const openToolInputs = new Set();
+    const knownToolCallIds = new Set();
+    let startCount = 0;
+
+    events.forEach(function (ev) {
+      if (ev.parseError) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': invalid JSON — ' + ev.parseError });
+        return;
+      }
+      const j = ev.json;
+      if (!isPlainObject(j)) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': event payload is not a JSON object.' });
+        return;
+      }
+      const type = j.type;
+      if (typeof type !== 'string') {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': event has no "type" field.' });
+        return;
+      }
+
+      if (type === 'start') startCount++;
+
+      const isDataType = type.indexOf('data-') === 0;
+      const spec = isDataType ? { required: ['data'], fieldTypes: {} } : KNOWN_TYPES[type];
+
+      if (!spec) {
+        issues.push({ severity: 'low', message: 'Line ' + ev.lineNo + ': unrecognized part type "' + type + '" — not in the documented UI Message Stream Protocol. Custom part types must be prefixed "data-" to be forwarded by AI SDK UI hooks.' });
+      } else {
+        spec.required.forEach(function (f) {
+          if (j[f] === undefined) {
+            issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': "' + type + '" is missing required field "' + f + '".' });
+          }
+        });
+        Object.keys(spec.fieldTypes).forEach(function (f) {
+          if (j[f] !== undefined && typeof j[f] !== spec.fieldTypes[f]) {
+            issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': "' + type + '"."' + f + '" should be ' + spec.fieldTypes[f] + ', got ' + typeof j[f] + '.' });
+          }
+        });
+      }
+
+      if (type === 'text-start') {
+        openText.add(j.id);
+      } else if (type === 'text-delta') {
+        if (j.id !== undefined && !openText.has(j.id)) {
+          issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': text-delta references id "' + j.id + '" with no open text-start (or it was already ended).' });
+        }
+      } else if (type === 'text-end') {
+        if (j.id !== undefined && !openText.has(j.id)) {
+          issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': text-end references id "' + j.id + '" with no matching open text-start.' });
+        } else {
+          openText.delete(j.id);
+        }
+      } else if (type === 'reasoning-start') {
+        openReasoning.add(j.id);
+      } else if (type === 'reasoning-delta') {
+        if (j.id !== undefined && !openReasoning.has(j.id)) {
+          issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': reasoning-delta references id "' + j.id + '" with no open reasoning-start.' });
+        }
+      } else if (type === 'reasoning-end') {
+        if (j.id !== undefined && !openReasoning.has(j.id)) {
+          issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': reasoning-end references id "' + j.id + '" with no matching open reasoning-start.' });
+        } else {
+          openReasoning.delete(j.id);
+        }
+      } else if (type === 'tool-input-start') {
+        openToolInputs.add(j.toolCallId);
+        if (j.toolCallId !== undefined) knownToolCallIds.add(j.toolCallId);
+      } else if (type === 'tool-input-delta') {
+        if (j.toolCallId !== undefined && !openToolInputs.has(j.toolCallId)) {
+          issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': tool-input-delta references toolCallId "' + j.toolCallId + '" with no open tool-input-start.' });
+        }
+      } else if (type === 'tool-input-available') {
+        openToolInputs.delete(j.toolCallId);
+        if (j.toolCallId !== undefined) knownToolCallIds.add(j.toolCallId);
+      } else if (type === 'tool-output-available' || type === 'tool-output-denied') {
+        if (j.toolCallId !== undefined && !knownToolCallIds.has(j.toolCallId)) {
+          issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': "' + type + '" references toolCallId "' + j.toolCallId + '" that was never introduced by a tool-input-start or tool-input-available event.' });
+        }
+      }
+    });
+
+    if (startCount === 0) {
+      issues.push({ severity: 'low', message: 'No "start" event found — a well-formed AI SDK stream begins with {"type":"start","messageId":"..."}.' });
+    } else if (startCount > 1) {
+      issues.push({ severity: 'medium', message: 'Found ' + startCount + ' "start" events — a single stream should only have one.' });
+    }
+    openText.forEach(function (id) {
+      issues.push({ severity: 'medium', message: 'text-start "' + id + '" was never closed with a matching text-end.' });
+    });
+    openReasoning.forEach(function (id) {
+      issues.push({ severity: 'medium', message: 'reasoning-start "' + id + '" was never closed with a matching reasoning-end.' });
+    });
+
+    return issues;
+  }
+
+  function eventSummary(ev) {
+    if (ev.parseError) return { label: 'invalid JSON', detail: ev.raw };
+    const j = ev.json;
+    if (!isPlainObject(j) || typeof j.type !== 'string') return { label: '(malformed)', detail: ev.raw };
+    const bits = [];
+    if (typeof j.id === 'string') bits.push('id=' + j.id);
+    if (typeof j.toolCallId === 'string') bits.push('toolCallId=' + j.toolCallId);
+    if (typeof j.toolName === 'string') bits.push('toolName=' + j.toolName);
+    if (typeof j.delta === 'string') bits.push('delta=' + JSON.stringify(j.delta));
+    if (typeof j.messageId === 'string') bits.push('messageId=' + j.messageId);
+    if (typeof j.errorText === 'string') bits.push('errorText=' + JSON.stringify(j.errorText));
+    return { label: j.type, detail: bits.join('  ') };
+  }
+
+  function buildPreview(events) {
+    const order = [];
+    const textById = new Map();
+    const toolCalls = [];
+    const toolById = new Map();
+
+    events.forEach(function (ev) {
+      if (ev.parseError || !isPlainObject(ev.json)) return;
+      const j = ev.json;
+      if (j.type === 'text-delta' && typeof j.id === 'string' && typeof j.delta === 'string') {
+        if (!textById.has(j.id)) {
+          textById.set(j.id, '');
+          order.push({ kind: 'text', id: j.id });
+        }
+        textById.set(j.id, textById.get(j.id) + j.delta);
+      } else if (j.type === 'tool-input-available' && typeof j.toolCallId === 'string') {
+        const entry = { toolCallId: j.toolCallId, toolName: j.toolName, input: j.input, output: undefined };
+        toolById.set(j.toolCallId, entry);
+        toolCalls.push(entry);
+        order.push({ kind: 'tool', id: j.toolCallId });
+      } else if (j.type === 'tool-output-available' && typeof j.toolCallId === 'string') {
+        const entry = toolById.get(j.toolCallId);
+        if (entry) entry.output = j.output;
+      }
+    });
+
+    if (order.length === 0) return '(nothing to reconstruct yet — no text-delta or tool-input-available events found)';
+
+    const parts = order.map(function (o) {
+      if (o.kind === 'text') return textById.get(o.id);
+      const t = toolById.get(o.id);
+      let s = '\n[tool call: ' + (t.toolName || '?') + '(' + JSON.stringify(t.input) + ')';
+      if (t.output !== undefined) s += ' → ' + JSON.stringify(t.output);
+      return s + ']\n';
+    });
+    return parts.join('');
+  }
+
+  function render(events, issues) {
+    clearChildren(issuesList);
+    clearChildren(eventsList);
+    eventsCountLabel.textContent = 'Parsed events (' + events.length + ')';
+
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found across ' + events.length + ' event' + (events.length === 1 ? '' : 's') + '.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Note' };
+      issues.forEach(function (issue) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      });
+    }
+
+    events.forEach(function (ev, i) {
+      const s = eventSummary(ev);
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);padding:0.35rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
+      row.textContent = '#' + (i + 1) + '  ' + s.label + (s.detail ? '  ' + s.detail : '');
+      eventsList.appendChild(row);
+    });
+
+    const lines = [];
+    lines.push('AI SDK stream validation — ' + events.length + ' event(s)');
+    if (issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      issues.forEach(function (issue) {
+        lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+      });
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value;
+    if (!raw.trim()) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const parsed = parseSSE(raw);
+    if (parsed.events.length === 0) {
+      results.style.display = 'none';
+      setStatus('✗ No SSE events found — expected lines starting with "data:" or one JSON object per line.', 'error');
+      return;
+    }
+
+    const issues = validateStream(parsed.events);
+    if (!parsed.sawDone) {
+      issues.push({ severity: 'low', message: 'Stream does not end with "data: [DONE]" — most AI SDK backends should terminate the stream with this literal so the client knows to stop listening.' });
+    }
+
+    render(parsed.events, issues);
+    preview.textContent = buildPreview(parsed.events);
+    results.style.display = 'block';
+
+    if (issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + parsed.events.length + ' event' + (parsed.events.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      const highCount = issues.filter(function (x) { return x.severity === 'high'; }).length;
+      setStatus('✗ Found ' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

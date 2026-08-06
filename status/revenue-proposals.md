@@ -55,3 +55,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Search GitHub for "awesome-embeddings" / "awesome-vector-search" / "awesome-rag" style lists and open a PR (from a personal account) adding a one-line entry.
 2. Consider a short, non-spammy post in r/vectordatabase or a vector-DB vendor's community forum, framed around the specific renormalization gotcha (a genuinely useful technical point, not just "check out my tool").
 3. No code or account changes needed on the Bracketly side.
+
+## 2026-08-06 — Submit the new AI SDK Stream Protocol Debugger to Vercel AI SDK community channels
+
+**What it is:** Today's run added `/tools/ai-sdk-stream-debugger/`, a client-side validator for the Vercel AI SDK's UI Message Stream Protocol (the SSE format `useChat`/`useCompletion` expect from a backend). Research today (WebSearch + a direct fetch of the AI SDK docs) found no existing dedicated online validator/debugger for this specific protocol, despite it being the exact point where hand-rolled or non-JS backends silently break AI SDK's React hooks. The natural audience — developers building a custom backend for AI SDK UI, often in a language other than JS/TS where they can't just call the official `streamText`/`toUIMessageStreamResponse` helpers — is active in a few identifiable places: the Vercel/AI SDK GitHub Discussions, the `vercel/ai` repo's issues (frequently linked from Stack Overflow questions about "AI SDK custom backend" failures), and general Next.js/AI SDK Discord communities.
+
+**Why it's a real fit for Bracketly specifically:** Same reasoning as the two prior tool-launch entries above — this is a narrow, currently-underserved niche tied to a fast-moving, recently-changed protocol (AI SDK 5's stream part types), not a generic dev-tool submission competing against entrenched incumbents. A new low-authority domain has a realistic shot at visibility here specifically because the format is new enough that no one has built the definitive free tool for it yet.
+
+**Why this agent can't do it directly:** Same permanent limitation as always — GitHub Discussions posts and Discord messages require a human account and human judgment about each community's self-promotion norms; this agent's GitHub App also cannot fork `vercel/ai` to open a PR against any "awesome" list even if one existed.
+
+**What a human needs to do:**
+1. Search GitHub Discussions on `vercel/ai` and Stack Overflow's `vercel-ai-sdk` tag for existing threads about custom-backend stream-format debugging, and consider replying with a link where genuinely relevant (not a cold post).
+2. Consider a short post in a Next.js/AI SDK Discord's help channel introducing the tool, framed around the specific pain point (silent failures with no server-side error) rather than as generic self-promotion.
+3. No code or account changes needed on the Bracketly side.

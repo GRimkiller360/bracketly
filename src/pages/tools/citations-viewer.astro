@@ -216,7 +216,7 @@ const tool = getTool('citations-viewer')!;
 
         if (c.type === 'char_location') {
           const badge = document.createElement('span');
-          badge.style.cssText = 'font-size:0.76rem;font-weight:600;';
+          badge.style.cssText = 'font-size:0.76rem;font-weight:600;overflow-wrap:anywhere;word-break:break-word;';
           meta.appendChild(badge);
           verifyTargets.push({ documentIndex: c.document_index, citation: c, badgeEl: badge });
         }

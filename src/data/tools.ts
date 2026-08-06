@@ -565,6 +565,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "ai-sdk-stream-debugger",
+    title: "AI SDK Stream Protocol Validator & Debugger",
+    shortTitle: "AI SDK Stream Debugger",
+    description:
+      "Paste a raw SSE response from a custom Vercel AI SDK backend and validate it against the UI Message Stream Protocol — catches malformed JSON, missing required fields, orphaned deltas, and unrecognized part types that silently break useChat. 100% client-side.",
+    keywords: [
+      "vercel ai sdk stream protocol validator",
+      "ai sdk data stream debugger",
+      "usechat custom backend debugging",
+      "ai sdk ui message stream format",
+      "sse json stream validator llm",
+    ],
+    icon: "SSE",
+    category: "AI",
+    content: [
+      {
+        heading: "Why a custom AI SDK backend fails silently",
+        body: "useChat, useCompletion, and the rest of AI SDK UI expect the response body from your API route to be an exact sequence of Server-Sent Events, each a single-line data: {...} JSON payload naming a specific part type — text-delta, tool-input-available, finish, and so on. When you're proxying through your own backend instead of AI SDK's built-in streamText/toUIMessageStreamResponse helpers — a different language, a hand-rolled proxy, a queue that re-serializes the stream — it's easy to drop a required field, emit an id out of order, or forget the closing data: [DONE] event. None of that throws an error: the client just renders nothing, drops a message, or stalls mid-response, and the only way to find out why is to capture the raw response body and read it by hand.",
+      },
+      {
+        heading: "What this checks",
+        body: "This tool parses each data: line as its own SSE event, matches its \"type\" field against the documented UI Message Stream Protocol part types (start, text-start/delta/end, reasoning-start/delta/end, tool-input-start/delta/available, tool-output-available/denied, tool-approval-request/response, file, source-url, source-document, data-*, error, start-step/finish-step/finish, abort), and checks that required fields are present with the right JSON type. It also tracks state across the whole stream — flagging a text-delta or reasoning-delta that references an id with no matching *-start, a *-start that's never closed, and a tool-output event referencing a toolCallId that was never introduced — then reconstructs the assembled message text a real client would have rendered, so you can see the end result of the stream at a glance.",
+      },
+    ],
+    faq: [
+      {
+        q: "What exactly should I paste in?",
+        a: "The raw response body from your streaming endpoint — the same bytes a browser's fetch() would receive. The easiest way to capture it is curl -N against your endpoint, or your browser's Network tab in raw/EventStream view; copy everything, including the data: prefixes and the blank lines between events.",
+      },
+      {
+        q: "Does this tool actually run my stream through AI SDK's client code?",
+        a: "No — it only re-implements structural validation against the publicly documented protocol shape, entirely in this page's own JavaScript. It can't tell you whether useChat will render the result exactly right, only whether the stream itself is well-formed.",
+      },
+      {
+        q: "Why is a part type I'm using flagged as \"unrecognized\"?",
+        a: "This checks against the currently documented set of part types. A very recently added type from a newer AI SDK release could be flagged even though it's valid — treat \"unrecognized type\" as a prompt to double-check against the current AI SDK docs, not a definitive error. Any type prefixed data- (used for custom application data) is always accepted.",
+      },
+      {
+        q: "Is my stream data sent anywhere?",
+        a: "No. Parsing, validation, and the reconstructed message preview all run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

@@ -1,0 +1,11 @@
+# Your Custom AI SDK Backend Returns 200 OK and the Chat UI Still Shows Nothing
+
+Vercel's AI SDK makes streaming a chat response trivial — as long as your backend is also written in JS and calls `streamText().toUIMessageStreamResponse()`. The moment you're not in that world — a Go, Python, or Rust backend, a queue that re-serializes the stream, a proxy sitting between your LLM call and the client — you have to hand-produce the exact Server-Sent Events format `useChat` expects, and there's no error message when you get it wrong. The request succeeds, the status is 200, and the UI just renders an empty message or silently stalls.
+
+I hit this building a small side project and ended up staring at raw response bytes in a terminal for longer than I'd like to admit, so I added an [AI SDK Stream Protocol Validator & Debugger](https://bracketly.pages.dev/tools/ai-sdk-stream-debugger/) to Bracketly.
+
+The protocol itself is a sequence of `data: {...}` JSON lines, each with a `type` field — `text-start`, `text-delta`, `text-end` for streamed text; `tool-input-start`/`tool-input-delta`/`tool-input-available` for tool calls; `finish` and a closing `data: [DONE]` to end the stream. It reads as simple until you're generating it by hand and discover how many ways there are to get it subtly wrong: a `text-delta` referencing an `id` you never opened with `text-start`, a `text-start` that never gets a matching `text-end`, a missing `messageId` on the initial `start` event, or just forgetting the trailing `[DONE]` so the client waits forever for a stream that already finished.
+
+The tool parses each event, checks it against the documented part types and their required fields, and tracks state across the whole stream so it can catch the ordering bugs a plain JSON validator would miss — an orphaned delta, an unclosed span, a tool-output event referencing a `toolCallId` that was never introduced. It also reconstructs the assembled message text from the deltas, so you can see in one glance what the client would actually have rendered from your stream. Paste the raw response body — straight from `curl -N` or your browser's network tab — and it runs entirely in your browser tab; nothing gets sent anywhere.
+
+[Try it here](https://bracketly.pages.dev/tools/ai-sdk-stream-debugger/) — feedback and edge cases welcome.

@@ -206,4 +206,5 @@ const tool = getTool('timestamp-converter')!;
     .toISOString()
     .slice(0, 16);
   document.getElementById('date-input').value = local;
+  convertDateToTs();
 </script>
