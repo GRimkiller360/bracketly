@@ -48,7 +48,7 @@ const categories = [...new Set(tools.map((t) => t.category))];
                   .filter((t) => t.category === cat)
                   .map((tool) => (
                     <a
-                      href={`/tools/${tool.slug}`}
+                      href={`/tools/${tool.slug}/`}
                       class="tool-card"
                       data-search={`${tool.title} ${tool.shortTitle} ${tool.description} ${tool.category}`.toLowerCase()}
                       style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
@@ -100,7 +100,7 @@ const categories = [...new Set(tools.map((t) => t.category))];
       <p style="margin:0 0 1rem;font-size:1.05rem;">
         Bracketly is free and open-source. If it saves you time, consider supporting it.
       </p>
-      <a href="/donate" class="btn btn-support" style="font-size:1rem;padding:0.65rem 1.4rem;">
+      <a href="/donate/" class="btn btn-support" style="font-size:1rem;padding:0.65rem 1.4rem;">
         ☕ Buy me a coffee
       </a>
     </div>

@@ -21,7 +21,7 @@ import { tools, getCategoryColor } from '../data/tools';
         const c = getCategoryColor(tool.category);
         return (
           <a
-            href={`/tools/${tool.slug}`}
+            href={`/tools/${tool.slug}/`}
             class="tool-card"
             style={`--card-accent-light:${c.light};--card-accent-dark:${c.dark};`}
           >
