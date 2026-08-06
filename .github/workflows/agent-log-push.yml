@@ -29,15 +29,22 @@ jobs:
           # diffs or commit-message dumps. The full detailed entry always
           # stays in status/agent-log.jsonl in the repo for anyone who wants
           # to dig deeper; this is just what gets pushed to the dashboard.
+          #
+          # The routine itself now writes a plain-language short_summary
+          # field (what changed and why, no housekeeping narration) — use
+          # that directly. Fall back to a truncated first-sentence extract
+          # from the full summary only for older entries written before
+          # short_summary existed.
           node -e "
             const fs = require('fs');
             const entry = JSON.parse(process.argv[1]);
-            const raw = entry.summary || '';
-            const firstSentence = (raw.match(/^.*?[.!?](?:\s|$)/) || [raw])[0].trim();
-            const CAP = 280;
-            const summary = firstSentence.length > CAP
-              ? firstSentence.slice(0, CAP).trim() + '…'
-              : firstSentence;
+            let summary = entry.short_summary;
+            if (!summary) {
+              const raw = entry.summary || '';
+              summary = (raw.match(/^.*?[.!?](?:\s|$)/) || [raw])[0].trim();
+            }
+            const CAP = 500;
+            if (summary.length > CAP) summary = summary.slice(0, CAP).trim() + '…';
             const payload = {
               date: entry.date,
               action_taken: entry.action_taken,
