@@ -423,13 +423,15 @@ input[type="text"] {
 }
 textarea:focus,
 input[type="text"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="datetime-local"]:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="datetime-local"] {
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 6px;

@@ -27,7 +27,7 @@ const tool = getTool('citations-viewer')!;
       </div>
       <div
         id="answer-out"
-        style="font-size:0.95rem;line-height:1.7;white-space:pre-wrap;word-break:break-word;"
+        style="font-size:0.95rem;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
       ></div>
     </div>
 
@@ -227,7 +227,7 @@ const tool = getTool('citations-viewer')!;
         quote.textContent = c.cited_text ?? '';
         quote.style.cssText =
           'margin:0.35rem 0 0;padding:0.5rem 0.75rem;background:var(--code-bg);color:var(--code-text);' +
-          'border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-family:var(--font-mono);font-size:0.83rem;white-space:pre-wrap;word-break:break-word;';
+          'border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-family:var(--font-mono);font-size:0.83rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;';
         row.appendChild(quote);
 
         wrap.appendChild(row);

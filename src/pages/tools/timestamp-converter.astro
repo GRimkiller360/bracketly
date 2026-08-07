@@ -10,7 +10,10 @@ const tool = getTool('timestamp-converter')!;
   <div class="panel" style="margin-bottom:1rem;">
     <div class="field-label">
       <label for="ts-input">Unix timestamp → Human-readable date</label>
-      <button class="btn btn-sm" id="btn-now">Use Now</button>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="btn btn-sm" id="btn-now">Use Now</button>
+        <button class="btn btn-sm" id="btn-ts-clear" aria-label="Clear timestamp input">Clear</button>
+      </div>
     </div>
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
       <input
@@ -34,12 +37,13 @@ const tool = getTool('timestamp-converter')!;
   <div class="panel">
     <div class="field-label">
       <label for="date-input">Date / time → Unix timestamp</label>
+      <button class="btn btn-sm" id="btn-date-clear" aria-label="Clear date input">Clear</button>
     </div>
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
       <input
         id="date-input"
         type="datetime-local"
-        style="flex:1;min-width:220px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.9rem;color:var(--text);"
+        style="flex:1;min-width:220px;"
       />
       <button class="btn btn-primary" id="btn-date-convert">Convert</button>
     </div>
@@ -120,6 +124,26 @@ const tool = getTool('timestamp-converter')!;
   document.getElementById('btn-now').addEventListener('click', function () {
     document.getElementById('ts-input').value = Math.floor(Date.now() / 1000).toString();
     document.getElementById('btn-ts-convert').click();
+  });
+
+  document.getElementById('btn-ts-clear').addEventListener('click', function () {
+    var tsInput = document.getElementById('ts-input');
+    tsInput.value = '';
+    document.getElementById('ts-results').style.display = 'none';
+    var tsStatus = document.getElementById('ts-status');
+    tsStatus.textContent = '';
+    tsStatus.className = 'status';
+    tsInput.focus();
+  });
+
+  document.getElementById('btn-date-clear').addEventListener('click', function () {
+    var dateInput = document.getElementById('date-input');
+    dateInput.value = '';
+    document.getElementById('date-results').style.display = 'none';
+    var dateStatus = document.getElementById('date-status');
+    dateStatus.textContent = '';
+    dateStatus.className = 'status';
+    dateInput.focus();
   });
 
   function convertTsToDate() {
