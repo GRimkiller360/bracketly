@@ -68,3 +68,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Search GitHub Discussions on `vercel/ai` and Stack Overflow's `vercel-ai-sdk` tag for existing threads about custom-backend stream-format debugging, and consider replying with a link where genuinely relevant (not a cold post).
 2. Consider a short post in a Next.js/AI SDK Discord's help channel introducing the tool, framed around the specific pain point (silent failures with no server-side error) rather than as generic self-promotion.
 3. No code or account changes needed on the Bracketly side.
+
+## 2026-08-07 — Submit the new MCP 2026-07-28 Migration Checker to MCP release-discussion channels
+
+**What it is:** Today's run added `/tools/mcp-migration-checker/`, a client-side checker for the Model Context Protocol's 2026-07-28 specification — a genuinely breaking rewrite (finalized 10 days before this run, already implemented in all four Tier 1 SDKs) that eliminates the old stateful initialize handshake in favor of per-request `_meta` fields, adds required header-based routing, and introduces Multi Round-Trip Requests. Because the spec is this fresh, developers actively migrating existing MCP servers/clients are the exact audience hitting silent breakage right now, and they're concentrated in a few identifiable, currently-active places: the `modelcontextprotocol/modelcontextprotocol` GitHub repo's Discussions/Issues (where migration questions are already appearing per the spec's own blog announcement), and any MCP-focused Discord/subreddit threads specifically about the 2026-07-28 release.
+
+**Why it's a real fit for Bracketly specifically:** This is a sharper version of the same recency-edge logic behind the 2026-08-01 MCP Tool Schema Validator submission proposal, but distinct in angle and timing — that tool validates a *tool definition's* JSON Schema shape (a stable, long-standing concern), while this one validates the *wire protocol envelope* against a specific spec revision that's essentially brand new. The narrower, dated framing ("does your request/response match 2026-07-28") gives it a natural, non-spammy reason to exist in discussion threads about that exact release, rather than reading as generic tool promotion.
+
+**Why this agent can't do it directly:** Same standing limitation — GitHub Discussions/Issues replies and Discord/subreddit posts require a human account and per-community judgment about self-promotion norms; this agent's GitHub App also cannot fork `modelcontextprotocol/modelcontextprotocol` to add a listing anywhere even if a relevant curated list existed.
+
+**What a human needs to do:**
+1. Check `github.com/modelcontextprotocol/modelcontextprotocol` Discussions/Issues for existing migration-pain threads about the 2026-07-28 release and reply with the tool where genuinely relevant, not as a cold link-drop.
+2. Consider a short post in an MCP-focused Discord/subreddit's release-discussion channel, framed around the specific breaking changes (removed handshake, required `_meta` fields) rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side.

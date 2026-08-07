@@ -1,0 +1,331 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-migration-checker')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">MCP request/response — JSON only, or a raw HTTP block (headers + blank line + JSON)</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste a JSON-RPC message, e.g.\n{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "tools/call",\n  "params": {\n    "name": "search",\n    "arguments": { "q": "otters" },\n    "_meta": {\n      "io.modelcontextprotocol/protocolVersion": "2026-07-28",\n      "io.modelcontextprotocol/clientCapabilities": {}\n    }\n  }\n}\n\nOr paste a full raw HTTP block (request line + headers, blank line, then the JSON body) to also check Mcp-Method / Mcp-Name / MCP-Protocol-Version / Mcp-Session-Id headers.`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Message summary</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const summaryEl = document.getElementById('summary');
+
+  const META_KEYS = {
+    protocolVersion: 'io.modelcontextprotocol/protocolVersion',
+    clientInfo: 'io.modelcontextprotocol/clientInfo',
+    clientCapabilities: 'io.modelcontextprotocol/clientCapabilities',
+    logLevel: 'io.modelcontextprotocol/logLevel',
+  };
+  const META_KEY_VALUES = Object.values(META_KEYS);
+  const LIST_ARRAY_KEYS = ['tools', 'prompts', 'resources', 'resourceTemplates'];
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function splitHeadersAndBody(raw) {
+    const text = raw.replace(/\r\n/g, '\n').trim();
+    const blankIdx = text.indexOf('\n\n');
+    if (blankIdx === -1) {
+      return { headers: null, bodyText: text };
+    }
+    const headerBlock = text.slice(0, blankIdx);
+    const bodyText = text.slice(blankIdx + 2).trim();
+    const headerLines = headerBlock.split('\n').map((l) => l.trim()).filter(Boolean);
+    const candidateHeaderLines = headerLines.filter((l) => /^[A-Za-z-]+\s*:\s*.+/.test(l));
+    if (candidateHeaderLines.length === 0) {
+      return { headers: null, bodyText: text };
+    }
+    const headers = {};
+    for (const line of candidateHeaderLines) {
+      const idx = line.indexOf(':');
+      const key = line.slice(0, idx).trim().toLowerCase();
+      const value = line.slice(idx + 1).trim();
+      headers[key] = value;
+    }
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(bodyText);
+    } catch (e) {
+      return { headers, bodyText, bodyParseError: e.message };
+    }
+    return { headers, bodyText, body: parsedBody };
+  }
+
+  function analyze(raw) {
+    const issues = [];
+    const split = splitHeadersAndBody(raw);
+    let body;
+
+    if (split.headers) {
+      if (split.bodyParseError) {
+        return { fatal: 'Headers detected, but the body after the blank line is not valid JSON: ' + split.bodyParseError };
+      }
+      body = split.body;
+    } else {
+      try {
+        body = JSON.parse(split.bodyText);
+      } catch (e) {
+        return { fatal: 'Invalid JSON: ' + e.message };
+      }
+    }
+
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level JSON-RPC message must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    const isRequest = typeof body.method === 'string';
+    const isResponse = !isRequest && ('result' in body || 'error' in body);
+
+    if (!isRequest && !isResponse) {
+      return { fatal: 'This doesn’t look like a JSON-RPC request (needs a "method" string) or response (needs "result" or "error").' };
+    }
+
+    if (body.jsonrpc !== '2.0') {
+      issues.push({ severity: 'medium', message: 'Top-level "jsonrpc" should be the literal string "2.0", got ' + JSON.stringify(body.jsonrpc) + '.' });
+    }
+
+    if (split.headers) {
+      const h = split.headers;
+      if (h['mcp-session-id'] !== undefined) {
+        issues.push({ severity: 'high', message: 'Mcp-Session-Id header present — this belonged to the pre-2026-07-28 stateful handshake, which the new spec eliminates. Each request should instead carry its own protocol version and capabilities in params._meta.' });
+      }
+      if (h['mcp-protocol-version'] === undefined) {
+        issues.push({ severity: 'high', message: 'Missing MCP-Protocol-Version header — required under 2026-07-28 for gateway/WAF routing without parsing the JSON body.' });
+      } else if (h['mcp-protocol-version'] !== '2026-07-28') {
+        issues.push({ severity: 'low', message: 'MCP-Protocol-Version header is ' + JSON.stringify(h['mcp-protocol-version']) + ', not "2026-07-28" — fine if intentionally targeting a different revision.' });
+      }
+      if (isRequest) {
+        if (h['mcp-method'] === undefined) {
+          issues.push({ severity: 'high', message: 'Missing Mcp-Method header — required under 2026-07-28 so gateways can route by method without parsing the body.' });
+        } else if (h['mcp-method'] !== body.method) {
+          issues.push({ severity: 'high', message: 'Mcp-Method header (' + JSON.stringify(h['mcp-method']) + ') does not match the body’s "method" (' + JSON.stringify(body.method) + ').' });
+        }
+        const paramName = isPlainObject(body.params) && typeof body.params.name === 'string' ? body.params.name : undefined;
+        if (paramName !== undefined) {
+          if (h['mcp-name'] === undefined) {
+            issues.push({ severity: 'medium', message: 'Missing Mcp-Name header — recommended under 2026-07-28 when the request addresses a named tool/prompt (params.name is ' + JSON.stringify(paramName) + ').' });
+          } else if (h['mcp-name'] !== paramName) {
+            issues.push({ severity: 'high', message: 'Mcp-Name header (' + JSON.stringify(h['mcp-name']) + ') does not match params.name (' + JSON.stringify(paramName) + ').' });
+          }
+        }
+      }
+    }
+
+    if (isRequest) {
+      if (body.method === 'initialize' || body.method === 'initialized') {
+        issues.push({ severity: 'high', message: '"' + body.method + '" is the pre-2026-07-28 stateful handshake method. It’s eliminated in the new spec — each request is now self-describing via params._meta instead of a one-time negotiated session.' });
+      }
+
+      const params = isPlainObject(body.params) ? body.params : undefined;
+      const meta = params && isPlainObject(params._meta) ? params._meta : undefined;
+
+      if (body.method !== 'initialize' && body.method !== 'initialized') {
+        if (!params) {
+          issues.push({ severity: 'medium', message: 'Request has no "params" object — params._meta is where protocol version and client capabilities must travel on every request under 2026-07-28.' });
+        } else if (!meta) {
+          issues.push({ severity: 'high', message: 'Request params is missing "_meta" — 2026-07-28 requires ' + META_KEYS.protocolVersion + ' and ' + META_KEYS.clientCapabilities + ' on every request, since there’s no more initialize handshake to negotiate them once.' });
+        } else {
+          if (typeof meta[META_KEYS.protocolVersion] !== 'string') {
+            issues.push({ severity: 'high', message: '_meta is missing the required "' + META_KEYS.protocolVersion + '" string field.' });
+          }
+          if (!isPlainObject(meta[META_KEYS.clientCapabilities])) {
+            issues.push({ severity: 'high', message: '_meta is missing the required "' + META_KEYS.clientCapabilities + '" object field.' });
+          }
+          if (meta[META_KEYS.clientInfo] !== undefined) {
+            const ci = meta[META_KEYS.clientInfo];
+            if (!isPlainObject(ci) || typeof ci.name !== 'string' || typeof ci.version !== 'string') {
+              issues.push({ severity: 'medium', message: '_meta["' + META_KEYS.clientInfo + '"] should be an object with at least "name" and "version" strings.' });
+            }
+          }
+          if (meta[META_KEYS.logLevel] !== undefined && typeof meta[META_KEYS.logLevel] !== 'string') {
+            issues.push({ severity: 'low', message: '_meta["' + META_KEYS.logLevel + '"] should be a string when present.' });
+          }
+          for (const key of Object.keys(meta)) {
+            const labels = key.split('/')[0].split('.');
+            const secondLabel = labels[1];
+            const isReservedPrefix = secondLabel === 'modelcontextprotocol' || secondLabel === 'mcp';
+            if (isReservedPrefix && META_KEY_VALUES.indexOf(key) === -1) {
+              issues.push({ severity: 'low', message: '_meta key "' + key + '" uses the reserved io.modelcontextprotocol/mcp prefix but isn’t one of the four documented keys — check for a typo.' });
+            }
+          }
+        }
+      }
+
+      if (params && params.inputResponses !== undefined) {
+        if (!isPlainObject(params.inputResponses)) {
+          issues.push({ severity: 'high', message: 'params.inputResponses should be an object mapping the server’s request IDs to answers.' });
+        }
+        if (typeof params.requestState !== 'string') {
+          issues.push({ severity: 'medium', message: 'params.requestState should be the opaque string echoed back from the InputRequiredResult you’re answering — treat it as a blob, don’t regenerate it.' });
+        }
+      }
+    }
+
+    if (isResponse) {
+      if ('error' in body) {
+        if (!isPlainObject(body.error) || typeof body.error.code !== 'number' || typeof body.error.message !== 'string') {
+          issues.push({ severity: 'medium', message: 'JSON-RPC "error" should be an object with a numeric "code" and string "message".' });
+        }
+      } else {
+        const result = body.result;
+        if (!isPlainObject(result)) {
+          issues.push({ severity: 'high', message: '"result" should be an object.' });
+        } else {
+          if (result.resultType === undefined) {
+            issues.push({ severity: 'high', message: 'result is missing the required "resultType" field ("complete" | "input_required" | a custom string) — every Result under 2026-07-28 must declare this so the client knows how to parse it.' });
+          } else if (result.resultType === 'input_required') {
+            if (!isPlainObject(result.inputRequests)) {
+              issues.push({ severity: 'high', message: 'resultType is "input_required" but "inputRequests" is missing or not an object — it should map server-assigned IDs to the requests the client must fulfill.' });
+            }
+            if (typeof result.requestState !== 'string') {
+              issues.push({ severity: 'medium', message: 'resultType is "input_required" but "requestState" is missing — the client needs this opaque string to retry the original request once it has answers.' });
+            }
+          } else if (result.resultType !== 'complete') {
+            issues.push({ severity: 'low', message: 'resultType is ' + JSON.stringify(result.resultType) + ' — valid per spec (any string is allowed) but not one of the two documented values ("complete"/"input_required"); make sure your client recognizes it.' });
+          }
+
+          const listKey = LIST_ARRAY_KEYS.find((k) => Array.isArray(result[k]));
+          if (listKey && (result.ttlMs === undefined || result.cacheScope === undefined)) {
+            issues.push({ severity: 'low', message: 'This looks like a "' + listKey + '" list response but doesn’t set ttlMs/cacheScope — the new optional caching hints from 2026-07-28 that let gateways and clients cache list results instead of re-fetching every time.' });
+          }
+        }
+      }
+    }
+
+    return { isRequest, isResponse, hadHeaders: !!split.headers, issues };
+  }
+
+  function summarize(result) {
+    const bits = [];
+    bits.push(result.isRequest ? 'Request' : 'Response');
+    bits.push(result.hadHeaders ? 'headers included' : 'no headers pasted (JSON body only)');
+    return bits.join(' — ');
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    summaryEl.textContent = summarize(result);
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found — looks consistent with the 2026-07-28 spec.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Recommendation' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP 2026-07-28 migration check — ' + summarize(result));
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter((x) => x.severity === 'high').length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

@@ -609,6 +609,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-migration-checker",
+    title: "MCP 2026-07-28 Protocol Migration Checker",
+    shortTitle: "MCP Migration Checker",
+    description:
+      "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite — flags the removed initialize handshake, missing _meta protocol fields, and malformed Multi Round-Trip Request results. 100% client-side.",
+    keywords: [
+      "mcp 2026-07-28 migration",
+      "model context protocol stateless spec checker",
+      "mcp _meta protocolversion validator",
+      "mcp multi round-trip request validator",
+      "mcp session id deprecated checker",
+    ],
+    icon: "MCP",
+    category: "AI",
+    content: [
+      {
+        heading: "What changed in MCP's 2026-07-28 spec",
+        body: "The Model Context Protocol's 2026-07-28 revision replaces the old stateful model — a one-time initialize/initialized handshake followed by an Mcp-Session-Id header on every later request — with a stateless design where each request carries its own protocol version and capabilities in a params._meta object. It also adds header-based routing (Mcp-Method / Mcp-Name / MCP-Protocol-Version) so gateways can route without parsing JSON bodies, a mandatory resultType field on every successful result, a Multi Round-Trip Requests (MRTR) mechanism for mid-call user input that replaces server-initiated streams, and optional ttlMs/cacheScope caching hints on list responses. All four Tier 1 SDKs (TypeScript, Python, Go, C#) already speak it, which means anything still shaped like the old handshake will start failing against updated servers or clients.",
+      },
+      {
+        heading: "What this checks",
+        body: "Paste either a bare JSON-RPC message or a raw HTTP block (request line + headers, a blank line, then the JSON body — e.g. copied from curl -i output or a browser's network inspector). For requests, it flags the deprecated initialize/initialized handshake, a missing or incomplete params._meta (checking for the required io.modelcontextprotocol/protocolVersion and io.modelcontextprotocol/clientCapabilities keys, and the optional clientInfo/logLevel keys), and — when headers are included — a lingering Mcp-Session-Id header or a missing/mismatched Mcp-Method, Mcp-Name, or MCP-Protocol-Version. For responses, it checks that result.resultType is present, validates input_required results carry inputRequests and requestState, and notes when a list-shaped result (tools/prompts/resources) is missing the new optional ttlMs/cacheScope caching hints.",
+      },
+    ],
+    faq: [
+      {
+        q: "What exactly should I paste in?",
+        a: "Either just the JSON-RPC message body on its own, or a full raw HTTP block — request line and headers, then a blank line, then the JSON body — if you want the header-level checks (Mcp-Method, Mcp-Name, MCP-Protocol-Version, and the deprecated Mcp-Session-Id) included too.",
+      },
+      {
+        q: "How confident are these checks?",
+        a: "Checks marked as spec violations (high severity) are verified directly against the published 2026-07-28 TypeScript schema and worked examples. Lower-severity notes — like the ttlMs/cacheScope caching hints, or the exact shape of individual Multi Round-Trip Request entries — are flagged more conservatively since those corners of the spec are less exhaustively documented; treat those as prompts to double-check, not definitive failures.",
+      },
+      {
+        q: "Does this replace an actual MCP SDK's validation?",
+        a: "No — it's a structural sanity check for spotting the specific things that break when migrating from the pre-2026-07-28 stateful model, not a substitute for testing against a real client or server SDK.",
+      },
+      {
+        q: "Is my pasted request/response data sent anywhere?",
+        a: "No. Everything is parsed and checked locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
