@@ -1,6 +1,6 @@
 # Bracketly
 
-Free, privacy-first developer tools — JSON formatter, Base64 encoder/decoder, JWT decoder, UUID/ULID generator, regex tester, and Unix timestamp converter. Everything runs client-side in the browser; nothing typed into a tool is ever sent to a server.
+A growing collection of free, privacy-first developer tools — from staples like a JSON formatter, Base64 encoder/decoder, and JWT decoder to newer AI/LLM tooling like a token counter, MCP tool-schema validator, and AI SDK stream protocol debugger. Everything runs client-side in the browser; nothing typed into a tool is ever sent to a server. See `src/data/tools.ts` for the full, current list.
 
 Live at [bracketly.pages.dev](https://bracketly.pages.dev).
 

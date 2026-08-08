@@ -68,7 +68,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
           <img src="/logo.svg" alt="" width="22" height="22" class="logo-mark" />
           Bracket<span>ly</span>
         </a>
-        <nav class="nav-links">
+        <nav class="nav-links" aria-label="Primary">
           <a href="/">Tools</a>
           <a href="/donate/" class="btn btn-support">☕ Support</a>
         </nav>
@@ -82,7 +82,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
     <footer class="site-footer">
       <div class="container">
         <span>© {new Date().getFullYear()} Bracketly — Free tools, forever.</span>
-        <nav style="display:flex;gap:1rem;">
+        <nav style="display:flex;gap:1rem;" aria-label="Footer">
           <a href="/about/">About</a>
           <a href="/donate/">Support this project</a>
           <a href="/privacy/">Privacy</a>

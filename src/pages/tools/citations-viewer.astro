@@ -206,7 +206,7 @@ const tool = getTool('citations-viewer')!;
         row.style.cssText = 'margin-top:0.5rem;padding-top:0.5rem;border-top:1px dashed var(--border);';
 
         const meta = document.createElement('div');
-        meta.style.cssText = 'font-size:0.8rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;';
+        meta.style.cssText = 'font-size:0.8rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;overflow-wrap:anywhere;word-break:break-word;';
         const docLabel = document.createElement('span');
         docLabel.textContent = (c.document_title ? c.document_title : 'Document') + ' (index ' + c.document_index + ')';
         meta.appendChild(docLabel);
@@ -263,6 +263,7 @@ const tool = getTool('citations-viewer')!;
       label.id = labelId;
       const span = document.createElement('span');
       span.textContent = (title ? title : 'Document') + ' (index ' + docIndex + ')';
+      span.style.cssText = 'overflow-wrap:anywhere;word-break:break-word;';
       label.appendChild(span);
       block.appendChild(label);
 

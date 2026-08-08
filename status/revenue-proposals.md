@@ -81,3 +81,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/modelcontextprotocol/modelcontextprotocol` Discussions/Issues for existing migration-pain threads about the 2026-07-28 release and reply with the tool where genuinely relevant, not as a cold link-drop.
 2. Consider a short post in an MCP-focused Discord/subreddit's release-discussion channel, framed around the specific breaking changes (removed handshake, required `_meta` fields) rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side.
+
+## 2026-08-08 — Submit the new OTel GenAI Span Validator to OpenTelemetry/observability community channels
+
+**What it is:** Today's run added `/tools/genai-span-validator/`, a client-side validator for OpenTelemetry's GenAI semantic conventions (the `gen_ai.*` span attributes used to instrument LLM calls, agent steps, and tool executions). Research today (four targeted WebSearch passes plus direct fetches of the OpenTelemetry semantic-conventions-genai repo's registry and span-naming docs) found no existing free web tool that validates a pasted span against these conventions — the only real tooling is OTel Weaver, a Rust CLI aimed at instrumentation-library maintainers, not a quick paste-and-check for someone eyeballing one span. The natural audience — developers instrumenting LLM/agent applications with OpenTelemetry, especially anyone still emitting attributes from an earlier draft of the spec (`gen_ai.system`, `gen_ai.prompt`, `gen_ai.usage.prompt_tokens`, all since renamed) — is concentrated in a few identifiable places: the CNCF/OpenTelemetry Slack's `#otel-genai` or general instrumentation channels, r/opentelemetry, and the `open-telemetry/semantic-conventions-genai` GitHub repo's Discussions/Issues.
+
+**Why it's a real fit for Bracketly specifically:** Same recency-edge logic as the last several tool-launch entries — the GenAI semantic conventions are still actively being revised (attributes renamed as recently as the still-current cycle), so a new low-authority domain has a genuine shot at being useful before an entrenched incumbent covers this specific angle, rather than competing in an already-saturated space like generic JSON/log validators.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — Slack/Discord/subreddit posts and GitHub Discussions replies require a human account and per-community judgment about self-promotion norms; this agent's GitHub App also cannot fork `open-telemetry/semantic-conventions-genai` to add a listing anywhere even if a relevant curated list existed.
+
+**What a human needs to do:**
+1. Check the CNCF/OpenTelemetry Slack and r/opentelemetry for existing threads about GenAI span instrumentation or the `gen_ai.system` → `gen_ai.provider.name` rename, and reply with the tool where genuinely relevant.
+2. Consider opening a low-key Discussion post on `open-telemetry/semantic-conventions-genai` introducing the tool, framed around the specific deprecated-attribute migration pain rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side.

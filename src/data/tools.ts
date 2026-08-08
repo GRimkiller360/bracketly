@@ -613,6 +613,7 @@ export const tools: Tool[] = [
     slug: "mcp-migration-checker",
     title: "MCP 2026-07-28 Protocol Migration Checker",
     shortTitle: "MCP Migration Checker",
+    icon: "'26",
     description:
       "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite — flags the removed initialize handshake, missing _meta protocol fields, and malformed Multi Round-Trip Request results. 100% client-side.",
     keywords: [
@@ -622,7 +623,6 @@ export const tools: Tool[] = [
       "mcp multi round-trip request validator",
       "mcp session id deprecated checker",
     ],
-    icon: "MCP",
     category: "AI",
     content: [
       {
@@ -649,6 +649,50 @@ export const tools: Tool[] = [
       },
       {
         q: "Is my pasted request/response data sent anywhere?",
+        a: "No. Everything is parsed and checked locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
+  {
+    slug: "genai-span-validator",
+    title: "OTel GenAI Span Validator",
+    shortTitle: "GenAI Span Validator",
+    description:
+      "Validate an OpenTelemetry span against the GenAI semantic conventions — catches missing required attributes, deprecated legacy fields, wrong attribute types, and span-naming mismatches. 100% client-side.",
+    keywords: [
+      "opentelemetry genai semantic conventions",
+      "gen_ai span validator",
+      "otel genai attributes checker",
+      "llm tracing observability validator",
+      "gen_ai.system deprecated",
+    ],
+    icon: "OTel",
+    category: "AI",
+    content: [
+      {
+        heading: "Why GenAI spans keep drifting out of spec",
+        body: "OpenTelemetry's GenAI Semantic Conventions — the standard attribute names for describing an LLM call, an agent step, or a tool execution as a regular span — have been under active development by the GenAI Special Interest Group since 2024, and several core attributes have already been renamed once (gen_ai.system became gen_ai.provider.name; gen_ai.prompt and gen_ai.completion were replaced by structured message attributes and the Events API; gen_ai.usage.prompt_tokens/completion_tokens became gen_ai.usage.input_tokens/output_tokens). Instrumentation written against an earlier draft, a tutorial that hasn't been updated, or a hand-rolled OTel exporter can easily still emit the old names — which then silently fail to show up correctly in any dashboard or vendor tool that keys off the current attribute names.",
+      },
+      {
+        heading: "What this tool checks",
+        body: "Paste a span's attributes as a flat JSON object, a span object with \"name\" and \"attributes\" fields (attributes as either a plain object or an OTLP key/value array), an array of spans, or a full OTLP JSON export (resourceSpans → scopeSpans → spans). It checks that the two attributes required on every GenAI span — gen_ai.operation.name and gen_ai.provider.name — are present and hold a recognized value; flags deprecated attributes (gen_ai.system, gen_ai.prompt, gen_ai.completion, gen_ai.usage.prompt_tokens, gen_ai.usage.completion_tokens, and the deprecated gen_ai.openai.* attributes) along with their current replacement; type-checks numeric, boolean, and array-valued attributes like token counts, temperature, and stop sequences; validates the enum attributes (gen_ai.output.type, gen_ai.token.type, gen_ai.tool.type); and checks the span's name against the spec's naming convention (\"{operation.name} {model}\" for inference/embeddings spans, \"{operation.name} {data_source.id}\" for retrieval, or just \"{operation.name}\" alone for agent/tool/workflow spans).",
+      },
+    ],
+    faq: [
+      {
+        q: "What exactly should I paste in?",
+        a: "Whatever you have: a bare attributes object copied from a tracing UI, a full span object with \"name\" and \"attributes\", an array of several spans, or a raw OTLP JSON export with the resourceSpans/scopeSpans/spans structure. The tool detects the shape automatically.",
+      },
+      {
+        q: "How confident are these checks?",
+        a: "The required attributes, deprecated-attribute mapping, and enum values are checked directly against the OpenTelemetry GenAI semantic conventions registry and span-naming documentation as published in August 2026. The conventions are still evolving, so an operation name or provider name this tool doesn't recognize is flagged as a low-severity note to double-check, not a hard error — it may just be newer than this checker.",
+      },
+      {
+        q: "Does this replace the official OTel Weaver validation?",
+        a: "No. Weaver is OpenTelemetry's own schema-driven CLI validator and the authoritative source of truth. This is a fast, install-nothing sanity check for the specific mistakes that show up most often in hand-written or lightly-tested GenAI instrumentation — useful before you reach for the full tooling, not a replacement for it.",
+      },
+      {
+        q: "Is my pasted span data sent anywhere?",
         a: "No. Everything is parsed and checked locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
       },
     ],

@@ -1,0 +1,361 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('genai-span-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Span JSON</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste a span's attributes, a span object, an array of spans, or a full OTLP export — e.g.\n{\n  "name": "chat gpt-4o",\n  "attributes": {\n    "gen_ai.system": "openai",\n    "gen_ai.request.model": "gpt-4o",\n    "gen_ai.usage.prompt_tokens": 120,\n    "gen_ai.usage.completion_tokens": 45\n  }\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Span breakdown</span></div>
+      <div id="spans-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const spansList = document.getElementById('spans-list');
+
+  const OPERATION_NAMES = ['chat', 'create_agent', 'embeddings', 'execute_tool', 'generate_content', 'invoke_agent', 'invoke_workflow', 'retrieval', 'text_completion'];
+  const PROVIDER_NAMES = ['anthropic', 'aws.bedrock', 'azure.ai.inference', 'azure.ai.openai', 'cohere', 'deepseek', 'gcp.gemini', 'gcp.gen_ai', 'gcp.vertex_ai', 'groq', 'ibm.watsonx.ai', 'mistral_ai', 'openai', 'perplexity', 'x_ai'];
+  const OUTPUT_TYPES = ['image', 'json', 'speech', 'text'];
+  const TOKEN_TYPES = ['input', 'output'];
+  const TOOL_TYPES = ['function', 'extension', 'datastore'];
+  const MODEL_NAMED_OPS = ['chat', 'embeddings', 'text_completion', 'generate_content'];
+  const NAME_ONLY_OPS = ['execute_tool', 'invoke_agent', 'create_agent', 'invoke_workflow'];
+
+  const DEPRECATED_MAP = {
+    'gen_ai.prompt': 'gen_ai.input.messages (or the OTel GenAI Events API)',
+    'gen_ai.completion': 'gen_ai.output.messages (or the OTel GenAI Events API)',
+    'gen_ai.usage.prompt_tokens': 'gen_ai.usage.input_tokens',
+    'gen_ai.usage.completion_tokens': 'gen_ai.usage.output_tokens',
+    'gen_ai.openai.request.seed': 'gen_ai.request.seed',
+    'gen_ai.openai.request.response_format': 'gen_ai.output.type',
+    'gen_ai.openai.request.service_tier': 'openai.request.service_tier',
+    'gen_ai.openai.response.service_tier': 'openai.response.service_tier',
+    'gen_ai.openai.response.system_fingerprint': 'openai.response.system_fingerprint',
+  };
+
+  const NUMERIC_ATTRS = ['gen_ai.usage.input_tokens', 'gen_ai.usage.output_tokens', 'gen_ai.usage.reasoning.output_tokens', 'gen_ai.usage.cache_creation.input_tokens', 'gen_ai.usage.cache_read.input_tokens', 'gen_ai.request.max_tokens', 'gen_ai.request.seed', 'gen_ai.request.choice.count', 'gen_ai.request.temperature', 'gen_ai.request.top_p', 'gen_ai.request.top_k', 'gen_ai.request.frequency_penalty', 'gen_ai.request.presence_penalty', 'gen_ai.embeddings.dimension.count', 'gen_ai.evaluation.score.value', 'gen_ai.response.time_to_first_chunk'];
+  const BOOLEAN_ATTRS = ['gen_ai.request.stream'];
+  const STRING_ARRAY_ATTRS = ['gen_ai.request.stop_sequences', 'gen_ai.request.encoding_formats', 'gen_ai.response.finish_reasons'];
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function unwrapOtlpValue(v) {
+    if (!isPlainObject(v)) return v;
+    if ('stringValue' in v) return v.stringValue;
+    if ('intValue' in v) return Number(v.intValue);
+    if ('doubleValue' in v) return Number(v.doubleValue);
+    if ('boolValue' in v) return v.boolValue;
+    if ('arrayValue' in v && isPlainObject(v.arrayValue) && Array.isArray(v.arrayValue.values)) {
+      return v.arrayValue.values.map(unwrapOtlpValue);
+    }
+    return v;
+  }
+
+  function normalizeAttributes(attrs) {
+    if (Array.isArray(attrs)) {
+      const out = {};
+      for (const kv of attrs) {
+        if (!isPlainObject(kv) || typeof kv.key !== 'string') continue;
+        out[kv.key] = unwrapOtlpValue(kv.value);
+      }
+      return out;
+    }
+    if (isPlainObject(attrs)) return attrs;
+    return {};
+  }
+
+  function collectOtlpSpans(parsed) {
+    if (!isPlainObject(parsed) || !Array.isArray(parsed.resourceSpans)) return null;
+    const spans = [];
+    for (const rs of parsed.resourceSpans) {
+      const scopeSpans = isPlainObject(rs) && Array.isArray(rs.scopeSpans) ? rs.scopeSpans : [];
+      for (const ss of scopeSpans) {
+        const ssSpans = isPlainObject(ss) && Array.isArray(ss.spans) ? ss.spans : [];
+        for (const s of ssSpans) {
+          if (!isPlainObject(s)) continue;
+          spans.push({ name: typeof s.name === 'string' ? s.name : undefined, attributes: normalizeAttributes(s.attributes) });
+        }
+      }
+    }
+    return spans;
+  }
+
+  function extractSpans(parsed) {
+    const otlp = collectOtlpSpans(parsed);
+    if (otlp) return otlp;
+
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) return null;
+      return parsed.map((item) => {
+        if (isPlainObject(item) && item.attributes !== undefined) {
+          return { name: typeof item.name === 'string' ? item.name : undefined, attributes: normalizeAttributes(item.attributes) };
+        }
+        return { name: undefined, attributes: normalizeAttributes(item) };
+      });
+    }
+
+    if (isPlainObject(parsed)) {
+      if (parsed.attributes !== undefined) {
+        return [{ name: typeof parsed.name === 'string' ? parsed.name : undefined, attributes: normalizeAttributes(parsed.attributes) }];
+      }
+      return [{ name: typeof parsed.name === 'string' ? parsed.name : undefined, attributes: parsed }];
+    }
+
+    return null;
+  }
+
+  function validateSpan(span, index, count) {
+    const issues = [];
+    const attrs = span.attributes || {};
+    const label = count > 1
+      ? 'Span #' + (index + 1) + (span.name ? ' ("' + span.name + '")' : '')
+      : (span.name ? 'Span "' + span.name + '"' : 'This span');
+
+    const opName = attrs['gen_ai.operation.name'];
+    if (opName === undefined) {
+      issues.push({ severity: 'high', message: label + ' is missing gen_ai.operation.name — required on every GenAI span.' });
+    } else if (typeof opName !== 'string') {
+      issues.push({ severity: 'high', message: label + ': gen_ai.operation.name should be a string, got ' + typeof opName + '.' });
+    } else if (OPERATION_NAMES.indexOf(opName) === -1) {
+      issues.push({ severity: 'low', message: label + ': gen_ai.operation.name is "' + opName + '", not one of the spec\'s defined values (' + OPERATION_NAMES.join(', ') + '). Could be a typo, or a newer/custom operation this checker doesn\'t know yet.' });
+    }
+
+    const providerName = attrs['gen_ai.provider.name'];
+    const legacySystem = attrs['gen_ai.system'];
+    if (providerName === undefined) {
+      if (legacySystem !== undefined) {
+        issues.push({ severity: 'medium', message: label + ' uses the deprecated gen_ai.system attribute instead of gen_ai.provider.name, which replaced it. gen_ai.provider.name is required.' });
+      } else {
+        issues.push({ severity: 'high', message: label + ' is missing gen_ai.provider.name — required on every GenAI span.' });
+      }
+    } else {
+      if (typeof providerName === 'string' && PROVIDER_NAMES.indexOf(providerName) === -1) {
+        issues.push({ severity: 'low', message: label + ': gen_ai.provider.name is "' + providerName + '", not one of the spec\'s pre-registered values. The registry is open-ended — this may just be a provider not yet listed — but worth checking for a typo of a known one.' });
+      }
+      if (legacySystem !== undefined) {
+        issues.push({ severity: 'low', message: label + ' sets both gen_ai.provider.name and the deprecated gen_ai.system — safe to drop gen_ai.system now that the replacement is present.' });
+      }
+    }
+
+    for (const key in DEPRECATED_MAP) {
+      if (attrs[key] !== undefined) {
+        issues.push({ severity: 'medium', message: label + ' uses the deprecated ' + key + ' — replaced by ' + DEPRECATED_MAP[key] + '.' });
+      }
+    }
+
+    for (const key of NUMERIC_ATTRS) {
+      if (attrs[key] !== undefined && typeof attrs[key] !== 'number') {
+        issues.push({ severity: 'medium', message: label + ': ' + key + ' should be numeric, got ' + typeof attrs[key] + ' (' + JSON.stringify(attrs[key]) + ').' });
+      }
+    }
+    for (const key of BOOLEAN_ATTRS) {
+      if (attrs[key] !== undefined && typeof attrs[key] !== 'boolean') {
+        issues.push({ severity: 'medium', message: label + ': ' + key + ' should be a boolean, got ' + typeof attrs[key] + ' (' + JSON.stringify(attrs[key]) + ').' });
+      }
+    }
+    for (const key of STRING_ARRAY_ATTRS) {
+      if (attrs[key] !== undefined && !Array.isArray(attrs[key])) {
+        issues.push({ severity: 'medium', message: label + ': ' + key + ' should be an array of strings, got ' + typeof attrs[key] + '.' });
+      }
+    }
+
+    if (attrs['gen_ai.output.type'] !== undefined && OUTPUT_TYPES.indexOf(attrs['gen_ai.output.type']) === -1) {
+      issues.push({ severity: 'medium', message: label + ': gen_ai.output.type is "' + attrs['gen_ai.output.type'] + '", expected one of ' + OUTPUT_TYPES.join(', ') + '.' });
+    }
+    if (attrs['gen_ai.token.type'] !== undefined && TOKEN_TYPES.indexOf(attrs['gen_ai.token.type']) === -1) {
+      issues.push({ severity: 'medium', message: label + ': gen_ai.token.type is "' + attrs['gen_ai.token.type'] + '", expected one of ' + TOKEN_TYPES.join(', ') + '.' });
+    }
+    if (attrs['gen_ai.tool.type'] !== undefined && TOOL_TYPES.indexOf(attrs['gen_ai.tool.type']) === -1) {
+      issues.push({ severity: 'medium', message: label + ': gen_ai.tool.type is "' + attrs['gen_ai.tool.type'] + '", expected one of ' + TOOL_TYPES.join(', ') + '.' });
+    }
+
+    if (span.name && typeof opName === 'string') {
+      if (MODEL_NAMED_OPS.indexOf(opName) !== -1) {
+        const model = attrs['gen_ai.request.model'];
+        if (typeof model === 'string' && model) {
+          const expected = opName + ' ' + model;
+          if (span.name !== expected) {
+            issues.push({ severity: 'low', message: label + ': span name is "' + span.name + '", but the convention for ' + opName + ' spans is "{operation.name} {request.model}" — expected "' + expected + '".' });
+          }
+        }
+      } else if (opName === 'retrieval') {
+        const dsId = attrs['gen_ai.data_source.id'];
+        if (typeof dsId === 'string' && dsId) {
+          const expected = opName + ' ' + dsId;
+          if (span.name !== expected) {
+            issues.push({ severity: 'low', message: label + ': span name is "' + span.name + '", but the convention for retrieval spans is "{operation.name} {data_source.id}" — expected "' + expected + '".' });
+          }
+        }
+      } else if (NAME_ONLY_OPS.indexOf(opName) !== -1) {
+        if (span.name !== opName) {
+          issues.push({ severity: 'low', message: label + ': span name is "' + span.name + '", but the convention for ' + opName + ' spans is just "{operation.name}" alone — expected "' + opName + '".' });
+        }
+      }
+    }
+
+    return issues;
+  }
+
+  function summarizeSpan(span) {
+    const attrs = span.attributes || {};
+    const name = span.name || '(no span name)';
+    const bits = [];
+    if (attrs['gen_ai.operation.name']) bits.push('op=' + attrs['gen_ai.operation.name']);
+    if (attrs['gen_ai.provider.name']) bits.push('provider=' + attrs['gen_ai.provider.name']);
+    else if (attrs['gen_ai.system']) bits.push('provider=' + attrs['gen_ai.system'] + ' (legacy)');
+    const model = attrs['gen_ai.request.model'] || attrs['gen_ai.response.model'];
+    if (model) bits.push('model=' + model);
+    const inTok = attrs['gen_ai.usage.input_tokens'];
+    const outTok = attrs['gen_ai.usage.output_tokens'];
+    if (typeof inTok === 'number' || typeof outTok === 'number') {
+      bits.push('tokens=' + (typeof inTok === 'number' ? inTok : '?') + ' in / ' + (typeof outTok === 'number' ? outTok : '?') + ' out');
+    }
+    return name + (bits.length ? ' — ' + bits.join(', ') : '');
+  }
+
+  function render(spans, allIssues) {
+    clearChildren(issuesList);
+    clearChildren(spansList);
+
+    spans.forEach((span) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
+      row.textContent = summarizeSpan(span);
+      spansList.appendChild(row);
+    });
+
+    if (allIssues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found across ' + spans.length + ' span' + (spans.length === 1 ? '' : 's') + '.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Required attribute missing', medium: 'Deprecated or wrong type', low: 'Convention note' };
+      for (const issue of allIssues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('OTel GenAI span validation — ' + spans.length + ' span(s)');
+    if (allIssues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of allIssues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    const spans = extractSpans(parsed);
+    if (!spans || spans.length === 0) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find span attributes, a span object, a span array, or an OTLP export in this input.', 'error');
+      return;
+    }
+
+    const allIssues = [];
+    spans.forEach((span, i) => {
+      allIssues.push(...validateSpan(span, i, spans.length));
+    });
+
+    render(spans, allIssues);
+    results.style.display = 'block';
+
+    if (allIssues.length === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + spans.length + ' span' + (spans.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      const highCount = allIssues.filter((x) => x.severity === 'high').length;
+      setStatus('✗ Found ' + allIssues.length + ' issue' + (allIssues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' missing required attribute' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    navigator.clipboard.writeText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>
