@@ -1,0 +1,406 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('agent-plugin-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input-plugin">plugin.json</label>
+      <button class="btn btn-sm" id="btn-clear-plugin" aria-label="Clear plugin.json">Clear</button>
+    </div>
+    <textarea
+      id="input-plugin"
+      rows="12"
+      placeholder={`{\n  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",\n  "name": "my-plugin",\n  "version": "1.0.0",\n  "description": "What this plugin does"\n}`}
+    ></textarea>
+  </div>
+
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input-mcp">mcp.json (optional)</label>
+      <button class="btn btn-sm" id="btn-clear-mcp" aria-label="Clear mcp.json">Clear</button>
+    </div>
+    <textarea
+      id="input-mcp"
+      rows="10"
+      placeholder={`{\n  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",\n  "mcpServers": {\n    "example": { "type": "stdio", "command": "node", "args": ["./server.js"] }\n  }\n}`}
+    ></textarea>
+  </div>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const inputPlugin = document.getElementById('input-plugin');
+  const inputMcp = document.getElementById('input-mcp');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+
+  const PLUGIN_SCHEMA_URL = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
+  const MCP_SCHEMA_URL = 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json';
+  const PLUGIN_TOP_FIELDS = ['$schema', 'name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords', 'extensions'];
+  const NAME_RE = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+  const AUTHOR_FIELDS = ['name', 'email', 'url'];
+
+  let lastReportText = '';
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function validatePluginManifest(m) {
+    const issues = [];
+    const err = (message, field) => issues.push({ severity: 'error', file: 'plugin.json', field, message });
+    const warn = (message, field) => issues.push({ severity: 'warning', file: 'plugin.json', field, message });
+
+    if (!isPlainObject(m)) {
+      err('plugin.json must be a JSON object.', '(root)');
+      return issues;
+    }
+
+    if (m['$schema'] === undefined) {
+      err('Missing required "$schema" field.', '$schema');
+    } else if (m['$schema'] !== PLUGIN_SCHEMA_URL) {
+      err('"$schema" must be exactly "' + PLUGIN_SCHEMA_URL + '", got ' + JSON.stringify(m['$schema']) + '.', '$schema');
+    }
+
+    if (m.name === undefined) {
+      err('Missing required "name" field.', 'name');
+    } else if (typeof m.name !== 'string') {
+      err('"name" must be a string, got ' + (Array.isArray(m.name) ? 'array' : typeof m.name) + '.', 'name');
+    } else {
+      if (m.name.length < 1 || m.name.length > 64) {
+        err('"name" must be 1-64 characters, got ' + m.name.length + '.', 'name');
+      }
+      if (!NAME_RE.test(m.name)) {
+        err('"name" must contain only lowercase alphanumeric characters, hyphens, and periods; start and end with an alphanumeric character; and never contain consecutive hyphens or periods.', 'name');
+      }
+    }
+
+    [['version', 'string'], ['description', 'string'], ['homepage', 'string'], ['repository', 'string'], ['license', 'string']].forEach(function (pair) {
+      const field = pair[0], expectType = pair[1];
+      if (m[field] !== undefined && typeof m[field] !== expectType) {
+        err('"' + field + '" must be a ' + expectType + ', got ' + (Array.isArray(m[field]) ? 'array' : typeof m[field]) + '.', field);
+      }
+    });
+
+    if (m.author !== undefined) {
+      if (!isPlainObject(m.author)) {
+        err('"author" must be an object, got ' + (Array.isArray(m.author) ? 'array' : typeof m.author) + '.', 'author');
+      } else {
+        Object.keys(m.author).forEach(function (k) {
+          if (AUTHOR_FIELDS.indexOf(k) === -1) {
+            err('"author.' + k + '" is not permitted — author only allows name, email, url.', 'author');
+          } else if (m.author[k] !== undefined && typeof m.author[k] !== 'string') {
+            err('"author.' + k + '" must be a string.', 'author');
+          }
+        });
+      }
+    }
+
+    if (m.keywords !== undefined) {
+      if (!Array.isArray(m.keywords)) {
+        err('"keywords" must be an array, got ' + typeof m.keywords + '.', 'keywords');
+      } else {
+        m.keywords.forEach(function (k, i) {
+          if (typeof k !== 'string') err('"keywords[' + i + ']" must be a string.', 'keywords');
+        });
+      }
+    }
+
+    if (m.extensions !== undefined) {
+      if (!isPlainObject(m.extensions)) {
+        warn('"extensions" is not an object — per spec this is non-fatal: clients report it and ignore the field, continuing to load the plugin.', 'extensions');
+      } else {
+        Object.keys(m.extensions).forEach(function (ns) {
+          if (!isPlainObject(m.extensions[ns])) {
+            err('"extensions.' + ns + '" must be an object (client-specific data keyed by namespace).', 'extensions');
+          }
+        });
+      }
+    }
+
+    Object.keys(m).forEach(function (k) {
+      if (PLUGIN_TOP_FIELDS.indexOf(k) === -1) {
+        warn('Unknown top-level field "' + k + '" — per spec, clients must report and ignore unrecognized fields, not reject the plugin.', k);
+      }
+    });
+
+    return issues;
+  }
+
+  function isLoopbackHost(hostname) {
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.slice(-10) === '.localhost';
+  }
+
+  function validateMcpServerUrl(urlStr, label, issues) {
+    const err = (message) => issues.push({ severity: 'error', file: 'mcp.json', field: label, message });
+    let u;
+    try {
+      u = new URL(urlStr);
+    } catch (e) {
+      err('"' + label + '.url" is not a valid absolute URL: ' + e.message);
+      return;
+    }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      err('"' + label + '.url" must be an absolute HTTP or HTTPS URL, got scheme "' + u.protocol.replace(':', '') + '".');
+    }
+    if (u.username || u.password) {
+      err('"' + label + '.url" must not contain user information (found in the URL\'s userinfo segment).');
+    }
+    if (u.hash) {
+      err('"' + label + '.url" must not contain a fragment ("' + u.hash + '").');
+    }
+    if (u.protocol === 'http:' && !isLoopbackHost(u.hostname)) {
+      err('"' + label + '.url" uses plain HTTP for a non-loopback host ("' + u.hostname + '") — non-loopback endpoints MUST use HTTPS.');
+    }
+  }
+
+  function validateMcpConfig(m) {
+    const issues = [];
+    const err = (message, field) => issues.push({ severity: 'error', file: 'mcp.json', field, message });
+
+    if (!isPlainObject(m)) {
+      err('mcp.json must be a JSON object.', '(root)');
+      return issues;
+    }
+
+    if (m['$schema'] === undefined) {
+      err('Missing required "$schema" field.', '$schema');
+    } else if (m['$schema'] !== MCP_SCHEMA_URL) {
+      err('"$schema" must be exactly "' + MCP_SCHEMA_URL + '", got ' + JSON.stringify(m['$schema']) + '.', '$schema');
+    }
+
+    if (m.mcpServers === undefined) {
+      err('Missing required "mcpServers" field.', 'mcpServers');
+    } else if (!isPlainObject(m.mcpServers)) {
+      err('"mcpServers" must be an object, got ' + (Array.isArray(m.mcpServers) ? 'array' : typeof m.mcpServers) + '.', 'mcpServers');
+    }
+
+    Object.keys(m).forEach(function (k) {
+      if (k !== '$schema' && k !== 'mcpServers') {
+        err('Unrecognized top-level field "' + k + '" — mcp.json MUST contain only "$schema" and "mcpServers".', k);
+      }
+    });
+
+    if (isPlainObject(m.mcpServers)) {
+      Object.keys(m.mcpServers).forEach(function (name) {
+        const server = m.mcpServers[name];
+        const label = 'mcpServers.' + name;
+        if (!isPlainObject(server)) {
+          err('"' + label + '" must be an object.', label);
+          return;
+        }
+        const type = server.type;
+        if (type === 'stdio') {
+          const allowed = ['type', 'command', 'args', 'env', 'cwd'];
+          Object.keys(server).forEach(function (k) {
+            if (allowed.indexOf(k) === -1) err('"' + label + '.' + k + '" is not permitted for a stdio server.', label);
+          });
+          if (typeof server.command !== 'string' || server.command.length === 0) {
+            err('"' + label + '.command" is required and must be a non-empty string.', label);
+          } else if (/\s/.test(server.command)) {
+            err('"' + label + '.command" must be a single executable token (bare name or a "./"-relative path) — it contains whitespace, so arguments belong in "args" instead.', label);
+          }
+          if (server.args !== undefined) {
+            if (!Array.isArray(server.args) || server.args.some(function (a) { return typeof a !== 'string'; })) {
+              err('"' + label + '.args" must be an array of strings.', label);
+            }
+          }
+          if (server.env !== undefined) {
+            if (!isPlainObject(server.env)) {
+              err('"' + label + '.env" must be an object.', label);
+            } else {
+              Object.keys(server.env).forEach(function (k) {
+                if (k === 'PLUGIN_ROOT' || k === 'PLUGIN_DATA') {
+                  err('"' + label + '.env" must not contain a "' + k + '" entry — that name is reserved.', label);
+                }
+                if (typeof server.env[k] !== 'string') err('"' + label + '.env.' + k + '" must be a string.', label);
+              });
+            }
+          }
+          if (server.cwd !== undefined) {
+            const cwdRe = /^(?:\.\/|\$\{PLUGIN_ROOT\}(?:\/|$)|\$\{PLUGIN_DATA\}(?:\/|$))/;
+            if (typeof server.cwd !== 'string' || !cwdRe.test(server.cwd)) {
+              err('"' + label + '.cwd" must start with "./", "${PLUGIN_ROOT}", or "${PLUGIN_DATA}".', label);
+            }
+          }
+        } else if (type === 'streamable-http' || type === 'sse') {
+          const allowed = ['type', 'url', 'headers'];
+          Object.keys(server).forEach(function (k) {
+            if (allowed.indexOf(k) === -1) err('"' + label + '.' + k + '" is not permitted for a ' + type + ' server.', label);
+          });
+          if (typeof server.url !== 'string' || server.url.length === 0) {
+            err('"' + label + '.url" is required and must be a non-empty string.', label);
+          } else {
+            validateMcpServerUrl(server.url, label, issues);
+          }
+          if (server.headers !== undefined) {
+            if (!isPlainObject(server.headers) || Object.keys(server.headers).some(function (k) { return typeof server.headers[k] !== 'string'; })) {
+              err('"' + label + '.headers" must be an object of string values.', label);
+            }
+          }
+        } else {
+          err('"' + label + '.type" must be "stdio", "streamable-http", or "sse", got ' + JSON.stringify(type) + '.', label);
+        }
+      });
+    }
+
+    return issues;
+  }
+
+  function render(allIssues) {
+    clearChildren(issuesList);
+
+    if (allIssues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found — this manifest conforms to Agent Plugins 1.0.0.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { error: 'var(--danger)', warning: 'var(--warning)' };
+      const sevLabel = { error: 'Spec violation', warning: 'Non-fatal (reported, then ignored by clients)' };
+      allIssues.forEach(function (issue) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = issue.file + ' — ' + sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      });
+    }
+
+    const lines = ['Agent Plugins 1.0.0 manifest validation'];
+    if (allIssues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      allIssues.forEach(function (issue) {
+        lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.file + ': ' + issue.message);
+      });
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const rawPlugin = inputPlugin.value.trim();
+    const rawMcp = inputMcp.value.trim();
+
+    if (!rawPlugin) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsedPlugin;
+    try {
+      parsedPlugin = JSON.parse(rawPlugin);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ plugin.json is invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    let allIssues = validatePluginManifest(parsedPlugin);
+
+    if (rawMcp) {
+      let parsedMcp;
+      try {
+        parsedMcp = JSON.parse(rawMcp);
+      } catch (e) {
+        results.style.display = 'none';
+        setStatus('✗ mcp.json is invalid JSON: ' + e.message, 'error');
+        return;
+      }
+      allIssues = allIssues.concat(validateMcpConfig(parsedMcp));
+    }
+
+    render(allIssues);
+    results.style.display = 'block';
+
+    const errorCount = allIssues.filter(function (x) { return x.severity === 'error'; }).length;
+    const warnCount = allIssues.length - errorCount;
+    if (allIssues.length === 0) {
+      setStatus('✓ Valid — conforms to Agent Plugins 1.0.0.', 'ok');
+    } else {
+      let msg = '✗ Found ' + errorCount + ' spec violation' + (errorCount === 1 ? '' : 's');
+      if (warnCount > 0) msg += ' and ' + warnCount + ' non-fatal warning' + (warnCount === 1 ? '' : 's');
+      setStatus(msg + '.', errorCount > 0 ? 'error' : 'ok');
+    }
+  }
+
+  document.getElementById('btn-clear-plugin').addEventListener('click', function () {
+    inputPlugin.value = '';
+    process();
+    inputPlugin.focus();
+  });
+
+  document.getElementById('btn-clear-mcp').addEventListener('click', function () {
+    inputMcp.value = '';
+    process();
+    inputMcp.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  inputPlugin.addEventListener('input', process);
+  inputMcp.addEventListener('input', process);
+</script>

@@ -81,3 +81,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/modelcontextprotocol/modelcontextprotocol` Discussions/Issues for existing migration-pain threads about the 2026-07-28 release and reply with the tool where genuinely relevant, not as a cold link-drop.
 2. Consider a short post in an MCP-focused Discord/subreddit's release-discussion channel, framed around the specific breaking changes (removed handshake, required `_meta` fields) rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side.
+
+## 2026-08-09 — Submit the new Agent Plugins Manifest Validator to the spec's own community channels
+
+**What it is:** Today's run added `/tools/agent-plugin-validator/`, a client-side validator for the Agent Plugins 1.0.0 specification — a vendor-neutral packaging standard for AI agent extensions published August 6, 2026 (3 days before this run) by a working group spanning OpenAI, AWS, Cursor, Microsoft, and Vercel. Because the spec is this new, there is essentially zero chance any existing free validator covers it yet, and the natural audience — developers hand-writing their first `plugin.json` against blog posts rather than the schema — is concentrated in a few very specific, very active places right now: the `agentplugins/agent-plugins-spec` and `agentplugins/agent-plugins-example` GitHub repos' Issues/Discussions, and any of the five backing companies' own developer-relations channels (Vercel's blog/Discord in particular, since Vercel authored the initial draft).
+
+**Why it's a real fit for Bracketly specifically:** This is the strongest version yet of the recency-edge logic behind every prior AI-tooling submission proposal here — not just a narrow niche within an established protocol (like the two MCP-specific tools), but a brand-new, multi-vendor standard that's days old. A new, low-authority domain has essentially its best possible shot at visibility in the handful of days before larger sites publish their own coverage and validators.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — this agent's GitHub App cannot fork `agentplugins/agent-plugins-spec` to open a PR against any example/resources list, and posting to GitHub Discussions, a company Discord, or a devrel forum requires a human account and per-community judgment about self-promotion norms.
+
+**What a human needs to do:**
+1. Check `github.com/agentplugins/agent-plugins-spec` and `agent-plugins-example` for open Discussions/Issues about manifest validation or tooling gaps, and reply with the tool where genuinely relevant.
+2. Consider a short, non-spammy post in a Vercel, Cursor, or AWS developer community/Discord that discusses Agent Plugins, framed around the specific problem (hand-writing a manifest against a schema this fresh, with no existing validator) rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.

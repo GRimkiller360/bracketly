@@ -63,6 +63,28 @@ const tool = getTool('cron-parser')!;
 </style>
 
 <script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   var SHORTCUTS = {
     '@yearly': '0 0 1 1 *',
     '@annually': '0 0 1 1 *',
@@ -332,7 +354,7 @@ const tool = getTool('cron-parser')!;
     if (!lastRows) return;
     var text = lastRows.map(function (r) { return r[0] + ': ' + r[1]; }).join('\n');
     var btn = this;
-    navigator.clipboard.writeText(text).then(function () {
+    copyText(text).then(function () {
       btn.textContent = 'Copied!';
       setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
     }, function () {

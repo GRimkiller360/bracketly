@@ -49,6 +49,28 @@ const tool = getTool('regex-tester')!;
 </ToolLayout>
 
 <script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   var patternEl   = document.getElementById('pattern');
   var flagsEl     = document.getElementById('flags');
   var testStr     = document.getElementById('test-string');
@@ -131,7 +153,7 @@ const tool = getTool('regex-tester')!;
   document.getElementById('btn-copy-matches').addEventListener('click', function () {
     if (!matchesOut.value) return;
     var btn = this;
-    navigator.clipboard.writeText(matchesOut.value).then(function () {
+    copyText(matchesOut.value).then(function () {
       btn.textContent = 'Copied!';
       setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
     }, function () {

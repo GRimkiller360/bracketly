@@ -653,6 +653,54 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "agent-plugin-validator",
+    title: "Agent Plugins Manifest Validator",
+    shortTitle: "Agent Plugin Validator",
+    description:
+      "Paste a plugin.json and optional mcp.json to check them against the Agent Plugins 1.0.0 specification (OpenAI, AWS, Cursor, Microsoft, and Vercel's Aug 2026 standard for portable agent extensions) — catches an invalid $schema, a malformed plugin name, disallowed fields, and broken MCP server configs. 100% client-side.",
+    keywords: [
+      "agent plugins validator",
+      "plugin.json schema checker",
+      "agent plugins 1.0.0 spec",
+      "mcp.json validator",
+      "openai agent plugins manifest",
+    ],
+    icon: "APM",
+    category: "AI",
+    content: [
+      {
+        heading: "What Agent Plugins is, and why plugin.json is easy to get wrong",
+        body: "Agent Plugins 1.0.0, published August 6, 2026 by a working group spanning OpenAI, AWS, Cursor, Microsoft, and Vercel, is the new packaging layer that bundles Agent Skills (SKILL.md files) and MCP server configs into one portable folder that installs the same way across ChatGPT, Codex, GitHub Copilot, VS Code, Cursor, and Kiro. The manifest format is deliberately narrow — plugin.json permits exactly ten top-level fields, the name field has strict pattern rules, and nested objects like author use a closed schema — which makes it easy to accidentally add a field that gets silently ignored by every client, or write a name that fails validation outright, especially since the spec is only days old and most people are hand-writing their first manifest against blog posts and examples rather than the schema itself.",
+      },
+      {
+        heading: "What this tool checks — and what it can't",
+        body: "This validates plugin.json against the published 1.0.0 JSON Schema: the exact required $schema URL, the name field's pattern (lowercase alphanumeric, hyphens, and periods only; no consecutive hyphens or periods; must start and end alphanumeric; 1-64 characters), correct types for every optional field, and the closed author object. Per spec, an unrecognized top-level field or a non-object extensions value is non-fatal — clients report and ignore it rather than rejecting the whole plugin — so this tool flags those as warnings, not errors, matching real client behavior. The optional second field validates mcp.json the same way: the required $schema and mcpServers fields, and per-server rules for the three transport types (stdio, streamable-http, sse) — including the rule that a stdio command must be a single executable token, not a full command line, and that streamable-http/sse URLs must be absolute HTTPS (or HTTP only for loopback addresses) with no embedded credentials or fragment. What it can't do: check the actual skills/ directory structure, SKILL.md contents, or filesystem path containment — those require a real plugin package on disk, not just the two manifest files a browser tool can accept as pasted text.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is the Agent Plugins specification?",
+        a: "A vendor-neutral packaging standard published August 6, 2026 by a working group including OpenAI, AWS, Cursor, Microsoft, and Vercel. A plugin is a directory with a plugin.json manifest, an optional skills/ folder of Agent Skills, and an optional mcp.json configuring MCP servers — the same plugin folder installs into ChatGPT, Codex, GitHub Copilot, VS Code, Cursor, and AWS's Kiro without per-client rewrites.",
+      },
+      {
+        q: "Why is my plugin.json field being flagged as unknown even though it seems reasonable?",
+        a: "The manifest schema is closed to exactly ten top-level fields: $schema, name, version, description, author, homepage, repository, license, keywords, and extensions. Anything else — a custom hooks or commands field, for instance — isn't part of the spec. Per the spec this is non-fatal (clients report and ignore it, then continue loading the plugin), so this tool flags it as a warning rather than an error, but it's worth moving genuinely client-specific data into the extensions field under your own namespace instead.",
+      },
+      {
+        q: "Why did my plugin name get rejected?",
+        a: "The name field has a strict pattern: 1-64 characters, lowercase alphanumeric characters, hyphens, and periods only, must start and end with an alphanumeric character, and can never contain consecutive hyphens (--) or consecutive periods (..). Valid examples from the spec include my-plugin, acme.tools, and even a single character like a. Uppercase letters, underscores, and spaces are all invalid.",
+      },
+      {
+        q: "Does this tool check my actual skills/ folder or SKILL.md files?",
+        a: "No — it only validates the two manifest files you paste in, plugin.json and mcp.json, against their published JSON Schemas and the spec's semantic rules. Checking a real skills/ directory structure or SKILL.md frontmatter requires access to an actual plugin package on disk, which a browser-based paste tool can't do.",
+      },
+      {
+        q: "Is my manifest data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser using plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
