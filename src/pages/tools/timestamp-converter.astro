@@ -22,7 +22,7 @@ const tool = getTool('timestamp-converter')!;
         placeholder="e.g.  1700000000  or  1700000000000"
         style="flex:1;min-width:200px;"
       />
-      <button class="btn btn-primary" id="btn-ts-convert">Convert</button>
+      <button class="btn btn-primary" id="btn-ts-convert" aria-label="Convert timestamp to date">Convert</button>
     </div>
     <div id="ts-results" style="display:none;margin-top:1rem;">
       <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
@@ -45,7 +45,7 @@ const tool = getTool('timestamp-converter')!;
         type="datetime-local"
         style="flex:1;min-width:220px;"
       />
-      <button class="btn btn-primary" id="btn-date-convert">Convert</button>
+      <button class="btn btn-primary" id="btn-date-convert" aria-label="Convert date to timestamp">Convert</button>
     </div>
     <div id="date-results" style="display:none;margin-top:1rem;">
       <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">

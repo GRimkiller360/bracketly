@@ -264,6 +264,9 @@ const tool = getTool('ai-sdk-stream-debugger')!;
     openReasoning.forEach(function (id) {
       issues.push({ severity: 'medium', message: 'reasoning-start "' + id + '" was never closed with a matching reasoning-end.' });
     });
+    openToolInputs.forEach(function (id) {
+      issues.push({ severity: 'medium', message: 'tool-input-start "' + id + '" was never closed with a matching tool-input-available.' });
+    });
 
     return issues;
   }
