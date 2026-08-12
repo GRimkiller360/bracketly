@@ -182,9 +182,15 @@ const tool = getTool('timestamp-converter')!;
       return;
     }
 
-    // Auto-detect seconds vs milliseconds (compare magnitude so negative
-    // pre-1970 millisecond timestamps aren't mistaken for seconds)
-    var ms = Math.abs(n) > 1e12 ? n : n * 1000;
+    // Auto-detect seconds vs milliseconds by magnitude (handles negative
+    // pre-1970 timestamps via abs()). Threshold is 1e10 (11 digits), not
+    // 1e12: a millisecond timestamp for any date before 2001-09-09 has
+    // fewer than 13 digits (e.g. 946684800000 for 2000-01-01 has 12), so a
+    // 1e12 cutoff misclassified the entire 1970-2001 range as seconds. A
+    // realistic seconds value only reaches 11 digits in the year 2286, so
+    // 1e10 correctly separates "10-digit seconds" from "11+ digit ms" per
+    // the digit-count rule documented in this tool's FAQ.
+    var ms = Math.abs(n) >= 1e10 ? n : n * 1000;
     var date = new Date(ms);
     if (isNaN(date.getTime())) {
       tsStatus.textContent = '✗ Invalid timestamp';

@@ -115,6 +115,7 @@ const tool = getTool('embedding-truncator')!;
     b.className = 'btn btn-sm';
     b.type = 'button';
     b.textContent = String(d);
+    b.setAttribute('aria-label', 'Set target dimension to ' + d);
     b.addEventListener('click', () => {
       targetDimInput.value = String(d);
       process();

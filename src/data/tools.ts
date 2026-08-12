@@ -3,6 +3,10 @@ export interface Tool {
   title: string;
   shortTitle: string;
   description: string;
+  /** Shorter variant for <meta name="description">/OG/Twitter tags when
+   *  `description` runs past the ~160-char length search engines display
+   *  before truncating. Falls back to `description` when omitted. */
+  metaDescription?: string;
   keywords: string[];
   icon: string;
   category: string;
@@ -258,6 +262,8 @@ export const tools: Tool[] = [
     shortTitle: "Hash Generator",
     description:
       "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes from text instantly. Runs entirely in your browser using the Web Crypto API — nothing you type is ever sent anywhere.",
+    metaDescription:
+      "Generate MD5, SHA-1, SHA-256, and SHA-512 hashes from text instantly using the Web Crypto API. 100% client-side — nothing is ever sent anywhere.",
     keywords: ["hash generator", "md5 hash online", "sha256 online", "sha1 generator"],
     icon: "#H",
     category: "Security",
@@ -292,6 +298,8 @@ export const tools: Tool[] = [
     shortTitle: "Cron Parser",
     description:
       "Paste a cron expression to get a plain-English explanation and the next 5 scheduled run times. Supports ranges, steps, lists, and @daily/@hourly shortcuts. 100% client-side.",
+    metaDescription:
+      "Paste a cron expression for a plain-English explanation and the next 5 run times. Supports ranges, steps, lists, and @daily/@hourly shortcuts. 100% client-side.",
     keywords: ["cron parser", "crontab explainer", "cron expression generator", "what does this cron mean"],
     icon: "⏱",
     category: "Data",
@@ -360,6 +368,8 @@ export const tools: Tool[] = [
     shortTitle: "Token Counter",
     description:
       "Count tokens for GPT-5, GPT-4o, and older OpenAI models as you type, using the exact same tokenizer OpenAI's API uses. 100% client-side — your text is never sent anywhere.",
+    metaDescription:
+      "Count tokens for GPT-5, GPT-4o, and older OpenAI models as you type, using the exact tokenizer OpenAI's API uses. 100% client-side.",
     keywords: ["gpt token counter", "openai token counter", "tiktoken online", "count tokens gpt-4o", "llm token counter"],
     icon: "GPT",
     category: "AI",
@@ -398,6 +408,8 @@ export const tools: Tool[] = [
     shortTitle: "Citations Viewer",
     description:
       "Paste a Claude Citations API response to see the answer text with each cited passage highlighted and matched to its source document, location, and quoted text. Optionally paste the source document to verify the citation's character indices actually match. 100% client-side.",
+    metaDescription:
+      "Paste a Claude Citations API response to see the answer with each cited passage highlighted and matched to its source and quoted text. 100% client-side.",
     keywords: [
       "claude citations api",
       "anthropic citations viewer",
@@ -438,6 +450,8 @@ export const tools: Tool[] = [
     shortTitle: "Signature Validator",
     description:
       "Paste a Gemini 3 request or response to check its function-calling turns for missing thoughtSignature fields, functionResponse ordering mistakes, and missing id echoes — the exact structural issues that cause a 400 error or silently broken multi-turn tool use. 100% client-side.",
+    metaDescription:
+      "Paste a Gemini 3 request or response to check function-calling turns for missing thoughtSignature fields and other 400-error causes. 100% client-side.",
     keywords: [
       "gemini thought signature",
       "gemini 3 function calling 400 error",
@@ -482,6 +496,8 @@ export const tools: Tool[] = [
     shortTitle: "MCP Validator",
     description:
       "Paste a Model Context Protocol tool definition — a single tool object, an array, or a full tools/list response — to check it against the spec: missing name or inputSchema, a name most clients will reject, a required property that doesn't exist, malformed annotations, and more. 100% client-side.",
+    metaDescription:
+      "Paste an MCP tool definition — object, array, or tools/list response — to check it against the spec: missing fields, bad names, bad schemas. 100% client-side.",
     keywords: [
       "mcp tool validator",
       "model context protocol schema",
@@ -527,6 +543,8 @@ export const tools: Tool[] = [
     shortTitle: "Embedding Truncator",
     description:
       "Truncate a Matryoshka-style embedding vector to fewer dimensions and correctly L2-renormalize it — the step most people skip when truncating OpenAI, Gemini, Cohere, or Nomic embeddings by hand. Optionally compare cosine similarity before and after. 100% client-side.",
+    metaDescription:
+      "Truncate a Matryoshka-style embedding vector to fewer dimensions and correctly L2-renormalize it — the step most people skip by hand. 100% client-side.",
     keywords: [
       "matryoshka embedding truncation",
       "embedding dimension reducer",
@@ -571,6 +589,8 @@ export const tools: Tool[] = [
     shortTitle: "AI SDK Stream Debugger",
     description:
       "Paste a raw SSE response from a custom Vercel AI SDK backend and validate it against the UI Message Stream Protocol — catches malformed JSON, missing required fields, orphaned deltas, and unrecognized part types that silently break useChat. 100% client-side.",
+    metaDescription:
+      "Paste a raw SSE response from a custom Vercel AI SDK backend and validate it against the UI Message Stream Protocol used by useChat. 100% client-side.",
     keywords: [
       "vercel ai sdk stream protocol validator",
       "ai sdk data stream debugger",
@@ -615,6 +635,8 @@ export const tools: Tool[] = [
     shortTitle: "MCP Migration Checker",
     description:
       "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite — flags the removed initialize handshake, missing _meta protocol fields, and malformed Multi Round-Trip Request results. 100% client-side.",
+    metaDescription:
+      "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite: removed handshake, missing _meta, more. 100% client-side.",
     keywords: [
       "mcp 2026-07-28 migration",
       "model context protocol stateless spec checker",
@@ -659,6 +681,8 @@ export const tools: Tool[] = [
     shortTitle: "Agent Plugin Validator",
     description:
       "Paste a plugin.json and optional mcp.json to check them against the Agent Plugins 1.0.0 specification (OpenAI, AWS, Cursor, Microsoft, and Vercel's Aug 2026 standard for portable agent extensions) — catches an invalid $schema, a malformed plugin name, disallowed fields, and broken MCP server configs. 100% client-side.",
+    metaDescription:
+      "Paste a plugin.json and optional mcp.json to check them against the Agent Plugins 1.0.0 spec for AI agent extensions. 100% client-side.",
     keywords: [
       "agent plugins validator",
       "plugin.json schema checker",

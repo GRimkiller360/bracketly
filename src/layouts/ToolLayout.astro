@@ -11,12 +11,13 @@ const { tool } = Astro.props;
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const pageUrl = siteUrl + Astro.url.pathname;
 const categoryColor = getCategoryColor(tool.category);
+const metaDescription = tool.metaDescription ?? tool.description;
 
 const webAppSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: tool.title,
-  description: tool.description,
+  description: metaDescription,
   url: pageUrl,
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Any (runs in browser)',
@@ -36,7 +37,7 @@ const faqSchema = {
 
 <BaseLayout
   title={tool.title}
-  description={tool.description}
+  description={metaDescription}
   keywords={tool.keywords.join(', ')}
 >
   <script type="application/ld+json" set:html={JSON.stringify(webAppSchema)} />

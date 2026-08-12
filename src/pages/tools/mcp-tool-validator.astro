@@ -76,18 +76,23 @@ const tool = getTool('mcp-tool-validator')!;
     while (el.firstChild) el.removeChild(el.firstChild);
   }
 
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
   function extractTools(parsed) {
     if (Array.isArray(parsed)) return { tools: parsed, single: false };
     if (parsed && Array.isArray(parsed.tools)) return { tools: parsed.tools, single: false };
     if (parsed && parsed.result && Array.isArray(parsed.result.tools)) return { tools: parsed.result.tools, single: false };
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && (typeof parsed.name === 'string' || parsed.inputSchema !== undefined)) {
+    // Any other plain object is assumed to be a single tool definition —
+    // including one missing both "name" and "inputSchema", which is the
+    // worst-case malformed input this validator exists to flag. Without
+    // this fallback, {} or {"foo":1} fell through to a generic "couldn't
+    // find a tool" error instead of the two expected high-severity issues.
+    if (isPlainObject(parsed)) {
       return { tools: [parsed], single: true };
     }
     return null;
-  }
-
-  function isPlainObject(v) {
-    return v !== null && typeof v === 'object' && !Array.isArray(v);
   }
 
   function validateTool(tool, index, nameCounts) {
