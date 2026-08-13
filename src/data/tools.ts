@@ -725,6 +725,57 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-apps-validator",
+    title: "MCP Apps (UI Resource) Validator",
+    shortTitle: "MCP Apps Validator",
+    description:
+      "Paste an MCP resources/read response, a UI resource object, or a tool definition to check it against the MCP Apps extension (SEP-1865, ratified Jan 2026) — catches a wrong ui:// scheme or mimeType, malformed CSP domain lists, unrecognized permission keys, and a resourceUri that only exists in the deprecated flat _meta form. 100% client-side.",
+    metaDescription:
+      "Paste an MCP UI resource or tool definition to check it against the MCP Apps (SEP-1865) spec: uri scheme, mimeType, CSP, permissions, resourceUri linkage. 100% client-side.",
+    keywords: [
+      "mcp apps validator",
+      "mcp ui resource validator",
+      "sep-1865",
+      "ui:// scheme validator",
+      "mcp apps spec checker",
+      "model context protocol ui extension",
+    ],
+    icon: "UI",
+    category: "AI",
+    content: [
+      {
+        heading: "What MCP Apps is, and why a UI resource is easy to get wrong",
+        body: "MCP Apps (SEP-1865), ratified January 26, 2026 and co-authored by Anthropic and OpenAI, extends the Model Context Protocol so a server can hand a host an interactive, sandboxed HTML interface instead of just text — a weather server returning a live dashboard instead of a JSON blob, for instance. That interface is declared as a resource with a dedicated ui:// URI scheme and an exact mimeType, then linked to a tool through that tool's _meta.ui.resourceUri field. Because the whole mechanism is brand new and mostly documented through blog posts and hand-copied examples rather than a schema-checked SDK, it's easy to typo the mimeType, forget the ui:// prefix, misspell a CSP or permission key, or leave a tool pointing only at the extension's original deprecated flat _meta[\"ui/resourceUri\"] field instead of the current nested form — mistakes a client won't explain clearly when they silently fail to render.",
+      },
+      {
+        heading: "What this tool checks — and what it deliberately doesn't",
+        body: "Paste a resources/read response (or a bare UI resource object, or an array of either) and this checks: the uri must start with ui://; mimeType must be exactly text/html;profile=mcp-app, the only value the initial spec defines; the resource must carry text or blob content; and if present, _meta.ui.csp's connectDomains/resourceDomains/frameDomains/baseUriDomains must each be an array of strings, _meta.ui.permissions may only contain camera/microphone/geolocation/clipboardWrite, and prefersBorder must be a boolean. Paste a tool definition instead and it checks the UI linkage: resourceUri must be a ui:// URI, a deprecated flat _meta[\"ui/resourceUri\"] present without the nested current form is flagged so it doesn't silently stop working once a host drops legacy support, a mismatch between the two forms is flagged as a likely bug, and visibility (if set) must only contain \"model\" and/or \"app\". This tool deliberately does not validate the ui/initialize handshake or the postMessage JSON-RPC methods (ui/open-link, ui/message, and friends) — the spec's own source files and published examples disagree on some of those field names closely enough that shipping a check against the wrong one would be worse than shipping none, so that surface is left out rather than guessed at.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is MCP Apps / SEP-1865?",
+        a: "An official Model Context Protocol extension, ratified January 26, 2026, that lets an MCP server serve an interactive, sandboxed HTML UI alongside its regular tools — declared as a ui:// resource and linked to a tool via that tool's _meta.ui.resourceUri.",
+      },
+      {
+        q: "Why must mimeType be exactly \"text/html;profile=mcp-app\"?",
+        a: "That's the only mimeType the initial MCP Apps specification defines for a UI resource. A host uses it to distinguish a UI resource from an ordinary text or binary resource, so a typo or a different value means the interface won't be recognized as renderable at all.",
+      },
+      {
+        q: "What's the difference between the nested and deprecated resourceUri form?",
+        a: "The current spec links a tool to its UI via the nested _meta.ui.resourceUri field. An earlier flat form, _meta[\"ui/resourceUri\"], still appears in some examples for backward compatibility, but the nested form takes precedence and is the one new implementations should rely on — this tool flags a tool that only has the deprecated flat form.",
+      },
+      {
+        q: "Why doesn't this tool check the ui/initialize handshake or postMessage methods?",
+        a: "Researching this tool, the spec's published TypeScript source and its own example JSON disagreed on the initialize handshake's field names closely enough that a confident check couldn't be built without guessing. Rather than ship a validator that might flag correct payloads as wrong (or the reverse), that surface was left out — the resource-shape and tool-linkage checks this tool does perform are independently confirmed against two separate spec sources.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Everything is parsed and checked locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

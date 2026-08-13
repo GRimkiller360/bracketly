@@ -175,7 +175,10 @@ const tool = getTool('agent-plugin-validator')!;
   }
 
   function isLoopbackHost(hostname) {
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.slice(-10) === '.localhost';
+    // URL.hostname keeps the brackets on an IPv6 literal (e.g. "[::1]"), so
+    // strip them before comparing rather than matching the bare address.
+    const h = hostname.replace(/^\[|\]$/g, '');
+    return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h.slice(-10) === '.localhost';
   }
 
   function validateMcpServerUrl(urlStr, label, issues) {
@@ -334,22 +337,25 @@ const tool = getTool('agent-plugin-validator')!;
     const rawPlugin = inputPlugin.value.trim();
     const rawMcp = inputMcp.value.trim();
 
-    if (!rawPlugin) {
+    if (!rawPlugin && !rawMcp) {
       results.style.display = 'none';
       statusEl.textContent = '';
       return;
     }
 
-    let parsedPlugin;
-    try {
-      parsedPlugin = JSON.parse(rawPlugin);
-    } catch (e) {
-      results.style.display = 'none';
-      setStatus('✗ plugin.json is invalid JSON: ' + e.message, 'error');
-      return;
-    }
+    let allIssues = [];
 
-    let allIssues = validatePluginManifest(parsedPlugin);
+    if (rawPlugin) {
+      let parsedPlugin;
+      try {
+        parsedPlugin = JSON.parse(rawPlugin);
+      } catch (e) {
+        results.style.display = 'none';
+        setStatus('✗ plugin.json is invalid JSON: ' + e.message, 'error');
+        return;
+      }
+      allIssues = allIssues.concat(validatePluginManifest(parsedPlugin));
+    }
 
     if (rawMcp) {
       let parsedMcp;
@@ -369,7 +375,8 @@ const tool = getTool('agent-plugin-validator')!;
     const errorCount = allIssues.filter(function (x) { return x.severity === 'error'; }).length;
     const warnCount = allIssues.length - errorCount;
     if (allIssues.length === 0) {
-      setStatus('✓ Valid — conforms to Agent Plugins 1.0.0.', 'ok');
+      const checked = rawPlugin && rawMcp ? 'plugin.json and mcp.json' : rawPlugin ? 'plugin.json' : 'mcp.json';
+      setStatus('✓ Valid — ' + checked + ' conforms to Agent Plugins 1.0.0.', 'ok');
     } else {
       let msg = '✗ Found ' + errorCount + ' spec violation' + (errorCount === 1 ? '' : 's');
       if (warnCount > 0) msg += ' and ' + warnCount + ' non-fatal warning' + (warnCount === 1 ? '' : 's');

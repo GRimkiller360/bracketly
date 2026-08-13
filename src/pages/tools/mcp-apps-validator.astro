@@ -1,0 +1,375 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-apps-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">MCP Apps resource, tool definition, or resources/read response</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste a UI resource, a resources/read response, a tool definition, or an array of either — e.g.\n{\n  "uri": "ui://weather-server/dashboard-template",\n  "mimeType": "text/html;profile=mcp-app",\n  "text": "<!DOCTYPE html>...",\n  "_meta": {\n    "ui": {\n      "csp": { "connectDomains": ["https://api.example.com"] },\n      "permissions": { "geolocation": {} }\n    }\n  }\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Item breakdown</span></div>
+      <div id="items-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const itemsList = document.getElementById('items-list');
+
+  const CSP_KEYS = ['connectDomains', 'resourceDomains', 'frameDomains', 'baseUriDomains'];
+  const PERMISSION_KEYS = ['camera', 'microphone', 'geolocation', 'clipboardWrite'];
+  const VISIBILITY_VALUES = ['model', 'app'];
+  const REQUIRED_MIME_TYPE = 'text/html;profile=mcp-app';
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function isValidBase64(s) {
+    if (typeof s !== 'string' || s.length === 0) return false;
+    try {
+      atob(s.replace(/\s+/g, ''));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // A UI resource is any object carrying "uri" (resources always do; tools
+  // never do), so that single field reliably tells the two shapes apart —
+  // even for a malformed resource missing everything else.
+  function looksLikeResource(obj) {
+    return isPlainObject(obj) && typeof obj.uri === 'string';
+  }
+
+  function extractItems(parsed) {
+    if (isPlainObject(parsed) && Array.isArray(parsed.contents)) {
+      return { kind: 'resource', items: parsed.contents };
+    }
+    if (isPlainObject(parsed) && Array.isArray(parsed.tools)) {
+      return { kind: 'tool', items: parsed.tools };
+    }
+    if (isPlainObject(parsed) && isPlainObject(parsed.result)) {
+      if (Array.isArray(parsed.result.contents)) return { kind: 'resource', items: parsed.result.contents };
+      if (Array.isArray(parsed.result.tools)) return { kind: 'tool', items: parsed.result.tools };
+    }
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) return null;
+      const kind = looksLikeResource(parsed[0]) ? 'resource' : 'tool';
+      return { kind: kind, items: parsed };
+    }
+    if (isPlainObject(parsed)) {
+      return { kind: looksLikeResource(parsed) ? 'resource' : 'tool', items: [parsed] };
+    }
+    return null;
+  }
+
+  function validateResource(item, index) {
+    const issues = [];
+    const label = isPlainObject(item) && typeof item.uri === 'string' && item.uri ? '"' + item.uri + '"' : '#' + (index + 1);
+
+    if (!isPlainObject(item)) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ' is not a JSON object.' });
+      return issues;
+    }
+
+    if (typeof item.uri !== 'string' || item.uri.length === 0) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ' is missing a "uri" field.' });
+    } else if (item.uri.indexOf('ui://') !== 0) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ': uri must start with the "ui://" scheme to be recognized as an MCP Apps UI resource — got "' + item.uri + '".' });
+    }
+
+    if (typeof item.mimeType !== 'string' || item.mimeType.length === 0) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ' is missing "mimeType" — required, and must be exactly "' + REQUIRED_MIME_TYPE + '".' });
+    } else if (item.mimeType !== REQUIRED_MIME_TYPE) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ': mimeType is "' + item.mimeType + '", but the MCP Apps spec currently only defines "' + REQUIRED_MIME_TYPE + '" — a host won\'t recognize this as a renderable UI.' });
+    }
+
+    if (item.text === undefined && item.blob === undefined) {
+      issues.push({ severity: 'high', message: 'Resource ' + label + ' has neither "text" nor "blob" content — a UI resource needs one.' });
+    } else if (item.blob !== undefined && !isValidBase64(item.blob)) {
+      issues.push({ severity: 'medium', message: 'Resource ' + label + ': "blob" doesn\'t look like valid base64.' });
+    }
+
+    const meta = isPlainObject(item._meta) ? item._meta.ui : undefined;
+    if (item._meta !== undefined && !isPlainObject(item._meta)) {
+      issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta" must be an object.' });
+    } else if (item._meta !== undefined && item._meta.ui !== undefined && !isPlainObject(meta)) {
+      issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta.ui" must be an object.' });
+    } else if (isPlainObject(meta)) {
+      if (meta.csp !== undefined) {
+        if (!isPlainObject(meta.csp)) {
+          issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta.ui.csp" must be an object.' });
+        } else {
+          for (const key of CSP_KEYS) {
+            const v = meta.csp[key];
+            if (v === undefined) continue;
+            if (!Array.isArray(v) || v.some((d) => typeof d !== 'string')) {
+              issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta.ui.csp.' + key + '" must be an array of domain strings.' });
+            }
+          }
+          for (const key of Object.keys(meta.csp)) {
+            if (CSP_KEYS.indexOf(key) === -1) {
+              issues.push({ severity: 'low', message: 'Resource ' + label + ': "_meta.ui.csp.' + key + '" isn\'t a recognized CSP field (expected one of: ' + CSP_KEYS.join(', ') + ') — possible typo.' });
+            }
+          }
+        }
+      }
+      if (meta.permissions !== undefined) {
+        if (!isPlainObject(meta.permissions)) {
+          issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta.ui.permissions" must be an object.' });
+        } else {
+          for (const key of Object.keys(meta.permissions)) {
+            if (PERMISSION_KEYS.indexOf(key) === -1) {
+              issues.push({ severity: 'medium', message: 'Resource ' + label + ': "_meta.ui.permissions.' + key + '" isn\'t a recognized permission (expected one of: ' + PERMISSION_KEYS.join(', ') + ') — possible typo, and an unrecognized permission won\'t be granted.' });
+            } else if (!isPlainObject(meta.permissions[key])) {
+              issues.push({ severity: 'low', message: 'Resource ' + label + ': "_meta.ui.permissions.' + key + '" should be an object (typically {}), got ' + typeof meta.permissions[key] + '.' });
+            }
+          }
+        }
+      }
+      if (meta.domain !== undefined && typeof meta.domain !== 'string') {
+        issues.push({ severity: 'low', message: 'Resource ' + label + ': "_meta.ui.domain" should be a string.' });
+      }
+      if (meta.prefersBorder !== undefined && typeof meta.prefersBorder !== 'boolean') {
+        issues.push({ severity: 'low', message: 'Resource ' + label + ': "_meta.ui.prefersBorder" should be a boolean.' });
+      }
+    }
+
+    return issues;
+  }
+
+  function validateToolLinkage(item, index) {
+    const issues = [];
+    const label = isPlainObject(item) && typeof item.name === 'string' && item.name ? '"' + item.name + '"' : '#' + (index + 1);
+
+    if (!isPlainObject(item)) {
+      issues.push({ severity: 'high', message: 'Tool ' + label + ' is not a JSON object.' });
+      return issues;
+    }
+
+    const meta = isPlainObject(item._meta) ? item._meta : {};
+    const ui = isPlainObject(meta.ui) ? meta.ui : undefined;
+    const deprecatedFlat = meta['ui/resourceUri'];
+
+    if (ui === undefined && deprecatedFlat === undefined) {
+      // No UI metadata at all — not every tool has one, nothing to flag.
+      return issues;
+    }
+
+    const nestedUri = ui !== undefined && typeof ui.resourceUri === 'string' ? ui.resourceUri : undefined;
+
+    if (ui !== undefined && ui.resourceUri !== undefined && typeof ui.resourceUri !== 'string') {
+      issues.push({ severity: 'high', message: 'Tool ' + label + ': "_meta.ui.resourceUri" must be a string.' });
+    } else if (nestedUri !== undefined && nestedUri.indexOf('ui://') !== 0) {
+      issues.push({ severity: 'high', message: 'Tool ' + label + ': "_meta.ui.resourceUri" is "' + nestedUri + '", which doesn\'t start with the "ui://" scheme.' });
+    }
+
+    if (deprecatedFlat !== undefined && nestedUri === undefined) {
+      issues.push({ severity: 'medium', message: 'Tool ' + label + ': UI linkage only uses the deprecated flat "_meta[\'ui/resourceUri\']" field. Add the current nested "_meta.ui.resourceUri" form too — hosts that drop legacy support won\'t find this tool\'s UI.' });
+    } else if (deprecatedFlat !== undefined && nestedUri !== undefined && deprecatedFlat !== nestedUri) {
+      issues.push({ severity: 'high', message: 'Tool ' + label + ': the deprecated flat resourceUri ("' + deprecatedFlat + '") and the current nested one ("' + nestedUri + '") disagree — the nested form takes precedence, so this is likely a stale/copy-paste bug.' });
+    }
+
+    if (ui !== undefined && ui.visibility !== undefined) {
+      if (!Array.isArray(ui.visibility)) {
+        issues.push({ severity: 'medium', message: 'Tool ' + label + ': "_meta.ui.visibility" must be an array.' });
+      } else if (ui.visibility.length === 0) {
+        issues.push({ severity: 'low', message: 'Tool ' + label + ': "_meta.ui.visibility" is an empty array — no client or model will see this tool\'s UI. Intentional?' });
+      } else {
+        for (const v of ui.visibility) {
+          if (VISIBILITY_VALUES.indexOf(v) === -1) {
+            issues.push({ severity: 'high', message: 'Tool ' + label + ': "_meta.ui.visibility" contains ' + JSON.stringify(v) + ' — only "model" and "app" are valid.' });
+          }
+        }
+      }
+    }
+
+    return issues;
+  }
+
+  function summarizeItem(item, index, kind) {
+    if (!isPlainObject(item)) return '#' + (index + 1) + ' — not an object';
+    if (kind === 'resource') {
+      const uri = typeof item.uri === 'string' && item.uri ? item.uri : '(no uri)';
+      const mime = typeof item.mimeType === 'string' && item.mimeType ? item.mimeType : '(no mimeType)';
+      const meta = isPlainObject(item._meta) && isPlainObject(item._meta.ui) ? item._meta.ui : undefined;
+      const bits = [mime];
+      if (meta) {
+        if (isPlainObject(meta.csp)) bits.push('csp set');
+        if (isPlainObject(meta.permissions)) bits.push('permissions: ' + Object.keys(meta.permissions).join(', '));
+      }
+      return uri + ' — ' + bits.join(', ');
+    }
+    const name = typeof item.name === 'string' && item.name ? item.name : '(no name)';
+    const meta = isPlainObject(item._meta) ? item._meta : {};
+    const ui = isPlainObject(meta.ui) ? meta.ui : undefined;
+    if (ui === undefined && meta['ui/resourceUri'] === undefined) return name + ' — no UI linkage';
+    const uri = (ui && ui.resourceUri) || meta['ui/resourceUri'] || '(missing)';
+    const visibility = ui && Array.isArray(ui.visibility) ? ui.visibility.join('+') : 'model+app (default)';
+    return name + ' — linked to ' + uri + ', visibility: ' + visibility;
+  }
+
+  function render(items, kind, allIssues) {
+    clearChildren(issuesList);
+    clearChildren(itemsList);
+
+    items.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
+      row.textContent = summarizeItem(item, i, kind);
+      itemsList.appendChild(row);
+    });
+
+    if (allIssues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found across ' + items.length + ' item' + (items.length === 1 ? '' : 's') + '.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Recommendation' };
+      for (const issue of allIssues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP Apps validation — ' + items.length + ' ' + kind + '(s)');
+    if (allIssues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of allIssues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    const extracted = extractItems(parsed);
+    if (!extracted) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find a UI resource, a tool definition, or a list of either in this input.', 'error');
+      return;
+    }
+
+    const allIssues = [];
+    extracted.items.forEach((item, i) => {
+      const fn = extracted.kind === 'resource' ? validateResource : validateToolLinkage;
+      allIssues.push(...fn(item, i));
+    });
+
+    render(extracted.items, extracted.kind, allIssues);
+    results.style.display = 'block';
+
+    if (allIssues.length === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + extracted.items.length + ' ' + extracted.kind + (extracted.items.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      const highCount = allIssues.filter((x) => x.severity === 'high').length;
+      setStatus('✗ Found ' + allIssues.length + ' issue' + (allIssues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>
