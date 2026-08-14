@@ -24,6 +24,8 @@ export const tools: Tool[] = [
     shortTitle: "JSON Formatter",
     description:
       "Format, validate, and beautify JSON instantly. Catches syntax errors with line numbers. Runs entirely in your browser — nothing you paste is ever sent anywhere.",
+    metaDescription:
+      "Format, validate, and beautify JSON instantly with error line numbers. 100% client-side — nothing you paste is ever sent anywhere.",
     keywords: ["json formatter", "json validator", "json beautifier", "json pretty print"],
     icon: "{ }",
     category: "Data",
