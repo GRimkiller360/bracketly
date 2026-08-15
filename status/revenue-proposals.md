@@ -108,3 +108,15 @@ No code change was made for this — only this write-up, per the rule against cr
 2. Post a plain, non-hype title (e.g. "Show HN: Bracketly – free, browser-only dev tools including a few for MCP/AI SDK debugging") linking to `https://bracketly.pages.dev/`.
 3. Add a first comment explaining what it is, why it was built, and what's genuinely different (privacy-first, no accounts, no backend) — and be available to reply to comments for the next few hours, since HN ranking rewards early engagement.
 4. No code or account changes needed on the Bracketly side.
+
+## 2026-08-15 — Finish applying to GitHub Sponsors, then let a future run re-add the donate-page button
+
+**What it is:** `donate.astro` has had a "❤️ Sponsor on GitHub" button and panel live since 2026-07-28 (18 days), pointing at `github.com/sponsors/GRimkiller360`. Today's factual-accuracy audit fetched that URL directly and found it redirects to the plain GitHub profile page, not a working Sponsors page — the account was never actually enrolled in GitHub Sponsors, so every real visitor who clicked "Sponsor on GitHub" over the past 18 days landed on a dead end instead of a way to actually give money. The code's own comment ("it 404s until your application is approved") shows this was a known, deliberately-deferred pending state when it was added, not a bug introduced today — but 18 days is long enough that it reads as forgotten rather than pending, and presenting a non-functional donation button to real visitors isn't acceptable to leave live indefinitely.
+
+**Action taken today:** Removed the "GitHub Sponsors" panel and button from `donate.astro` (kept the working PayPal panel and the free "other ways to help" list) so the page no longer offers a dead-end donation method. This is a content-accuracy fix, not a rejection of the idea — GitHub Sponsors is still a good fit for Bracketly (zero-fee monthly recurring support, and "GitHub Sponsors" specifically appeals to the same developer audience already using the site, more so than PayPal for a dev-tools product).
+
+**Why this agent can't finish it directly:** Enrolling in GitHub Sponsors requires the actual GitHub account holder to apply (identity/bank/tax verification through GitHub's own flow) — this agent cannot create or approve third-party financial accounts on the user's behalf.
+
+**What a human needs to do:**
+1. Apply at [github.com/sponsors](https://github.com/sponsors) for the `GRimkiller360` account (free, typically approved within a few days).
+2. Once `github.com/sponsors/GRimkiller360` actually resolves to a live Sponsors page (not a profile-page redirect), a future daily run can re-add the panel to `donate.astro` with the same copy/styling removed today — no other code changes needed.
