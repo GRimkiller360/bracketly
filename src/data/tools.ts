@@ -727,6 +727,56 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-apps-validator",
+    title: "MCP Apps UI Resource Validator",
+    shortTitle: "MCP Apps Validator",
+    description:
+      "Paste a tool's _meta.ui block, a UI resource from resources/read, or a ui/* postMessage envelope to check it against the MCP Apps 1.0 specification — catches a wrong resourceUri scheme, an incorrect mimeType, malformed CSP domain lists, and invalid ui/* message shapes. 100% client-side.",
+    metaDescription:
+      "Paste MCP Apps _meta.ui, a UI resource, or a ui/* postMessage envelope to validate it against the MCP Apps spec. 100% client-side.",
+    keywords: [
+      "mcp apps validator",
+      "mcp ui resource checker",
+      "model context protocol apps spec",
+      "ui:// resource validator",
+      "mcp postmessage protocol checker",
+    ],
+    icon: "APP",
+    category: "AI",
+    content: [
+      {
+        heading: "When you need an MCP Apps UI Resource validator",
+        body: "MCP Apps is the first official extension folded directly into the Model Context Protocol's stable 2026-07-28 core spec — it lets a tool declare an interactive HTML UI (a ui:// resource) that renders inside the host application instead of just returning text, and defines a JSON-RPC postMessage protocol so that embedded UI can talk back to the host. Because it's genuinely new, the handful of places it's easy to get wrong aren't obvious from the HTML/JS you'd naturally write: the resource's mimeType needs an exact, easy-to-typo profile parameter; the sandboxed iframe's network access is opt-in per domain through a CSP metadata block that silently blocks everything if you forget it; and the postMessage handshake between host and view is a hand-rolled JSON-RPC exchange with no SDK yet doing the validation for you. Pasting any of the three pieces here — the tool's _meta.ui block, the resource itself, or a single postMessage envelope — checks it against the published spec before you spend time debugging a blank iframe or a mysteriously blocked fetch.",
+      },
+      {
+        heading: "What this tool checks",
+        body: "It auto-detects which of three shapes you pasted. A tool definition's _meta.ui: resourceUri must use the ui:// scheme, and visibility (if present) must be an array containing only \"model\" and/or \"app\" — omitted, it defaults to both. A resource declaration or resources/read content item (a single object, or a full { contents: [...] } response): uri must start with ui://, mimeType must be the exact string \"text/html;profile=mcp-app\" (not just \"text/html\"), and — when present — every _meta.ui.csp domain list (connectDomains, resourceDomains, frameDomains, baseUriDomains) must be an array of strings, since anything omitted defaults to fully blocked, not fully allowed. A ui/* JSON-RPC request or notification sent over postMessage: this validates the required params for ui/initialize (protocolVersion, capabilities, clientInfo, and appCapabilities.availableDisplayModes), ui/message, ui/open-link, ui/resource-teardown, ui/update-model-context, ui/request-display-mode, and the two host-to-view notifications (ui/notifications/tool-input, ui/notifications/tool-result) — an unrecognized ui/* method name is flagged as a note rather than a hard error, since the spec allows implementations to add their own. It can't validate a bare JSON-RPC response ({ result: {...} } with no method field), since responses don't name which message they're answering — paste the originating request or notification instead.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is the MCP Apps extension?",
+        a: "MCP Apps (io.modelcontextprotocol/ui) is an official extension to the Model Context Protocol, folded into the stable 2026-07-28 core spec, that lets a server-defined tool declare an interactive HTML UI — a ui:// resource — which a host application renders in a sandboxed iframe instead of (or alongside) plain text output. A JSON-RPC protocol carried over postMessage lets that embedded UI exchange messages with the host: receiving tool inputs/results, requesting a display mode, or sending user actions back.",
+      },
+      {
+        q: "Why is my resourceUri or resource uri being rejected?",
+        a: "Every MCP Apps UI resource must use the ui:// URI scheme (e.g. ui://weather-server/dashboard-template), never http(s):// or a bare path. This is how a host recognizes a resource as an interactive app rather than a regular document.",
+      },
+      {
+        q: "Why does it flag my mimeType even though it says text/html?",
+        a: "The spec requires the exact string \"text/html;profile=mcp-app\", not just \"text/html\" — the ;profile=mcp-app parameter is what tells a host this HTML is meant to be rendered as an interactive MCP App (with the accompanying postMessage protocol available) rather than displayed as a plain document.",
+      },
+      {
+        q: "Can this validate a ui/* response message?",
+        a: "No — a JSON-RPC response ({ id, result }) doesn't carry a method name, so there's no way to know which message shape to check it against without the original request. Paste the request or notification (which does carry method) instead; this tool validates those directly.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Detection and validation both run locally in your browser using plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

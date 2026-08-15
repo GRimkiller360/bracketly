@@ -1,0 +1,437 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-apps-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">A tool's _meta.ui block, a UI resource / resources/read response, or a ui/* postMessage envelope</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      placeholder={`Paste one of:\n\n1) A tool definition with _meta.ui, e.g.\n{\n  "name": "get_weather",\n  "_meta": {\n    "ui": {\n      "resourceUri": "ui://weather-server/dashboard-template",\n      "visibility": ["model", "app"]\n    }\n  }\n}\n\n2) A UI resource (or a full resources/read { contents: [...] } response)\n\n3) A ui/* JSON-RPC request or notification sent over postMessage, e.g.\n{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "ui/initialize",\n  "params": {\n    "protocolVersion": "2026-01-26",\n    "capabilities": {},\n    "clientInfo": { "name": "example-host", "version": "1.0.0" }\n  }\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Detected shape</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const summaryEl = document.getElementById('summary');
+
+  const VISIBILITY_VALUES = ['model', 'app'];
+  const CSP_KEYS = ['connectDomains', 'resourceDomains', 'frameDomains', 'baseUriDomains'];
+  const PERMISSION_KEYS = ['camera', 'microphone', 'geolocation', 'clipboardWrite'];
+  const DISPLAY_MODES = ['inline', 'fullscreen', 'pip'];
+  const KNOWN_UI_METHODS = [
+    'ui/initialize',
+    'ui/notifications/initialized',
+    'ui/notifications/tool-input',
+    'ui/notifications/tool-result',
+    'ui/message',
+    'ui/open-link',
+    'ui/resource-teardown',
+    'ui/update-model-context',
+    'ui/request-display-mode',
+  ];
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function isStringArray(v) {
+    return Array.isArray(v) && v.every((x) => typeof x === 'string');
+  }
+
+  function checkCsp(csp, issues, prefix) {
+    if (!isPlainObject(csp)) {
+      issues.push({ severity: 'high', message: prefix + '_meta.ui.csp must be an object when present.' });
+      return;
+    }
+    for (const key of CSP_KEYS) {
+      if (csp[key] !== undefined && !isStringArray(csp[key])) {
+        issues.push({ severity: 'high', message: prefix + 'csp.' + key + ' must be an array of strings.' });
+      }
+    }
+    for (const key of Object.keys(csp)) {
+      if (CSP_KEYS.indexOf(key) === -1) {
+        issues.push({ severity: 'low', message: prefix + 'csp has an unrecognized key "' + key + '" — the documented keys are ' + CSP_KEYS.join(', ') + '.' });
+      }
+    }
+  }
+
+  function checkUiMeta(ui, issues, prefix) {
+    if (!isPlainObject(ui)) {
+      issues.push({ severity: 'high', message: prefix + '_meta.ui must be an object.' });
+      return;
+    }
+    if (ui.resourceUri !== undefined) {
+      if (typeof ui.resourceUri !== 'string') {
+        issues.push({ severity: 'high', message: prefix + '_meta.ui.resourceUri must be a string.' });
+      } else if (!ui.resourceUri.startsWith('ui://')) {
+        issues.push({ severity: 'high', message: prefix + '_meta.ui.resourceUri (' + JSON.stringify(ui.resourceUri) + ') must use the ui:// scheme.' });
+      }
+    }
+    if (ui.visibility !== undefined) {
+      if (!Array.isArray(ui.visibility)) {
+        issues.push({ severity: 'high', message: prefix + '_meta.ui.visibility must be an array.' });
+      } else if (ui.visibility.length === 0) {
+        issues.push({ severity: 'medium', message: prefix + '_meta.ui.visibility is an empty array — this makes the tool invisible to both the model and the app, which is almost certainly not intended.' });
+      } else {
+        for (const v of ui.visibility) {
+          if (VISIBILITY_VALUES.indexOf(v) === -1) {
+            issues.push({ severity: 'high', message: prefix + '_meta.ui.visibility contains ' + JSON.stringify(v) + ' — only "model" and "app" are valid.' });
+          }
+        }
+      }
+    }
+  }
+
+  function checkResource(res, issues, prefix) {
+    if (typeof res.uri !== 'string') {
+      issues.push({ severity: 'high', message: prefix + '"uri" is required and must be a string.' });
+    } else if (!res.uri.startsWith('ui://')) {
+      issues.push({ severity: 'high', message: prefix + 'uri (' + JSON.stringify(res.uri) + ') must use the ui:// scheme.' });
+    }
+
+    if (res.mimeType !== 'text/html;profile=mcp-app') {
+      issues.push({ severity: 'high', message: prefix + 'mimeType must be the exact string "text/html;profile=mcp-app", got ' + JSON.stringify(res.mimeType) + '.' });
+    }
+
+    if ('text' in res && 'blob' in res) {
+      issues.push({ severity: 'medium', message: prefix + 'has both "text" and "blob" — a resource content item should carry only one.' });
+    } else if (!('text' in res) && !('blob' in res)) {
+      issues.push({ severity: 'low', message: prefix + 'has neither "text" nor "blob" — this is only expected for a bare resource declaration (e.g. from resources/list), not resources/read content.' });
+    }
+
+    const meta = isPlainObject(res._meta) ? res._meta : undefined;
+    const ui = meta && meta.ui;
+    if (ui !== undefined) {
+      if (!isPlainObject(ui)) {
+        issues.push({ severity: 'high', message: prefix + '_meta.ui must be an object.' });
+      } else {
+        if (ui.csp !== undefined) checkCsp(ui.csp, issues, prefix + '_meta.ui.');
+        if (ui.permissions !== undefined) {
+          if (!isPlainObject(ui.permissions)) {
+            issues.push({ severity: 'high', message: prefix + '_meta.ui.permissions must be an object.' });
+          } else {
+            for (const key of Object.keys(ui.permissions)) {
+              if (PERMISSION_KEYS.indexOf(key) === -1) {
+                issues.push({ severity: 'low', message: prefix + '_meta.ui.permissions has an unrecognized key "' + key + '" — documented keys are ' + PERMISSION_KEYS.join(', ') + '.' });
+              }
+            }
+          }
+        }
+        if (ui.domain !== undefined && typeof ui.domain !== 'string') {
+          issues.push({ severity: 'medium', message: prefix + '_meta.ui.domain must be a string.' });
+        }
+        if (ui.prefersBorder !== undefined && typeof ui.prefersBorder !== 'boolean') {
+          issues.push({ severity: 'medium', message: prefix + '_meta.ui.prefersBorder must be a boolean.' });
+        }
+      }
+    }
+  }
+
+  function checkUiMessage(body, issues) {
+    if (body.jsonrpc !== '2.0') {
+      issues.push({ severity: 'medium', message: 'Top-level "jsonrpc" should be the literal string "2.0", got ' + JSON.stringify(body.jsonrpc) + '.' });
+    }
+    if (typeof body.method !== 'string') {
+      issues.push({ severity: 'high', message: '"method" is required and must be a string.' });
+      return;
+    }
+    if (KNOWN_UI_METHODS.indexOf(body.method) === -1) {
+      issues.push({ severity: 'low', message: '"' + body.method + '" is not one of the documented MCP Apps ui/* methods — could be a newer addition or a typo. Documented methods: ' + KNOWN_UI_METHODS.join(', ') + '.' });
+    }
+
+    const params = isPlainObject(body.params) ? body.params : undefined;
+    if (!params) {
+      issues.push({ severity: 'high', message: '"params" is required and must be an object for every documented ui/* method.' });
+      return;
+    }
+
+    switch (body.method) {
+      case 'ui/initialize': {
+        if (typeof params.protocolVersion !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/initialize params.protocolVersion is required and must be a string (e.g. "2026-01-26").' });
+        }
+        if (!isPlainObject(params.capabilities)) {
+          issues.push({ severity: 'high', message: 'ui/initialize params.capabilities is required and must be an object (may be empty).' });
+        }
+        if (!isPlainObject(params.clientInfo) || typeof params.clientInfo.name !== 'string' || typeof params.clientInfo.version !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/initialize params.clientInfo is required and must be an object with string "name" and "version".' });
+        }
+        if (params.appCapabilities !== undefined) {
+          if (!isPlainObject(params.appCapabilities)) {
+            issues.push({ severity: 'medium', message: 'ui/initialize params.appCapabilities must be an object when present.' });
+          } else if (params.appCapabilities.availableDisplayModes !== undefined) {
+            const modes = params.appCapabilities.availableDisplayModes;
+            if (!Array.isArray(modes)) {
+              issues.push({ severity: 'medium', message: 'ui/initialize params.appCapabilities.availableDisplayModes must be an array.' });
+            } else {
+              for (const m of modes) {
+                if (DISPLAY_MODES.indexOf(m) === -1) {
+                  issues.push({ severity: 'high', message: 'ui/initialize params.appCapabilities.availableDisplayModes contains ' + JSON.stringify(m) + ' — valid values are ' + DISPLAY_MODES.join(', ') + '.' });
+                }
+              }
+            }
+          }
+        }
+        break;
+      }
+      case 'ui/notifications/tool-input': {
+        if (!isPlainObject(params.arguments)) {
+          issues.push({ severity: 'high', message: 'ui/notifications/tool-input params.arguments is required and must be an object.' });
+        }
+        break;
+      }
+      case 'ui/notifications/tool-result': {
+        // params is the standard MCP CallToolResult type — only structurally checked as an object here.
+        break;
+      }
+      case 'ui/message': {
+        if (typeof params.role !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/message params.role is required and must be a string.' });
+        }
+        if (!isPlainObject(params.content)) {
+          issues.push({ severity: 'high', message: 'ui/message params.content is required and must be an object.' });
+        } else if (params.content.type === 'text' && typeof params.content.text !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/message params.content.type is "text" but params.content.text is missing or not a string.' });
+        } else if (params.content.type !== undefined && params.content.type !== 'text') {
+          issues.push({ severity: 'low', message: 'ui/message params.content.type is ' + JSON.stringify(params.content.type) + ' — only "text" is documented; verify this shape against the current spec.' });
+        }
+        break;
+      }
+      case 'ui/open-link': {
+        if (typeof params.url !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/open-link params.url is required and must be a string.' });
+        } else if (!/^https?:\/\//.test(params.url)) {
+          issues.push({ severity: 'medium', message: 'ui/open-link params.url (' + JSON.stringify(params.url) + ') doesn\'t look like an absolute http(s) URL.' });
+        }
+        break;
+      }
+      case 'ui/resource-teardown': {
+        if (typeof params.reason !== 'string') {
+          issues.push({ severity: 'high', message: 'ui/resource-teardown params.reason is required and must be a string.' });
+        }
+        break;
+      }
+      case 'ui/update-model-context': {
+        if (params.content === undefined && params.structuredContent === undefined) {
+          issues.push({ severity: 'medium', message: 'ui/update-model-context has neither params.content nor params.structuredContent — at least one is expected.' });
+        }
+        if (params.content !== undefined && !Array.isArray(params.content)) {
+          issues.push({ severity: 'high', message: 'ui/update-model-context params.content must be an array when present.' });
+        }
+        if (params.structuredContent !== undefined && !isPlainObject(params.structuredContent)) {
+          issues.push({ severity: 'high', message: 'ui/update-model-context params.structuredContent must be an object when present.' });
+        }
+        break;
+      }
+      case 'ui/request-display-mode': {
+        if (DISPLAY_MODES.indexOf(params.mode) === -1) {
+          issues.push({ severity: 'high', message: 'ui/request-display-mode params.mode (' + JSON.stringify(params.mode) + ') must be one of ' + DISPLAY_MODES.join(', ') + '.' });
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  function analyze(raw) {
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level JSON must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    const issues = [];
+
+    if (typeof body.jsonrpc === 'string' || typeof body.method === 'string') {
+      if (body.result !== undefined || (body.error !== undefined && body.method === undefined)) {
+        return { fatal: 'This looks like a JSON-RPC response ({ id, result } or { id, error }), which doesn\'t carry a method name. Paste the originating ui/* request or notification instead — responses can\'t be identified without it.' };
+      }
+      checkUiMessage(body, issues);
+      return { shape: 'ui/* postMessage envelope (' + (body.method || 'unknown method') + ')', issues };
+    }
+
+    if (Array.isArray(body.contents)) {
+      if (body.contents.length === 0) {
+        return { fatal: '"contents" is an empty array — nothing to validate.' };
+      }
+      body.contents.forEach((item, i) => {
+        if (!isPlainObject(item)) {
+          issues.push({ severity: 'high', message: 'contents[' + i + '] must be an object.' });
+          return;
+        }
+        checkResource(item, issues, 'contents[' + i + ']: ');
+      });
+      return { shape: 'resources/read response (' + body.contents.length + ' content item' + (body.contents.length === 1 ? '' : 's') + ')', issues };
+    }
+
+    if (typeof body.uri === 'string' && typeof body.mimeType === 'string') {
+      checkResource(body, issues, '');
+      return { shape: 'UI resource declaration / content item', issues };
+    }
+
+    const meta = isPlainObject(body._meta) ? body._meta : undefined;
+    if (meta && meta.ui !== undefined) {
+      checkUiMeta(meta.ui, issues, '');
+      if (meta['ui/resourceUri'] !== undefined) {
+        issues.push({ severity: 'low', message: 'Found the deprecated flat key _meta["ui/resourceUri"] — use _meta.ui.resourceUri instead.' });
+      }
+      return { shape: 'Tool definition with _meta.ui' + (typeof body.name === 'string' ? ' ("' + body.name + '")' : ''), issues };
+    }
+
+    if (typeof body.name === 'string' && body.inputSchema !== undefined) {
+      return { fatal: 'This looks like a plain MCP tool definition with no _meta.ui block, so there\'s nothing MCP-Apps-specific to check. Add a _meta.ui.resourceUri to link it to a UI resource, or use the MCP Tool Schema Validator for general tool-definition checks.' };
+    }
+
+    return { fatal: 'Doesn\'t look like a tool\'s _meta.ui block, a UI resource / resources/read response, or a ui/* JSON-RPC message. See the placeholder text for the three accepted shapes.' };
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    summaryEl.textContent = result.shape;
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found — looks consistent with the MCP Apps spec.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a host', low: 'Note' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP Apps validation — ' + result.shape);
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter((x) => x.severity === 'high').length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>
