@@ -81,7 +81,8 @@ const tool = getTool('regex-tester')!;
 
   function test() {
     var pat = patternEl.value;
-    var fl  = flagsEl.value.replace(/[^gimsuy]/g, '');
+    var rawFlags = flagsEl.value;
+    var fl  = rawFlags.replace(/[^gimsuy]/g, '');
     fl = fl.split('').filter(function (c, i) { return fl.indexOf(c) === i; }).join('');
 
     statusEl.textContent = '';
@@ -91,6 +92,10 @@ const tool = getTool('regex-tester')!;
 
     if (!pat) return;
 
+    var flagWarning = fl !== rawFlags
+      ? '⚠ Ignored unsupported or duplicate flag character(s) — using "' + fl + '". '
+      : '';
+
     var text = testStr.value;
     var re;
     try {
@@ -98,7 +103,7 @@ const tool = getTool('regex-tester')!;
       var flags = fl.includes('g') ? fl : fl + 'g';
       re = new RegExp(pat, flags);
     } catch (e) {
-      statusEl.textContent = '✗ Invalid pattern: ' + e.message;
+      statusEl.textContent = flagWarning + '✗ Invalid pattern: ' + e.message;
       statusEl.className   = 'status error';
       return;
     }
@@ -107,8 +112,8 @@ const tool = getTool('regex-tester')!;
     matchCount.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
 
     if (matches.length === 0) {
-      statusEl.textContent = 'No matches found.';
-      statusEl.className   = 'status';
+      statusEl.textContent = flagWarning + 'No matches found.';
+      statusEl.className   = flagWarning ? 'status warning' : 'status';
       return;
     }
 
@@ -128,8 +133,13 @@ const tool = getTool('regex-tester')!;
 
     matchesOut.value = lines.join('\n\n');
     matchesPanel.style.display = 'block';
-    statusEl.textContent = '✓ ' + matches.length + ' match' + (matches.length !== 1 ? 'es' : '') + ' found';
-    statusEl.className   = 'status ok';
+    if (flagWarning) {
+      statusEl.textContent = flagWarning + matches.length + ' match' + (matches.length !== 1 ? 'es' : '') + ' found';
+      statusEl.className   = 'status warning';
+    } else {
+      statusEl.textContent = '✓ ' + matches.length + ' match' + (matches.length !== 1 ? 'es' : '') + ' found';
+      statusEl.className   = 'status ok';
+    }
   }
 
   var debounceTimer = null;

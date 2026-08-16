@@ -175,7 +175,7 @@ const tool = getTool('agent-plugin-validator')!;
   }
 
   function isLoopbackHost(hostname) {
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.slice(-10) === '.localhost';
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]' || hostname.slice(-10) === '.localhost';
   }
 
   function validateMcpServerUrl(urlStr, label, issues) {

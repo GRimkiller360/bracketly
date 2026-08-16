@@ -44,20 +44,22 @@ const tool = getTool('cron-parser')!;
 </ToolLayout>
 
 <style>
-  #cron-next-table tr td {
+  #cron-next-table tr td,
+  #cron-next-table tr th {
     padding: 0.4rem 0.6rem;
     border-bottom: 1px solid var(--border);
     font-family: var(--font-mono);
     font-size: 0.85rem;
+    text-align: left;
   }
-  #cron-next-table tr td:first-child {
+  #cron-next-table tr th {
     color: var(--text-muted);
     font-family: var(--font-sans);
     font-weight: 600;
     white-space: nowrap;
     width: 90px;
   }
-  #cron-next-table tr td:last-child {
+  #cron-next-table tr td {
     overflow-wrap: anywhere;
   }
 </style>
@@ -325,7 +327,7 @@ const tool = getTool('cron-parser')!;
     });
     var tbody = document.getElementById('cron-next-table');
     tbody.innerHTML = rows.map(function (r) {
-      return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>';
+      return '<tr><th scope="row">' + r[0] + '</th><td>' + r[1] + '</td></tr>';
     }).join('');
     lastRows = rows;
     nextPanel.style.display = 'block';

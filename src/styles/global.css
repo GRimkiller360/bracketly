@@ -462,6 +462,9 @@ input[type="datetime-local"] {
 .status.error {
   color: var(--danger);
 }
+.status.warning {
+  color: var(--warning);
+}
 
 .grid-2 {
   display: grid;

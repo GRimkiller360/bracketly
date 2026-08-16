@@ -59,22 +59,25 @@ const tool = getTool('timestamp-converter')!;
 
 <style>
   #ts-table tr td,
-  #date-table tr td {
+  #ts-table tr th,
+  #date-table tr td,
+  #date-table tr th {
     padding: 0.4rem 0.6rem;
     border-bottom: 1px solid var(--border);
     font-family: var(--font-mono);
     font-size: 0.85rem;
+    text-align: left;
   }
-  #ts-table tr td:first-child,
-  #date-table tr td:first-child {
+  #ts-table tr th,
+  #date-table tr th {
     color: var(--text-muted);
     font-family: var(--font-sans);
     font-weight: 600;
     white-space: nowrap;
     width: 160px;
   }
-  #ts-table tr td:last-child,
-  #date-table tr td:last-child {
+  #ts-table tr td,
+  #date-table tr td {
     overflow-wrap: anywhere;
   }
 </style>
@@ -107,7 +110,7 @@ const tool = getTool('timestamp-converter')!;
   function makeRows(rows, tableId) {
     var tbody = document.getElementById(tableId);
     tbody.innerHTML = rows.map(function (r) {
-      return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>';
+      return '<tr><th scope="row">' + r[0] + '</th><td>' + r[1] + '</td></tr>';
     }).join('');
     lastRows[tableId] = rows;
   }
