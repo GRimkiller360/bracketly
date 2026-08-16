@@ -12,7 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.2.1",
+    "astro": "^7.2.2",
     "js-tiktoken": "^1.0.21"
   }
 }
