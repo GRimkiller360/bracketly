@@ -14,6 +14,7 @@ const tool = getTool('agent-plugin-validator')!;
     <textarea
       id="input-plugin"
       rows="12"
+      autocomplete="off"
       placeholder={`{\n  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",\n  "name": "my-plugin",\n  "version": "1.0.0",\n  "description": "What this plugin does"\n}`}
     ></textarea>
   </div>
@@ -26,6 +27,7 @@ const tool = getTool('agent-plugin-validator')!;
     <textarea
       id="input-mcp"
       rows="10"
+      autocomplete="off"
       placeholder={`{\n  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",\n  "mcpServers": {\n    "example": { "type": "stdio", "command": "node", "args": ["./server.js"] }\n  }\n}`}
     ></textarea>
   </div>

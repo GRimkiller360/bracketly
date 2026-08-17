@@ -14,6 +14,7 @@ const tool = getTool('mcp-migration-checker')!;
     <textarea
       id="input"
       rows="14"
+      autocomplete="off"
       placeholder={`Paste a JSON-RPC message, e.g.\n{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "tools/call",\n  "params": {\n    "name": "search",\n    "arguments": { "q": "otters" },\n    "_meta": {\n      "io.modelcontextprotocol/protocolVersion": "2026-07-28",\n      "io.modelcontextprotocol/clientCapabilities": {}\n    }\n  }\n}\n\nOr paste a full raw HTTP block (request line + headers, blank line, then the JSON body) to also check Mcp-Method / Mcp-Name / MCP-Protocol-Version / Mcp-Session-Id headers.`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>

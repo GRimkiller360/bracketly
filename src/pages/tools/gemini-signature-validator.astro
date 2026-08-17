@@ -14,6 +14,7 @@ const tool = getTool('gemini-signature-validator')!;
     <textarea
       id="input"
       rows="12"
+      autocomplete="off"
       placeholder={`Paste a full request body ({ "contents": [...] }), a bare contents array, a raw generateContent response ({ "candidates": [...] }), or a single content object — e.g.\n{\n  "contents": [\n    { "role": "user", "parts": [{ "text": "..." }] },\n    { "role": "model", "parts": [{ "functionCall": { "name": "..." }, "thoughtSignature": "..." }] },\n    { "role": "user", "parts": [{ "functionResponse": { "name": "...", "response": {} } }] }\n  ]\n}`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>

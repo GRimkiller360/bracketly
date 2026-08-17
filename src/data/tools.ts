@@ -646,7 +646,7 @@ export const tools: Tool[] = [
       "mcp multi round-trip request validator",
       "mcp session id deprecated checker",
     ],
-    icon: "MCP",
+    icon: "M28",
     category: "AI",
     content: [
       {
@@ -774,6 +774,56 @@ export const tools: Tool[] = [
       {
         q: "Is my pasted data sent anywhere?",
         a: "No. Detection and validation both run locally in your browser using plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
+  {
+    slug: "acp-message-validator",
+    title: "Agent Client Protocol (ACP) Message Validator",
+    shortTitle: "ACP Validator",
+    description:
+      "Paste a JSON-RPC message and check it against the Agent Client Protocol (ACP) — the Zed-originated, now multi-vendor standard for editor-to-coding-agent communication. Validates the initialize handshake and the session/new, session/prompt, session/cancel, and session/update baseline methods every agent must support. 100% client-side.",
+    metaDescription:
+      "Paste a JSON-RPC message to validate it against the Agent Client Protocol (ACP) — initialize, session/new, session/prompt, and more. 100% client-side.",
+    keywords: [
+      "agent client protocol validator",
+      "acp json-rpc checker",
+      "acp session/prompt validator",
+      "acp initialize handshake",
+      "coding agent editor protocol",
+    ],
+    icon: "ACP",
+    category: "AI",
+    content: [
+      {
+        heading: "What the Agent Client Protocol is",
+        body: "ACP standardizes how a code editor talks to a coding agent over JSON-RPC 2.0, the same role LSP plays for language servers — instead of every editor writing a bespoke integration for every agent, both sides speak one protocol. Originated by Zed and now at a stable v1.0 with adopters including JetBrains, Gemini CLI, GitHub, and 25+ other agents, it defines a one-time initialize handshake to negotiate protocol version and capabilities, then a session-based loop (session/new to start, session/prompt to send a turn, session/update notifications streaming the agent's response back, session/cancel to interrupt) plus client-side callbacks an agent can invoke — reading/writing files, running a terminal, asking the user for permission before a risky action.",
+      },
+      {
+        heading: "What this tool checks — and where the depth stops",
+        body: "This validates the JSON-RPC envelope (jsonrpc: \"2.0\", correct request/notification/response shape) against the published, stable ACP v1 schema, and does deep field-level validation for the handshake and the four methods every agent MUST support per spec (session/new, session/prompt, session/cancel, session/update), plus the common client-capability methods (authenticate, session/request_permission, fs/read_text_file, fs/write_text_file). A frequent real mistake it catches: protocolVersion is an integer (currently 1), not a date-like string the way some other AI protocols format their version field. Every other recognized ACP method (session/load, session/fork, provider management, terminal control, the newer nes/* and document/* extensions) is checked against the full method table so a typo is still caught, just without field-level depth. It can't validate a bare JSON-RPC response ({ id, result }) against its method-specific shape, since a response alone doesn't name which request it's answering — paste the request instead to check what shape the response should have.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is the Agent Client Protocol (ACP)?",
+        a: "A JSON-RPC 2.0 protocol, originated by Zed and now at a stable v1.0, that standardizes communication between code editors and AI coding agents — the same role the Language Server Protocol (LSP) plays for language servers. It defines an initialize handshake, a session-based prompt loop (session/new, session/prompt, session/update, session/cancel), and client-side capabilities an agent can invoke like file access, terminal execution, and permission requests.",
+      },
+      {
+        q: "Why is my protocolVersion being rejected?",
+        a: "ACP's protocolVersion is an unsigned 16-bit integer (currently 1 for the stable spec), not a string. A common mistake when coming from other AI protocols that use a date-like version string is sending \"1\" as text or a date such as \"2026-06-24\" — both fail validation, since the field must be a genuine JSON number.",
+      },
+      {
+        q: "Which methods does this check in full field-level detail?",
+        a: "The initialize handshake, and the four baseline methods every ACP agent must implement per spec: session/new, session/prompt, session/cancel, and session/update — plus authenticate, session/request_permission, fs/read_text_file, and fs/write_text_file. Other recognized ACP methods (session management extras, provider/terminal/document handling, the newer nes/* edit-suggestion methods) are checked against the full method table so a typo or wrong-direction method is still caught, just without validating their specific parameter shapes.",
+      },
+      {
+        q: "Can this validate a response message?",
+        a: "Only its JSON-RPC envelope — that it has exactly one of result or error, and that an error object carries a numeric code and string message. It can't check a response's result against its method-specific shape (e.g. that a session/new response actually has a sessionId), because a bare response has no method field to identify which request it's answering. Paste the originating request instead to see what shape its response needs.",
+      },
+      {
+        q: "Is my pasted message sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser using plain JavaScript, checked against the published stable ACP v1 JSON schema — nothing you paste is transmitted or stored.",
       },
     ],
   },

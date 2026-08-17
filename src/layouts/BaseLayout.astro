@@ -62,6 +62,7 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
+    <AdBlockNotice />
     <header class="site-header">
       <div class="container">
         <a href="/" class="logo">
@@ -90,7 +91,5 @@ const canonicalUrl = canonical ?? (siteUrl + Astro.url.pathname);
         </nav>
       </div>
     </footer>
-
-    <AdBlockNotice />
   </body>
 </html>

@@ -14,6 +14,7 @@ const tool = getTool('mcp-tool-validator')!;
     <textarea
       id="input"
       rows="14"
+      autocomplete="off"
       placeholder={`Paste a single tool object, an array of tools, or a full tools/list response — e.g.\n{\n  "name": "get_weather",\n  "description": "Get current weather for a location",\n  "inputSchema": {\n    "type": "object",\n    "properties": { "location": { "type": "string" } },\n    "required": ["location"]\n  }\n}`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>

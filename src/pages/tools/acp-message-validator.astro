@@ -1,0 +1,402 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('acp-message-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">ACP JSON-RPC message — a single request, notification, or response</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      autocomplete="off"
+      placeholder={`Paste a single ACP JSON-RPC message, e.g.\n{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "initialize",\n  "params": {\n    "protocolVersion": 1,\n    "clientCapabilities": { "fs": { "readTextFile": true, "writeTextFile": true } }\n  }\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Message summary</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const summaryEl = document.getElementById('summary');
+
+  // Method tables extracted from the published stable ACP v1 JSON schema
+  // (@agentclientprotocol/sdk, AGENT_METHODS/CLIENT_METHODS/PROTOCOL_METHODS).
+  // "Client -> Agent" methods are requests/notifications the agent receives;
+  // "Agent -> Client" methods are ones the client receives.
+  const CLIENT_TO_AGENT = [
+    'initialize', 'authenticate', 'providers/list', 'providers/set', 'providers/disable',
+    'session/new', 'session/load', 'session/set_mode', 'session/set_config_option',
+    'session/prompt', 'session/cancel', 'mcp/message', 'session/list', 'session/delete',
+    'session/fork', 'session/resume', 'session/close', 'logout',
+    'nes/start', 'nes/suggest', 'nes/accept', 'nes/reject', 'nes/close',
+    'document/didOpen', 'document/didChange', 'document/didClose', 'document/didSave', 'document/didFocus',
+  ];
+  const AGENT_TO_CLIENT = [
+    'session/request_permission', 'session/update', 'fs/write_text_file', 'fs/read_text_file',
+    'terminal/create', 'terminal/output', 'terminal/release', 'terminal/wait_for_exit', 'terminal/kill',
+    'mcp/connect', 'mcp/message', 'mcp/disconnect', 'elicitation/create', 'elicitation/complete',
+  ];
+  const PROTOCOL_LEVEL = ['$/cancel_request'];
+  const NOTIFICATION_METHODS = ['session/cancel', 'session/update', 'document/didOpen', 'document/didChange', 'document/didClose', 'document/didSave', 'document/didFocus', 'elicitation/complete'];
+
+  const SESSION_UPDATE_KINDS = [
+    'user_message_chunk', 'agent_message_chunk', 'agent_thought_chunk',
+    'tool_call', 'tool_call_update', 'plan', 'plan_update', 'plan_removed',
+    'available_commands_update', 'current_mode_update', 'config_option_update',
+    'session_info_update', 'usage_update',
+  ];
+  const CHUNK_KINDS = ['user_message_chunk', 'agent_message_chunk', 'agent_thought_chunk'];
+  const CONTENT_BLOCK_TYPES = ['text', 'image', 'audio', 'resource_link', 'resource'];
+
+  function methodDirection(method) {
+    if (CLIENT_TO_AGENT.indexOf(method) !== -1) return 'Client → Agent';
+    if (AGENT_TO_CLIENT.indexOf(method) !== -1) return 'Agent → Client';
+    if (PROTOCOL_LEVEL.indexOf(method) !== -1) return 'Protocol-level';
+    return null;
+  }
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function isInt(v) {
+    return typeof v === 'number' && Number.isInteger(v);
+  }
+
+  function checkContentBlock(block, path, issues) {
+    if (!isPlainObject(block)) {
+      issues.push({ severity: 'high', message: path + ' must be an object (a ContentBlock).' });
+      return;
+    }
+    if (typeof block.type !== 'string') {
+      issues.push({ severity: 'high', message: path + ' is missing the required "type" field.' });
+      return;
+    }
+    if (CONTENT_BLOCK_TYPES.indexOf(block.type) === -1) {
+      issues.push({ severity: 'medium', message: path + '.type is ' + JSON.stringify(block.type) + ' — not one of the known ContentBlock kinds (' + CONTENT_BLOCK_TYPES.join(', ') + ').' });
+      return;
+    }
+    if (block.type === 'text' && typeof block.text !== 'string') {
+      issues.push({ severity: 'high', message: path + ' has type "text" but is missing the required "text" string field.' });
+    } else if ((block.type === 'image' || block.type === 'audio')) {
+      if (typeof block.data !== 'string') issues.push({ severity: 'high', message: path + ' has type ' + JSON.stringify(block.type) + ' but is missing the required "data" (base64) string field.' });
+      if (typeof block.mimeType !== 'string') issues.push({ severity: 'high', message: path + ' has type ' + JSON.stringify(block.type) + ' but is missing the required "mimeType" string field.' });
+    } else if (block.type === 'resource_link') {
+      if (typeof block.uri !== 'string') issues.push({ severity: 'high', message: path + ' has type "resource_link" but is missing the required "uri" string field.' });
+      if (typeof block.name !== 'string') issues.push({ severity: 'high', message: path + ' has type "resource_link" but is missing the required "name" string field.' });
+    } else if (block.type === 'resource') {
+      if (!isPlainObject(block.resource)) issues.push({ severity: 'high', message: path + ' has type "resource" but is missing the required "resource" object field.' });
+    }
+  }
+
+  const PARAM_CHECKS = {
+    'initialize': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'initialize is missing "params".' }); return; }
+      if (params.protocolVersion === undefined) {
+        issues.push({ severity: 'high', message: 'params.protocolVersion is required.' });
+      } else if (!isInt(params.protocolVersion) || params.protocolVersion < 0 || params.protocolVersion > 65535) {
+        issues.push({ severity: 'high', message: 'params.protocolVersion must be an integer (0-65535), got ' + JSON.stringify(params.protocolVersion) + '. ACP versions the protocol as a plain integer, not a date-like string — the current stable version is 1.' });
+      } else if (params.protocolVersion !== 1) {
+        issues.push({ severity: 'low', message: 'params.protocolVersion is ' + params.protocolVersion + ' — this tool checks field shapes against the current stable version, 1; fine if you’re intentionally targeting a different version.' });
+      }
+      if (params.clientCapabilities !== undefined && !isPlainObject(params.clientCapabilities)) {
+        issues.push({ severity: 'medium', message: 'params.clientCapabilities should be an object when present.' });
+      }
+    },
+    'authenticate': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'authenticate is missing "params".' }); return; }
+      if (typeof params.methodId !== 'string') issues.push({ severity: 'high', message: 'params.methodId is required and must be a string.' });
+    },
+    'session/new': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'session/new is missing "params".' }); return; }
+      if (typeof params.cwd !== 'string') {
+        issues.push({ severity: 'high', message: 'params.cwd is required and must be a string.' });
+      } else if (!/^([a-zA-Z]:[\\/]|[\\/])/.test(params.cwd)) {
+        issues.push({ severity: 'low', message: 'params.cwd (' + JSON.stringify(params.cwd) + ') doesn’t look like an absolute path — real editors always send an absolute cwd.' });
+      }
+      if (!Array.isArray(params.mcpServers)) issues.push({ severity: 'high', message: 'params.mcpServers is required and must be an array (can be empty).' });
+    },
+    'session/prompt': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'session/prompt is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+      if (!Array.isArray(params.prompt)) {
+        issues.push({ severity: 'high', message: 'params.prompt is required and must be an array of ContentBlocks.' });
+      } else {
+        if (params.prompt.length === 0) issues.push({ severity: 'medium', message: 'params.prompt is an empty array — a prompt turn needs at least one content block.' });
+        params.prompt.forEach(function (block, i) { checkContentBlock(block, 'params.prompt[' + i + ']', issues); });
+      }
+    },
+    'session/request_permission': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'session/request_permission is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+      if (params.toolCall === undefined) issues.push({ severity: 'high', message: 'params.toolCall is required.' });
+      if (!Array.isArray(params.options) || params.options.length === 0) issues.push({ severity: 'high', message: 'params.options is required and must be a non-empty array of permission options.' });
+    },
+    'fs/read_text_file': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'fs/read_text_file is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+      if (typeof params.path !== 'string') issues.push({ severity: 'high', message: 'params.path is required and must be a string.' });
+    },
+    'fs/write_text_file': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'fs/write_text_file is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+      if (typeof params.path !== 'string') issues.push({ severity: 'high', message: 'params.path is required and must be a string.' });
+      if (typeof params.content !== 'string') issues.push({ severity: 'high', message: 'params.content is required and must be a string.' });
+    },
+  };
+
+  const NOTIFICATION_PARAM_CHECKS = {
+    'session/cancel': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'session/cancel is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+    },
+    'session/update': function (params, issues) {
+      if (!isPlainObject(params)) { issues.push({ severity: 'high', message: 'session/update is missing "params".' }); return; }
+      if (typeof params.sessionId !== 'string') issues.push({ severity: 'high', message: 'params.sessionId is required and must be a string.' });
+      if (!isPlainObject(params.update)) {
+        issues.push({ severity: 'high', message: 'params.update is required and must be an object.' });
+        return;
+      }
+      if (typeof params.update.sessionUpdate !== 'string') {
+        issues.push({ severity: 'high', message: 'params.update.sessionUpdate is required (discriminator field) and must be a string.' });
+      } else if (SESSION_UPDATE_KINDS.indexOf(params.update.sessionUpdate) === -1) {
+        issues.push({ severity: 'medium', message: 'params.update.sessionUpdate is ' + JSON.stringify(params.update.sessionUpdate) + ' — not one of the known kinds (' + SESSION_UPDATE_KINDS.join(', ') + ').' });
+      } else if (CHUNK_KINDS.indexOf(params.update.sessionUpdate) !== -1) {
+        if (params.update.content === undefined) {
+          issues.push({ severity: 'high', message: 'params.update.content is required for a ' + JSON.stringify(params.update.sessionUpdate) + ' update.' });
+        } else {
+          checkContentBlock(params.update.content, 'params.update.content', issues);
+        }
+      }
+    },
+  };
+
+  function analyze(raw) {
+    const issues = [];
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level JSON-RPC message must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    const hasMethod = typeof body.method === 'string';
+    const hasId = 'id' in body;
+    const hasResult = 'result' in body;
+    const hasError = 'error' in body;
+
+    if (!hasMethod && !hasResult && !hasError) {
+      return { fatal: 'This doesn’t look like a JSON-RPC message (needs a "method" string for a request/notification, or "result"/"error" for a response).' };
+    }
+
+    if (body.jsonrpc !== '2.0') {
+      issues.push({ severity: 'medium', message: 'Top-level "jsonrpc" should be the literal string "2.0", got ' + JSON.stringify(body.jsonrpc) + '.' });
+    }
+
+    let kind;
+    if (hasMethod) {
+      kind = hasId ? 'request' : 'notification';
+      if (hasResult || hasError) {
+        issues.push({ severity: 'medium', message: 'This message has both a "method" and a "result"/"error" — those are mutually exclusive JSON-RPC message shapes.' });
+      }
+      if (body.id === null && kind === 'request') {
+        issues.push({ severity: 'low', message: '"id" is null — technically allowed by JSON-RPC but discouraged, since ACP (like the base spec) also uses null in some server-to-server error contexts. Use a real string or number id.' });
+      }
+      if (kind === 'request' && NOTIFICATION_METHODS.indexOf(body.method) !== -1) {
+        issues.push({ severity: 'medium', message: '"' + body.method + '" is normally sent as a notification (no "id") in ACP, but this message has an "id" — the receiver would wait for a response that never comes.' });
+      }
+      if (kind === 'notification' && NOTIFICATION_METHODS.indexOf(body.method) === -1 && methodDirection(body.method)) {
+        issues.push({ severity: 'low', message: '"' + body.method + '" is normally sent as a request (expects an "id" and a response) in ACP, but this message has no "id" — treating it as a notification.' });
+      }
+
+      const direction = methodDirection(body.method);
+      if (!direction) {
+        issues.push({ severity: 'medium', message: '"' + body.method + '" is not a recognized ACP v1 method — check for a typo, or this may be a newer/unstable extension not covered by this checker.' });
+      }
+
+      const checks = kind === 'notification' ? NOTIFICATION_PARAM_CHECKS : PARAM_CHECKS;
+      const fn = checks[body.method];
+      if (fn) {
+        fn(body.params, issues);
+      } else if (body.params !== undefined && !isPlainObject(body.params) && !Array.isArray(body.params)) {
+        issues.push({ severity: 'low', message: '"params" is present but is neither an object nor an array — unusual for ACP, which always uses structured params.' });
+      }
+
+      return { kind, method: body.method, direction, issues };
+    }
+
+    // Response
+    kind = 'response';
+    if (hasResult && hasError) {
+      issues.push({ severity: 'high', message: 'A response must have exactly one of "result" or "error", not both.' });
+    }
+    if (!hasId) {
+      issues.push({ severity: 'medium', message: 'A response should echo back the request’s "id".' });
+    }
+    if (hasError) {
+      const err = body.error;
+      if (!isPlainObject(err)) {
+        issues.push({ severity: 'high', message: '"error" should be an object.' });
+      } else {
+        if (!isInt(err.code)) issues.push({ severity: 'high', message: 'error.code is required and must be an integer.' });
+        if (typeof err.message !== 'string') issues.push({ severity: 'high', message: 'error.message is required and must be a string.' });
+      }
+    }
+    issues.push({ severity: 'low', message: 'This is a response — its "result" shape depends on which request it’s answering (e.g. a session/new response needs sessionId, a session/prompt response needs stopReason). Paste the originating request instead to check method-specific result fields.' });
+
+    return { kind, issues };
+  }
+
+  function summarize(result) {
+    const bits = [];
+    if (result.kind === 'request') bits.push('Request — ' + result.method);
+    else if (result.kind === 'notification') bits.push('Notification — ' + result.method);
+    else bits.push('Response');
+    if (result.direction) bits.push(result.direction);
+    return bits.join(' — ');
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    summaryEl.textContent = summarize(result);
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found — looks consistent with the stable ACP v1 schema.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break a real client/agent', low: 'Note' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('ACP message check — ' + summarize(result));
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  let lastReportText = '';
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter((x) => x.severity === 'high').length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

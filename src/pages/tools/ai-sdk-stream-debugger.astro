@@ -14,6 +14,7 @@ const tool = getTool('ai-sdk-stream-debugger')!;
     <textarea
       id="input"
       rows="14"
+      autocomplete="off"
       placeholder={`Paste the raw response body — e.g.\ndata: {"type":"start","messageId":"msg_1"}\n\ndata: {"type":"text-start","id":"t1"}\n\ndata: {"type":"text-delta","id":"t1","delta":"Hello"}\n\ndata: {"type":"text-end","id":"t1"}\n\ndata: {"type":"finish"}\n\ndata: [DONE]`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>

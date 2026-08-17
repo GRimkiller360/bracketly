@@ -14,6 +14,7 @@ const tool = getTool('mcp-apps-validator')!;
     <textarea
       id="input"
       rows="14"
+      autocomplete="off"
       placeholder={`Paste one of:\n\n1) A tool definition with _meta.ui, e.g.\n{\n  "name": "get_weather",\n  "_meta": {\n    "ui": {\n      "resourceUri": "ui://weather-server/dashboard-template",\n      "visibility": ["model", "app"]\n    }\n  }\n}\n\n2) A UI resource (or a full resources/read { contents: [...] } response)\n\n3) A ui/* JSON-RPC request or notification sent over postMessage, e.g.\n{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "ui/initialize",\n  "params": {\n    "protocolVersion": "2026-01-26",\n    "capabilities": {},\n    "clientInfo": { "name": "example-host", "version": "1.0.0" }\n  }\n}`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>

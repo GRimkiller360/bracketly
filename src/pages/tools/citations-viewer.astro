@@ -14,6 +14,7 @@ const tool = getTool('citations-viewer')!;
     <textarea
       id="input"
       rows="10"
+      autocomplete="off"
       placeholder={`Paste the full Messages API response, its "content" array, or a single content block — e.g.\n{\n  "content": [\n    { "type": "text", "text": "..." },\n    { "type": "text", "text": "...", "citations": [ { "type": "char_location", "cited_text": "...", "document_index": 0, "document_title": "...", "start_char_index": 0, "end_char_index": 10 } ] }\n  ]\n}`}
     ></textarea>
     <p id="status" class="status" role="status" aria-live="polite"></p>
