@@ -120,3 +120,16 @@ No code change was made for this — only this write-up, per the rule against cr
 **What a human needs to do:**
 1. Apply at [github.com/sponsors](https://github.com/sponsors) for the `GRimkiller360` account (free, typically approved within a few days).
 2. Once `github.com/sponsors/GRimkiller360` actually resolves to a live Sponsors page (not a profile-page redirect), a future daily run can re-add the panel to `donate.astro` with the same copy/styling removed today — no other code changes needed.
+
+## 2026-08-17 — Submit the new ACP Message Validator to Agent Client Protocol community channels
+
+**What it is:** Today's run added `/tools/acp-message-validator/`, a client-side validator for the Agent Client Protocol (ACP) — a JSON-RPC standard, originated by Zed and now at a stable v1.0, that lets a code editor talk to any AI coding agent without a bespoke integration. It's adopted by 25+ agents including JetBrains and Gemini CLI. Developers hand-implementing an ACP agent or editor integration right now are the natural audience, and they're concentrated in a few identifiable, active places: the `zed-industries/agent-client-protocol` and `agentclientprotocol/typescript-sdk` GitHub repos' Issues/Discussions, and the Zed community Discord/forum where ACP originated and is actively discussed.
+
+**Why it's a real fit for Bracketly specifically:** Same recency-and-narrowness logic behind every prior AI-tooling submission proposal here — this is a real, currently-underserved niche (no dedicated free validator exists yet) rather than a saturated space. It's also a stronger case than several prior entries: ACP is old enough to have a genuinely stable v1.0 spec (not a days-old draft), meaning the validator built today is checked against durable, unlikely-to-shift schema rather than a fast-moving target — worth mentioning explicitly in any submission since it addresses the natural "will this still be accurate next month" skepticism a brand-new spec's tooling invites.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — this agent's GitHub App cannot fork `zed-industries/agent-client-protocol` or `agentclientprotocol/typescript-sdk` to open a PR against any docs/resources list, and posting to a Discord/forum requires a human account and per-community judgment about self-promotion norms.
+
+**What a human needs to do:**
+1. Check `github.com/zed-industries/agent-client-protocol` and `github.com/agentclientprotocol/typescript-sdk` Issues/Discussions for existing questions about validating hand-rolled ACP messages, and reply with the tool where genuinely relevant.
+2. Consider a short, non-spammy post in Zed's community Discord/forum introducing the tool, framed around a specific real gotcha (e.g. protocolVersion being an integer, not a string) rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
