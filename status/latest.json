@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-17T07:38:51.773Z",
+  "generated_at": "2026-08-18T07:24:16.065Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 89,
+    "performance": 88,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -98,9 +98,9 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 11,
         "ctr": 0,
-        "position": 85.77777777777777
+        "position": 85.81818181818181
       },
       {
         "keys": [
@@ -158,6 +158,15 @@
       },
       {
         "keys": [
+          "bace 64 decoder"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 86
+      },
+      {
+        "keys": [
           "bae64 encode"
         ],
         "clicks": 0,
@@ -170,9 +179,9 @@
           "bas64 encoder"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 3,
         "ctr": 0,
-        "position": 80.5
+        "position": 80.66666666666667
       },
       {
         "keys": [
@@ -182,15 +191,6 @@
         "impressions": 3,
         "ctr": 0,
         "position": 90.33333333333333
-      },
-      {
-        "keys": [
-          "base 64"
-        ],
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 90.75
       }
     ],
     "top_pages": [
@@ -201,7 +201,7 @@
         "clicks": 15,
         "impressions": 27,
         "ctr": 0.5555555555555556,
-        "position": 4.333333333333334
+        "position": 4.296296296296296
       },
       {
         "keys": [
@@ -217,9 +217,9 @@
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 1,
-        "impressions": 404,
-        "ctr": 0.0024752475247524753,
-        "position": 84.31188118811882
+        "impressions": 467,
+        "ctr": 0.0021413276231263384,
+        "position": 84.36188436830835
       },
       {
         "keys": [
@@ -280,9 +280,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 55,
+        "impressions": 70,
         "ctr": 0,
-        "position": 85.96363636363637
+        "position": 86.31428571428572
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 5,
+        "impressions": 6,
         "ctr": 0,
-        "position": 6.6
+        "position": 6.833333333333333
       }
     ]
   },
@@ -386,7 +386,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 3,
+        "count": 6,
         "dimensions": {
           "date": "2026-08-17"
         }
@@ -426,18 +426,12 @@
         "dimensions": {
           "date": "2026-08-11"
         }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-08-10"
-        }
       }
     ],
-    "total_pageloads": 33,
+    "total_pageloads": 35,
     "top_requests": [
       {
-        "count": 10,
+        "count": 12,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
