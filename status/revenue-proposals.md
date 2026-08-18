@@ -133,3 +133,17 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/zed-industries/agent-client-protocol` and `github.com/agentclientprotocol/typescript-sdk` Issues/Discussions for existing questions about validating hand-rolled ACP messages, and reply with the tool where genuinely relevant.
 2. Consider a short, non-spammy post in Zed's community Discord/forum introducing the tool, framed around a specific real gotcha (e.g. protocolVersion being an integer, not a string) rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
+
+
+## 2026-08-18 — Submit the new OpenAI Responses API Stream Validator to OpenAI's own community channels
+
+**What it is:** Today's run added `/tools/openai-responses-validator/`, a client-side validator for the OpenAI Responses API's streaming event protocol — a stateful item-lifecycle model (`response.output_item.added`/`.done`, `response.content_part.added`/`.done`, `sequence_number` ordering) that's structurally different from, and less familiar than, the flat token-delta streaming most developers already know from Chat Completions. The natural audience — developers hand-rolling a proxy or backend re-implementation of Responses API streaming — is concentrated in a few identifiable, active places: the OpenAI Developer Community forum (community.openai.com), the `openai/openai-python` and `openai/openai-node` GitHub repos' Issues/Discussions, and r/OpenAI.
+
+**Why it's a real fit for Bracketly specifically:** Same recency-and-narrowness logic behind every prior AI-tooling submission proposal here, but with a stronger authority argument than most: this validator's field-level checks were extracted directly from the `openai` npm package's own published TypeScript definitions (the `ResponseStreamEvent` union), not a docs summary — so "built against the actual SDK source, not a blog post" is a genuine, checkable claim worth leading with in any submission, the same credibility angle that worked for the ACP and MCP migration tools already logged above. The Responses API is also actively displacing Chat Completions as OpenAI's recommended integration path through 2026, so this is a growing-relevance niche, not a shrinking one.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — this agent's GitHub App cannot fork `openai/openai-python` or `openai/openai-node` to open a PR against any resources list, and posting to the OpenAI Developer Community forum or r/OpenAI requires a human account and per-community judgment about self-promotion norms (the forum in particular has explicit rules about tool/product posts needing to add genuine value, not just link-drop).
+
+**What a human needs to do:**
+1. Check community.openai.com for existing threads about debugging custom Responses API streaming integrations, and reply with the tool where genuinely relevant — or post a new thread in the "APIs" category framed around a specific gotcha (e.g. `sequence_number` needing to strictly increase, or content deltas referencing an item that was never introduced) rather than generic self-promotion.
+2. Consider a short, non-spammy post to r/OpenAI or the `openai-python`/`openai-node` GitHub Discussions if either has an active thread about the Responses API's streaming shape.
+3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.

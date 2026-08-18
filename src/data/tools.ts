@@ -827,6 +827,52 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "openai-responses-validator",
+    title: "OpenAI Responses API Stream Validator",
+    shortTitle: "Responses API Validator",
+    description:
+      "Paste a raw SSE stream from the OpenAI Responses API and validate it against the real event schemas — catches a missing sequence_number, an output_text.delta referencing a content part that was never opened, an unclosed output item, and more, across all 58 documented event types. 100% client-side.",
+    metaDescription:
+      "Paste a raw SSE stream from the OpenAI Responses API and validate every event against the real schema — sequence gaps, orphaned deltas, unclosed items. 100% client-side.",
+    keywords: [
+      "openai responses api validator",
+      "response.output_text.delta debugger",
+      "responses api streaming events",
+      "openai sse stream validator",
+      "responses api sequence_number checker",
+    ],
+    icon: "RES",
+    category: "AI",
+    content: [
+      {
+        heading: "Why a custom Responses API integration fails silently",
+        body: "The Responses API is OpenAI's newer, stateful alternative to Chat Completions, and streaming it back to your own frontend means proxying or re-serializing a sequence of typed server-sent events — response.created, response.output_item.added, response.output_text.delta, response.completed, and around 50 others covering reasoning, function calls, MCP tool calls, web/file search, code interpreter, and image generation. The moment you're not using the official SDK end-to-end — a hand-rolled proxy, a different backend language re-emitting the same events, a queue that buffers and replays them — it's easy to drop a required field, reorder an item's lifecycle events, or let sequence_number stop increasing. None of that throws a parse error on your side; a real client either silently ignores the malformed event or renders something subtly wrong, and the only way to find out is to capture the raw stream and read it by hand.",
+      },
+      {
+        heading: "What this checks, and where the field data comes from",
+        body: "Every event's required fields and exact type name were extracted directly from the openai npm package's own published TypeScript definitions (the ResponseStreamEvent union in resources/responses/responses.d.ts) — the same source the official SDK itself is generated from — not a docs summary, so a field name or a 'delta' vs 'text' distinction here matches what the real API actually sends. This tracks state across the whole stream: a content-level event (output_text.delta, refusal.delta, reasoning_text.delta, and others) referencing an item_id that no response.output_item.added ever introduced, a content part used before its response.content_part.added, an output item never closed with response.output_item.done, and a sequence_number that fails to strictly increase. It also reconstructs the assembled output — final text per item, accumulated function-call arguments, reasoning summary — the way a real client would render it, so you can see the end result of the stream at a glance.",
+      },
+    ],
+    faq: [
+      {
+        q: "What exactly should I paste in?",
+        a: "The raw response body from your Responses API streaming endpoint — the same bytes a browser's fetch() or curl -N would receive: lines starting with 'data: ' followed by a JSON event, separated by blank lines. Capture it straight from your own proxy/backend if that's what you're debugging, or from a direct call to https://api.openai.com/v1/responses with stream: true.",
+      },
+      {
+        q: "Does this cover every one of OpenAI's streaming event types?",
+        a: "It recognizes and checks required fields for all 58 currently documented event types in the openai SDK's ResponseStreamEvent union — the core lifecycle (created/in_progress/completed/failed/incomplete/queued), text/refusal/reasoning deltas, function and custom tool calls, and every built-in tool call's events (code interpreter, web search, file search, image generation, MCP calls, shell calls). A very recently added event type from a newer API release could still be flagged as unrecognized even though it's valid — treat that as a prompt to double-check against current OpenAI docs, not a definitive error.",
+      },
+      {
+        q: "Why does it flag my output_text.delta even though the JSON itself looks fine?",
+        a: "Content-level events reference an item_id and content_index that a response.output_item.added and response.content_part.added event should have introduced earlier in the same stream. If your backend drops, reorders, or deduplicates those introducing events — common when re-serializing through a queue or a different language's SSE library — every delta that follows is flagged as referencing content that was never properly opened, even though the delta's own JSON is perfectly well-formed.",
+      },
+      {
+        q: "Is my stream data sent anywhere?",
+        a: "No. Parsing, validation, and the reconstructed output preview all run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

@@ -1,0 +1,476 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('openai-responses-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Raw SSE stream body</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      autocomplete="off"
+      placeholder={`Paste the raw response body — e.g.\ndata: {"type":"response.created","response":{"id":"resp_1"},"sequence_number":0}\n\ndata: {"type":"response.output_item.added","item":{"id":"msg_1","type":"message","role":"assistant","status":"in_progress","content":[]},"output_index":0,"sequence_number":1}\n\ndata: {"type":"response.content_part.added","item_id":"msg_1","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]},"sequence_number":2}\n\ndata: {"type":"response.output_text.delta","item_id":"msg_1","output_index":0,"content_index":0,"delta":"Hello","sequence_number":3}\n\ndata: {"type":"response.completed","response":{"id":"resp_1"},"sequence_number":4}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label"><span>Reconstructed output</span></div>
+      <div id="preview" style="font-size:0.92rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:var(--text);"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span id="events-count-label">Parsed events</span></div>
+      <div id="events-list" style="display:flex;flex-direction:column;gap:0.35rem;max-height:420px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const eventsList = document.getElementById('events-list');
+  const eventsCountLabel = document.getElementById('events-count-label');
+  const preview = document.getElementById('preview');
+
+  let lastReportText = '';
+
+  // Required fields per event "type", extracted directly from the openai npm
+  // package's own TypeScript definitions (ResponseStreamEvent union in
+  // resources/responses/responses.d.ts) — the same source the SDK itself is
+  // generated from. "sequence_number" is required on every event and checked
+  // separately below rather than repeated in each entry.
+  const KNOWN_TYPES = {
+    'response.created': { required: ['response'] },
+    'response.in_progress': { required: ['response'] },
+    'response.completed': { required: ['response'] },
+    'response.failed': { required: ['response'] },
+    'response.incomplete': { required: ['response'] },
+    'response.queued': { required: ['response'] },
+    'error': { required: ['message'], fieldTypes: { message: 'string' } },
+    'response.output_item.added': { required: ['item', 'output_index'], fieldTypes: { output_index: 'number' } },
+    'response.output_item.done': { required: ['item', 'output_index'], fieldTypes: { output_index: 'number' } },
+    'response.content_part.added': { required: ['content_index', 'item_id', 'output_index', 'part'], fieldTypes: { content_index: 'number', item_id: 'string', output_index: 'number' } },
+    'response.content_part.done': { required: ['content_index', 'item_id', 'output_index', 'part'], fieldTypes: { content_index: 'number', item_id: 'string', output_index: 'number' } },
+    'response.output_text.delta': { required: ['content_index', 'delta', 'item_id', 'output_index'], fieldTypes: { content_index: 'number', delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.output_text.done': { required: ['content_index', 'item_id', 'output_index', 'text'], fieldTypes: { content_index: 'number', item_id: 'string', output_index: 'number', text: 'string' } },
+    'response.refusal.delta': { required: ['content_index', 'delta', 'item_id', 'output_index'], fieldTypes: { content_index: 'number', delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.refusal.done': { required: ['content_index', 'item_id', 'output_index', 'refusal'], fieldTypes: { content_index: 'number', item_id: 'string', output_index: 'number', refusal: 'string' } },
+    'response.function_call_arguments.delta': { required: ['delta', 'item_id', 'output_index'], fieldTypes: { delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.function_call_arguments.done': { required: ['arguments', 'item_id', 'name', 'output_index'], fieldTypes: { arguments: 'string', item_id: 'string', name: 'string', output_index: 'number' } },
+    'response.reasoning_summary_part.added': { required: ['item_id', 'output_index', 'part', 'summary_index'], fieldTypes: { item_id: 'string', output_index: 'number', summary_index: 'number' } },
+    'response.reasoning_summary_part.done': { required: ['item_id', 'output_index', 'part', 'summary_index'], fieldTypes: { item_id: 'string', output_index: 'number', summary_index: 'number' } },
+    'response.reasoning_summary_text.delta': { required: ['delta', 'item_id', 'output_index', 'summary_index'], fieldTypes: { delta: 'string', item_id: 'string', output_index: 'number', summary_index: 'number' } },
+    'response.reasoning_summary_text.done': { required: ['item_id', 'output_index', 'summary_index', 'text'], fieldTypes: { item_id: 'string', output_index: 'number', summary_index: 'number', text: 'string' } },
+    'response.reasoning_text.delta': { required: ['content_index', 'delta', 'item_id', 'output_index'], fieldTypes: { content_index: 'number', delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.reasoning_text.done': { required: ['content_index', 'item_id', 'output_index', 'text'], fieldTypes: { content_index: 'number', item_id: 'string', output_index: 'number', text: 'string' } },
+    'response.audio.delta': { required: ['delta'], fieldTypes: { delta: 'string' } },
+    'response.audio.done': { required: [] },
+    'response.audio.transcript.delta': { required: ['delta'], fieldTypes: { delta: 'string' } },
+    'response.audio.transcript.done': { required: [] },
+    'response.output_text.annotation.added': { required: ['annotation', 'annotation_index', 'content_index', 'item_id', 'output_index'], fieldTypes: { annotation_index: 'number', content_index: 'number', item_id: 'string', output_index: 'number' } },
+    'response.custom_tool_call_input.delta': { required: ['delta', 'item_id', 'output_index'], fieldTypes: { delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.custom_tool_call_input.done': { required: ['input', 'item_id', 'output_index'], fieldTypes: { input: 'string', item_id: 'string', output_index: 'number' } },
+    'response.code_interpreter_call_code.delta': { required: ['delta', 'item_id', 'output_index'], fieldTypes: { delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.code_interpreter_call_code.done': { required: ['code', 'item_id', 'output_index'], fieldTypes: { code: 'string', item_id: 'string', output_index: 'number' } },
+    'response.code_interpreter_call.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.code_interpreter_call.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.code_interpreter_call.interpreting': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.file_search_call.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.file_search_call.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.file_search_call.searching': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.web_search_call.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.web_search_call.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.web_search_call.searching': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.image_generation_call.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.image_generation_call.generating': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.image_generation_call.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.image_generation_call.partial_image': { required: ['item_id', 'output_index', 'partial_image_b64', 'partial_image_index'], fieldTypes: { item_id: 'string', output_index: 'number', partial_image_index: 'number' } },
+    'response.mcp_call_arguments.delta': { required: ['delta', 'item_id', 'output_index'], fieldTypes: { delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.mcp_call_arguments.done': { required: ['arguments', 'item_id', 'output_index'], fieldTypes: { arguments: 'string', item_id: 'string', output_index: 'number' } },
+    'response.mcp_call.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.mcp_call.failed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.mcp_call.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.mcp_list_tools.completed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.mcp_list_tools.failed': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.mcp_list_tools.in_progress': { required: ['item_id', 'output_index'], fieldTypes: { item_id: 'string', output_index: 'number' } },
+    'response.shell_call_command.added': { required: ['command', 'command_index', 'output_index'], fieldTypes: { command: 'string', command_index: 'number', output_index: 'number' } },
+    'response.shell_call_command.delta': { required: ['command_index', 'delta', 'output_index'], fieldTypes: { command_index: 'number', delta: 'string', output_index: 'number' } },
+    'response.shell_call_command.done': { required: ['command', 'command_index', 'output_index'], fieldTypes: { command: 'string', command_index: 'number', output_index: 'number' } },
+    'response.shell_call_output_content.delta': { required: ['command_index', 'delta', 'item_id', 'output_index'], fieldTypes: { command_index: 'number', delta: 'string', item_id: 'string', output_index: 'number' } },
+    'response.shell_call_output_content.done': { required: ['command_index', 'item_id', 'output', 'output_index'], fieldTypes: { command_index: 'number', item_id: 'string', output_index: 'number' } },
+  };
+
+  // Event types whose "item_id" should reference an item already introduced
+  // by a response.output_item.added event — used for the cross-reference
+  // check below rather than repeating this per entry above.
+  const ITEM_ID_REFERENCING_TYPES = [
+    'response.content_part.added', 'response.content_part.done',
+    'response.output_text.delta', 'response.output_text.done',
+    'response.refusal.delta', 'response.refusal.done',
+    'response.function_call_arguments.delta', 'response.function_call_arguments.done',
+    'response.reasoning_summary_part.added', 'response.reasoning_summary_part.done',
+    'response.reasoning_summary_text.delta', 'response.reasoning_summary_text.done',
+    'response.reasoning_text.delta', 'response.reasoning_text.done',
+    'response.output_text.annotation.added',
+    'response.custom_tool_call_input.delta', 'response.custom_tool_call_input.done',
+    'response.code_interpreter_call_code.delta', 'response.code_interpreter_call_code.done',
+    'response.mcp_call_arguments.delta', 'response.mcp_call_arguments.done',
+    'response.shell_call_output_content.delta', 'response.shell_call_output_content.done',
+  ];
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  // Each `data: ...` line is treated as one SSE event. Real Responses API
+  // output is single-line JSON per data field, so this is more robust
+  // against pasted text missing blank-line separators than trying to buffer
+  // multi-line SSE fields (or a leading "event: ..." line, which this
+  // ignores since the SDK itself dispatches purely on the JSON body's own
+  // "type" field, not the SSE event name).
+  function parseSSE(raw) {
+    const lines = raw.replace(/\r\n/g, '\n').split('\n');
+    const events = [];
+    let sawAnyDataLine = false;
+
+    lines.forEach(function (line, i) {
+      const m = /^data:\s?(.*)$/.exec(line);
+      if (!m) return;
+      sawAnyDataLine = true;
+      const value = m[1];
+      if (value.trim() === '' || value.trim() === '[DONE]') return;
+      let json, parseError;
+      try {
+        json = JSON.parse(value);
+      } catch (e) {
+        parseError = e.message;
+      }
+      events.push({ lineNo: i + 1, raw: value, json: json, parseError: parseError });
+    });
+
+    if (!sawAnyDataLine) {
+      lines.forEach(function (line, i) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === '[DONE]') return;
+        let json, parseError;
+        try {
+          json = JSON.parse(trimmed);
+        } catch (e) {
+          parseError = e.message;
+        }
+        events.push({ lineNo: i + 1, raw: trimmed, json: json, parseError: parseError });
+      });
+    }
+
+    return events;
+  }
+
+  function validateStream(events) {
+    const issues = [];
+    const openOutputItems = new Map(); // output_index -> item_id (or null)
+    const knownItemIds = new Set();
+    const openContentParts = new Set(); // "item_id:content_index"
+    let createdCount = 0;
+    let terminalCount = 0;
+    let lastSeq = null;
+
+    events.forEach(function (ev) {
+      if (ev.parseError) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': invalid JSON — ' + ev.parseError });
+        return;
+      }
+      const j = ev.json;
+      if (!isPlainObject(j)) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': event payload is not a JSON object.' });
+        return;
+      }
+      const type = j.type;
+      if (typeof type !== 'string') {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': event has no "type" field.' });
+        return;
+      }
+
+      if (j.sequence_number === undefined) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': "' + type + '" is missing required field "sequence_number".' });
+      } else if (typeof j.sequence_number !== 'number') {
+        issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': "sequence_number" should be number, got ' + typeof j.sequence_number + '.' });
+      } else {
+        if (lastSeq !== null && j.sequence_number <= lastSeq) {
+          issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': sequence_number ' + j.sequence_number + ' did not increase from the previous event’s ' + lastSeq + ' — sequence_number must be strictly increasing across the stream.' });
+        }
+        lastSeq = j.sequence_number;
+      }
+
+      if (type === 'response.created') createdCount++;
+      if (type === 'response.completed' || type === 'response.failed' || type === 'response.incomplete') terminalCount++;
+
+      const spec = KNOWN_TYPES[type];
+      if (!spec) {
+        issues.push({ severity: 'low', message: 'Line ' + ev.lineNo + ': unrecognized event type "' + type + '" — not in the documented Responses API streaming event set.' });
+      } else {
+        spec.required.forEach(function (f) {
+          if (j[f] === undefined) {
+            issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': "' + type + '" is missing required field "' + f + '".' });
+          }
+        });
+        if (spec.fieldTypes) {
+          Object.keys(spec.fieldTypes).forEach(function (f) {
+            if (j[f] !== undefined && typeof j[f] !== spec.fieldTypes[f]) {
+              issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': "' + type + '"."' + f + '" should be ' + spec.fieldTypes[f] + ', got ' + typeof j[f] + '.' });
+            }
+          });
+        }
+      }
+
+      if (type === 'response.output_item.added') {
+        const itemId = isPlainObject(j.item) && typeof j.item.id === 'string' ? j.item.id : null;
+        if (typeof j.output_index === 'number') openOutputItems.set(j.output_index, itemId);
+        if (itemId) knownItemIds.add(itemId);
+      } else if (type === 'response.output_item.done') {
+        if (typeof j.output_index === 'number') {
+          if (!openOutputItems.has(j.output_index)) {
+            issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': response.output_item.done references output_index ' + j.output_index + ' with no matching response.output_item.added.' });
+          } else {
+            openOutputItems.delete(j.output_index);
+          }
+        }
+      } else if (type === 'response.content_part.added') {
+        if (typeof j.item_id === 'string' && typeof j.content_index === 'number') {
+          openContentParts.add(j.item_id + ':' + j.content_index);
+        }
+      } else if (type === 'response.content_part.done') {
+        if (typeof j.item_id === 'string' && typeof j.content_index === 'number') {
+          openContentParts.delete(j.item_id + ':' + j.content_index);
+        }
+      }
+
+      if (spec && ITEM_ID_REFERENCING_TYPES.indexOf(type) !== -1 && typeof j.item_id === 'string' && !knownItemIds.has(j.item_id)) {
+        issues.push({ severity: 'medium', message: 'Line ' + ev.lineNo + ': "' + type + '" references item_id "' + j.item_id + '" that no response.output_item.added introduced.' });
+      }
+
+      if ((type === 'response.output_text.delta' || type === 'response.refusal.delta' || type === 'response.reasoning_text.delta') &&
+          typeof j.item_id === 'string' && typeof j.content_index === 'number' &&
+          !openContentParts.has(j.item_id + ':' + j.content_index)) {
+        issues.push({ severity: 'high', message: 'Line ' + ev.lineNo + ': "' + type + '" references content_index ' + j.content_index + ' on item "' + j.item_id + '" with no open response.content_part.added.' });
+      }
+    });
+
+    if (createdCount === 0) {
+      issues.push({ severity: 'low', message: 'No "response.created" event found — a well-formed Responses API stream begins with one.' });
+    } else if (createdCount > 1) {
+      issues.push({ severity: 'medium', message: 'Found ' + createdCount + ' "response.created" events — a single stream should only have one.' });
+    }
+    if (terminalCount === 0) {
+      issues.push({ severity: 'low', message: 'No terminal event (response.completed / response.failed / response.incomplete) found — the stream may be truncated.' });
+    } else if (terminalCount > 1) {
+      issues.push({ severity: 'medium', message: 'Found ' + terminalCount + ' terminal events (response.completed/failed/incomplete) — a single stream should only end once.' });
+    }
+    openOutputItems.forEach(function (itemId, outputIndex) {
+      issues.push({ severity: 'medium', message: 'Output item at output_index ' + outputIndex + (itemId ? ' (id "' + itemId + '")' : '') + ' was never closed with a matching response.output_item.done.' });
+    });
+    openContentParts.forEach(function (key) {
+      issues.push({ severity: 'medium', message: 'Content part "' + key + '" was never closed with a matching response.content_part.done.' });
+    });
+
+    return issues;
+  }
+
+  function eventSummary(ev) {
+    if (ev.parseError) return { label: 'invalid JSON', detail: ev.raw };
+    const j = ev.json;
+    if (!isPlainObject(j) || typeof j.type !== 'string') return { label: '(malformed)', detail: ev.raw };
+    const bits = [];
+    if (typeof j.sequence_number === 'number') bits.push('seq=' + j.sequence_number);
+    if (typeof j.item_id === 'string') bits.push('item_id=' + j.item_id);
+    if (typeof j.output_index === 'number') bits.push('output_index=' + j.output_index);
+    if (typeof j.delta === 'string') bits.push('delta=' + JSON.stringify(j.delta));
+    if (typeof j.name === 'string') bits.push('name=' + j.name);
+    return { label: j.type, detail: bits.join('  ') };
+  }
+
+  function buildPreview(events) {
+    const order = [];
+    const textById = new Map();
+    const reasoningById = new Map();
+    const functionCalls = [];
+    const functionById = new Map();
+
+    events.forEach(function (ev) {
+      if (ev.parseError || !isPlainObject(ev.json)) return;
+      const j = ev.json;
+      if (j.type === 'response.output_text.delta' && typeof j.item_id === 'string' && typeof j.delta === 'string') {
+        if (!textById.has(j.item_id)) {
+          textById.set(j.item_id, '');
+          order.push({ kind: 'text', id: j.item_id });
+        }
+        textById.set(j.item_id, textById.get(j.item_id) + j.delta);
+      } else if (j.type === 'response.reasoning_summary_text.delta' && typeof j.item_id === 'string' && typeof j.delta === 'string') {
+        if (!reasoningById.has(j.item_id)) {
+          reasoningById.set(j.item_id, '');
+          order.push({ kind: 'reasoning', id: j.item_id });
+        }
+        reasoningById.set(j.item_id, reasoningById.get(j.item_id) + j.delta);
+      } else if (j.type === 'response.function_call_arguments.done' && typeof j.item_id === 'string') {
+        const entry = { name: j.name, args: j.arguments };
+        functionById.set(j.item_id, entry);
+        functionCalls.push(entry);
+        order.push({ kind: 'function', id: j.item_id });
+      }
+    });
+
+    if (order.length === 0) return '(nothing to reconstruct yet — no output_text.delta, reasoning_summary_text.delta, or function_call_arguments.done events found)';
+
+    const parts = order.map(function (o) {
+      if (o.kind === 'text') return textById.get(o.id);
+      if (o.kind === 'reasoning') return '\n[reasoning summary: ' + reasoningById.get(o.id) + ']\n';
+      const f = functionById.get(o.id);
+      return '\n[function call: ' + (f.name || '?') + '(' + (f.args || '') + ')]\n';
+    });
+    return parts.join('');
+  }
+
+  function render(events, issues) {
+    clearChildren(issuesList);
+    clearChildren(eventsList);
+    eventsCountLabel.textContent = 'Parsed events (' + events.length + ')';
+
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found across ' + events.length + ' event' + (events.length === 1 ? '' : 's') + '.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Note' };
+      issues.forEach(function (issue) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      });
+    }
+
+    events.forEach(function (ev, i) {
+      const s = eventSummary(ev);
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);padding:0.35rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
+      row.textContent = '#' + (i + 1) + '  ' + s.label + (s.detail ? '  ' + s.detail : '');
+      eventsList.appendChild(row);
+    });
+
+    const lines = [];
+    lines.push('OpenAI Responses API stream validation — ' + events.length + ' event(s)');
+    if (issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      issues.forEach(function (issue) {
+        lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+      });
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value;
+    if (!raw.trim()) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const events = parseSSE(raw);
+    if (events.length === 0) {
+      results.style.display = 'none';
+      setStatus('✗ No SSE events found — expected lines starting with "data:" or one JSON object per line.', 'error');
+      return;
+    }
+
+    const issues = validateStream(events);
+    render(events, issues);
+    preview.textContent = buildPreview(events);
+    results.style.display = 'block';
+
+    if (issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + events.length + ' event' + (events.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      const highCount = issues.filter(function (x) { return x.severity === 'high'; }).length;
+      setStatus('✗ Found ' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

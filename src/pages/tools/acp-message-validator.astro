@@ -95,6 +95,11 @@ const tool = getTool('acp-message-validator')!;
   const CONTENT_BLOCK_TYPES = ['text', 'image', 'audio', 'resource_link', 'resource'];
 
   function methodDirection(method) {
+    // mcp/message is the one genuinely bidirectional method — it relays a raw
+    // MCP message either way depending on which side initiated the connection
+    // — so it must be checked before the one-directional tables below, which
+    // would otherwise always report it as Client -> Agent.
+    if (method === 'mcp/message') return 'Client ↔ Agent';
     if (CLIENT_TO_AGENT.indexOf(method) !== -1) return 'Client → Agent';
     if (AGENT_TO_CLIENT.indexOf(method) !== -1) return 'Agent → Client';
     if (PROTOCOL_LEVEL.indexOf(method) !== -1) return 'Protocol-level';
