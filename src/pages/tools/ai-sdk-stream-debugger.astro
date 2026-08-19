@@ -422,5 +422,11 @@ const tool = getTool('ai-sdk-stream-debugger')!;
     });
   });
 
-  input.addEventListener('input', process);
+  var debounceTimer = null;
+  function debouncedProcess() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  }
+
+  input.addEventListener('input', debouncedProcess);
 </script>

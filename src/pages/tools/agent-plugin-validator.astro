@@ -403,6 +403,12 @@ const tool = getTool('agent-plugin-validator')!;
     });
   });
 
-  inputPlugin.addEventListener('input', process);
-  inputMcp.addEventListener('input', process);
+  var debounceTimer = null;
+  function debouncedProcess() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  }
+
+  inputPlugin.addEventListener('input', debouncedProcess);
+  inputMcp.addEventListener('input', debouncedProcess);
 </script>

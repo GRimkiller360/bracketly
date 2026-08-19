@@ -302,7 +302,13 @@ const tool = getTool('embedding-truncator')!;
     });
   });
 
-  vecAInput.addEventListener('input', process);
-  vecBInput.addEventListener('input', process);
-  targetDimInput.addEventListener('input', process);
+  var debounceTimer = null;
+  function debouncedProcess() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  }
+
+  vecAInput.addEventListener('input', debouncedProcess);
+  vecBInput.addEventListener('input', debouncedProcess);
+  targetDimInput.addEventListener('input', debouncedProcess);
 </script>
