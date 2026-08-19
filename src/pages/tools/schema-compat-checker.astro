@@ -1,0 +1,434 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('schema-compat-checker')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">JSON Schema</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      autocomplete="off"
+      placeholder={`Paste a JSON Schema object — e.g.\n{\n  "type": "object",\n  "properties": {\n    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },\n    "tags": { "type": "array", "items": { "type": "string" }, "minItems": 1 },\n    "status": { "oneOf": [{ "const": "open" }, { "const": "closed" }] }\n  },\n  "required": ["id"],\n  "additionalProperties": true\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem;">
+      <div class="panel" id="panel-openai">
+        <div class="field-label"><span>OpenAI structured outputs</span></div>
+        <div class="provider-issues"></div>
+      </div>
+      <div class="panel" id="panel-anthropic">
+        <div class="field-label"><span>Claude structured outputs</span></div>
+        <div class="provider-issues"></div>
+      </div>
+      <div class="panel" id="panel-gemini">
+        <div class="field-label"><span>Gemini responseSchema</span></div>
+        <div class="provider-issues"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label">
+        <span>Full report</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy full compatibility report as plain text">Copy report</button>
+      </div>
+      <p style="color:var(--text-muted);margin:0;font-size:0.85rem;">
+        Rules are sourced from each provider's own documentation and SDK source — see the FAQ below for exactly what's checked and where each rule comes from.
+      </p>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  // Walk every schema-shaped node reachable from the root, calling
+  // visit(node, path) for each one. Depth-capped so a pathological or
+  // accidentally-cyclic input (e.g. two $defs referencing each other, walked
+  // by literal structure rather than by $ref) can't hang the tab.
+  function walkSchema(root, visit) {
+    const MAX_DEPTH = 60;
+    let truncated = false;
+
+    function walk(node, path, depth) {
+      if (!isPlainObject(node)) return;
+      if (depth > MAX_DEPTH) {
+        truncated = true;
+        return;
+      }
+      visit(node, path);
+
+      if (isPlainObject(node.properties)) {
+        for (const key of Object.keys(node.properties)) {
+          walk(node.properties[key], path + '.properties.' + key, depth + 1);
+        }
+      }
+      if (isPlainObject(node.patternProperties)) {
+        for (const key of Object.keys(node.patternProperties)) {
+          walk(node.patternProperties[key], path + '.patternProperties[' + key + ']', depth + 1);
+        }
+      }
+      if (isPlainObject(node.additionalProperties)) {
+        walk(node.additionalProperties, path + '.additionalProperties', depth + 1);
+      }
+      if (isPlainObject(node.items)) {
+        walk(node.items, path + '.items', depth + 1);
+      } else if (Array.isArray(node.items)) {
+        node.items.forEach((it, i) => walk(it, path + '.items[' + i + ']', depth + 1));
+      }
+      if (Array.isArray(node.prefixItems)) {
+        node.prefixItems.forEach((it, i) => walk(it, path + '.prefixItems[' + i + ']', depth + 1));
+      }
+      if (isPlainObject(node.contains)) {
+        walk(node.contains, path + '.contains', depth + 1);
+      }
+      for (const kw of ['anyOf', 'oneOf', 'allOf']) {
+        if (Array.isArray(node[kw])) {
+          node[kw].forEach((sub, i) => walk(sub, path + '.' + kw + '[' + i + ']', depth + 1));
+        }
+      }
+      for (const kw of ['not', 'if', 'then', 'else']) {
+        if (isPlainObject(node[kw])) {
+          walk(node[kw], path + '.' + kw, depth + 1);
+        }
+      }
+      for (const defsKey of ['$defs', 'definitions']) {
+        if (isPlainObject(node[defsKey])) {
+          for (const name of Object.keys(node[defsKey])) {
+            walk(node[defsKey][name], '#/' + defsKey + '/' + name, depth + 1);
+          }
+        }
+      }
+    }
+
+    walk(root, '$', 0);
+    return truncated;
+  }
+
+  // Builds a directed graph of named-def -> $ref target (following only the
+  // $ref pointers reachable from within that def's own subtree, not through
+  // other defs) and reports whether any def can reach itself — i.e. a
+  // recursive schema, which Claude's structured outputs doesn't support.
+  function findRecursiveDefs(root) {
+    const defs = {};
+    for (const defsKey of ['$defs', 'definitions']) {
+      if (isPlainObject(root[defsKey])) {
+        for (const name of Object.keys(root[defsKey])) {
+          defs['#/' + defsKey + '/' + name] = root[defsKey][name];
+        }
+      }
+    }
+    const names = Object.keys(defs);
+    if (names.length === 0) return [];
+
+    const edges = {};
+    for (const name of names) {
+      edges[name] = [];
+      walkSchema(defs[name], (node) => {
+        if (typeof node.$ref === 'string' && node.$ref.startsWith('#/')) {
+          edges[name].push(node.$ref);
+        }
+      });
+    }
+
+    const recursive = [];
+    for (const start of names) {
+      const seen = new Set();
+      const stack = [start];
+      let hit = false;
+      while (stack.length) {
+        const cur = stack.pop();
+        for (const next of edges[cur] || []) {
+          if (next === start) { hit = true; break; }
+          if (!seen.has(next)) {
+            seen.add(next);
+            stack.push(next);
+          }
+        }
+        if (hit) break;
+      }
+      if (hit) recursive.push(start);
+    }
+    return recursive;
+  }
+
+  const UNCOMMON_KEYWORDS = [
+    'not', 'if', 'then', 'else', 'const', 'patternProperties', 'unevaluatedProperties',
+    'propertyNames', 'contains', 'minContains', 'maxContains', 'dependentRequired',
+    'dependentSchemas', 'contentEncoding', 'contentMediaType',
+  ];
+
+  function checkOpenAI(root) {
+    const issues = [];
+    walkSchema(root, (node, path) => {
+      if (node.type === 'object' || isPlainObject(node.properties)) {
+        if (node.additionalProperties !== false) {
+          issues.push({ severity: 'high', path, message: 'Strict mode requires "additionalProperties": false on every object — found ' + JSON.stringify(node.additionalProperties) + '.' });
+        }
+        if (isPlainObject(node.properties)) {
+          const req = Array.isArray(node.required) ? node.required : [];
+          const missing = Object.keys(node.properties).filter((k) => !req.includes(k));
+          if (missing.length) {
+            issues.push({ severity: 'high', path, message: 'Strict mode requires every property to be listed in "required" — missing: ' + missing.join(', ') + '. Express optionality with a nullable type instead.' });
+          }
+        }
+      }
+      for (const kw of ['minLength', 'maxLength', 'pattern', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minItems', 'maxItems', 'uniqueItems', 'minProperties', 'maxProperties']) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'high', path, message: '"' + kw + '" is not enforced by OpenAI\'s strict structured-output decoding — it will be silently ignored.' });
+        }
+      }
+      for (const kw of UNCOMMON_KEYWORDS) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'medium', path, message: '"' + kw + '" is an advanced JSON Schema keyword not part of OpenAI\'s documented strict-mode subset — likely ignored.' });
+        }
+      }
+      if (Array.isArray(node.oneOf)) {
+        issues.push({ severity: 'medium', path, message: '"oneOf" isn\'t part of OpenAI\'s strict-mode subset — use "anyOf" instead.' });
+      }
+      if (typeof node.$ref === 'string' && /^https?:\/\//.test(node.$ref)) {
+        issues.push({ severity: 'high', path, message: 'External $ref (' + node.$ref + ') won\'t be resolved — inline the schema or use an internal "$defs" reference.' });
+      }
+    });
+    if (root.type !== undefined && root.type !== 'object') {
+      issues.push({ severity: 'high', path: '$', message: 'Root schema type is ' + JSON.stringify(root.type) + ' — OpenAI structured outputs requires the root to be "object".' });
+    }
+    return issues;
+  }
+
+  function checkAnthropic(root) {
+    const issues = [];
+    walkSchema(root, (node, path) => {
+      if ((node.type === 'object' || isPlainObject(node.properties)) && node.additionalProperties !== undefined && node.additionalProperties !== false) {
+        issues.push({ severity: 'high', path, message: '"additionalProperties" must be false (or omitted) for Claude structured outputs — found ' + JSON.stringify(node.additionalProperties) + '.' });
+      }
+      for (const kw of ['minimum', 'maximum', 'multipleOf']) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'high', path, message: 'Numeric constraint "' + kw + '" is not supported by Claude structured outputs.' });
+        }
+      }
+      for (const kw of ['minLength', 'maxLength']) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'high', path, message: 'String constraint "' + kw + '" is not supported by Claude structured outputs.' });
+        }
+      }
+      if (node.minItems !== undefined && node.minItems !== 0 && node.minItems !== 1) {
+        issues.push({ severity: 'high', path, message: '"minItems" of ' + JSON.stringify(node.minItems) + ' is not supported — Claude structured outputs only supports minItems of 0 or 1.' });
+      }
+      if (node.maxItems !== undefined) {
+        issues.push({ severity: 'high', path, message: '"maxItems" is not supported by Claude structured outputs (only minItems of 0 or 1 is).' });
+      }
+      if (node.uniqueItems !== undefined) {
+        issues.push({ severity: 'high', path, message: '"uniqueItems" is not supported by Claude structured outputs.' });
+      }
+      if (Array.isArray(node.enum) && node.enum.some((v) => isPlainObject(v) || Array.isArray(v))) {
+        issues.push({ severity: 'high', path, message: 'This enum contains an object or array value — Claude structured outputs only supports primitive values (string/number/boolean/null) in enum.' });
+      }
+      if (Array.isArray(node.allOf) && node.allOf.some((s) => isPlainObject(s) && typeof s.$ref === 'string')) {
+        issues.push({ severity: 'high', path, message: '"allOf" combined with "$ref" is not supported by Claude structured outputs.' });
+      }
+      if (Array.isArray(node.oneOf)) {
+        issues.push({ severity: 'low', path, message: 'Anthropic\'s docs confirm "anyOf" and "allOf" support (with limits) but don\'t document "oneOf" — worth using "anyOf" instead unless you\'ve verified this against a live call.' });
+      }
+      if (typeof node.$ref === 'string' && /^https?:\/\//.test(node.$ref)) {
+        issues.push({ severity: 'high', path, message: 'External $ref (' + node.$ref + ') is not supported — only internal $ref/$defs/definitions are.' });
+      }
+    });
+    for (const name of findRecursiveDefs(root)) {
+      issues.push({ severity: 'high', path: name, message: 'This definition is recursive (refers back to itself through $ref) — recursive schemas are not supported by Claude structured outputs.' });
+    }
+    return issues;
+  }
+
+  function checkGemini(root) {
+    const issues = [];
+    let sawDefs = false;
+    walkSchema(root, (node, path) => {
+      if (typeof node.$ref === 'string') {
+        issues.push({ severity: 'high', path, message: '"$ref" has no equivalent in Gemini\'s Schema type — flatten this reference into an inline schema.' });
+      }
+      for (const defsKey of ['$defs', 'definitions']) {
+        if (isPlainObject(node[defsKey]) && !sawDefs) {
+          sawDefs = true;
+          issues.push({ severity: 'high', path, message: '"' + defsKey + '" has no equivalent in Gemini\'s Schema type — it only understands inline schemas reached through properties/items/anyOf.' });
+        }
+      }
+      if (Array.isArray(node.oneOf)) {
+        issues.push({ severity: 'high', path, message: '"oneOf" is not part of Gemini\'s Schema type (only "anyOf" is) — rewrite as "anyOf".' });
+      }
+      if (Array.isArray(node.allOf)) {
+        issues.push({ severity: 'high', path, message: '"allOf" is not part of Gemini\'s Schema type — merge these subschemas manually.' });
+      }
+      if (node.additionalProperties !== undefined) {
+        issues.push({ severity: 'medium', path, message: '"additionalProperties" is not a field on Gemini\'s Schema type — it will be dropped, not enforced.' });
+      }
+      for (const kw of ['multipleOf', 'exclusiveMinimum', 'exclusiveMaximum']) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'high', path, message: '"' + kw + '" is not a field on Gemini\'s Schema type — it will be dropped.' });
+        }
+      }
+      for (const kw of UNCOMMON_KEYWORDS) {
+        if (node[kw] !== undefined) {
+          issues.push({ severity: 'high', path, message: '"' + kw + '" is not a field on Gemini\'s Schema type — it will be dropped.' });
+        }
+      }
+    });
+    return issues;
+  }
+
+  const SEV_COLOR = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+  const SEV_LABEL = { high: 'Not supported', medium: 'Ignored / uncertain', low: 'Unconfirmed' };
+
+  function renderPanel(panelId, providerLabel, issues) {
+    const panel = document.getElementById(panelId).querySelector('.provider-issues');
+    clearChildren(panel);
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.85rem;font-weight:600;margin-top:0.5rem;';
+      ok.textContent = '✓ No issues found';
+      panel.appendChild(ok);
+      return;
+    }
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;';
+    for (const issue of issues) {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:0.5rem 0.65rem;border-radius:8px;border-left:3px solid ' + SEV_COLOR[issue.severity] + ';background:var(--bg-subtle);font-size:0.82rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+      const badge = document.createElement('strong');
+      badge.style.cssText = 'text-transform:uppercase;font-size:0.68rem;letter-spacing:0.03em;color:' + SEV_COLOR[issue.severity] + ';display:block;margin-bottom:0.15rem;';
+      badge.textContent = SEV_LABEL[issue.severity] + ' · ' + issue.path;
+      row.appendChild(badge);
+      const msg = document.createElement('span');
+      msg.textContent = issue.message;
+      row.appendChild(msg);
+      wrap.appendChild(row);
+    }
+    panel.appendChild(wrap);
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    if (!isPlainObject(parsed)) {
+      results.style.display = 'none';
+      setStatus('✗ Expected a JSON Schema object at the top level.', 'error');
+      return;
+    }
+
+    const openai = checkOpenAI(parsed);
+    const anthropic = checkAnthropic(parsed);
+    const gemini = checkGemini(parsed);
+
+    renderPanel('panel-openai', 'OpenAI', openai);
+    renderPanel('panel-anthropic', 'Claude', anthropic);
+    renderPanel('panel-gemini', 'Gemini', gemini);
+    results.style.display = 'block';
+
+    const total = openai.length + anthropic.length + gemini.length;
+    if (total === 0) {
+      setStatus('✓ No compatibility issues found for OpenAI, Claude, or Gemini.', 'ok');
+    } else {
+      setStatus('✗ ' + openai.length + ' OpenAI, ' + anthropic.length + ' Claude, ' + gemini.length + ' Gemini issue' + (total === 1 ? '' : 's') + ' found.', 'error');
+    }
+
+    const lines = ['LLM structured-output schema compatibility report', ''];
+    for (const [label, list] of [['OpenAI', openai], ['Claude', anthropic], ['Gemini', gemini]]) {
+      lines.push(label + ':');
+      if (list.length === 0) {
+        lines.push('  No issues found.');
+      } else {
+        for (const issue of list) lines.push('  [' + issue.severity.toUpperCase() + '] ' + issue.path + ' — ' + issue.message);
+      }
+      lines.push('');
+    }
+    lastReportText = lines.join('\n').trim();
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  var debounceTimer = null;
+  function debouncedProcess() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  }
+
+  input.addEventListener('input', debouncedProcess);
+</script>

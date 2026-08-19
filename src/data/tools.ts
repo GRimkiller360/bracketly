@@ -470,7 +470,7 @@ export const tools: Tool[] = [
       },
       {
         heading: "What this tool checks: signatures, ordering, and id echoes",
-        body: "There are two distinct signature rules depending on the shape of the tool call: for several function calls made in parallel within one response, only the first functionCall part is required to carry a signature; for function calls made sequentially across separate turns, each turn's functionCall needs its own. This tool checks both cases specifically and reports exactly which turn is missing one, along with whether functionResponse parts match their corresponding functionCall in order and count, and whether the functionCall id is echoed back correctly. It accepts a full request body, a bare contents array, a raw API response, or a single content object, and detects which one you gave it — though response-only input skips the ordering checks, since there's no conversation history to check against. It can't verify what's inside a signature, only whether one is present where the API requires it — the contents are encrypted by Google and not decodable by anyone but Gemini itself.",
+        body: "There are two distinct signature rules depending on the shape of the tool call: for several function calls made in parallel within one response, only the first functionCall part is required to carry a signature; for function calls made sequentially across separate turns, each turn's functionCall needs its own. This tool checks both cases specifically and reports exactly which turn is missing one, along with whether functionResponse parts match their corresponding functionCall (by id when every call and response has one, otherwise by order) and count, and whether the functionCall id is echoed back correctly. It accepts a full request body, a bare contents array, a raw API response, or a single content object, and detects which one you gave it — though response-only input skips the ordering checks, since there's no conversation history to check against. It can't verify what's inside a signature, only whether one is present where the API requires it — the contents are encrypted by Google and not decodable by anyone but Gemini itself.",
       },
     ],
     faq: [
@@ -484,7 +484,7 @@ export const tools: Tool[] = [
       },
       {
         q: "Can this tool decode or verify what's inside a thoughtSignature?",
-        a: "No — thought signatures are encrypted by Google and not decodable client-side (or server-side, by anyone but Gemini itself). This tool only checks structure: whether a signature is present where the API requires one, whether functionResponse parts match their functionCall in order and count, and whether the Gemini 3 functionCall id is echoed back correctly. It can't tell you if a signature's contents are valid, only whether one is missing where it shouldn't be.",
+        a: "No — thought signatures are encrypted by Google and not decodable client-side (or server-side, by anyone but Gemini itself). This tool only checks structure: whether a signature is present where the API requires one, whether functionResponse parts match their functionCall (by id when present, otherwise by order) and count, and whether the Gemini 3 functionCall id is echoed back correctly. It can't tell you if a signature's contents are valid, only whether one is missing where it shouldn't be.",
       },
       {
         q: "What can I paste in?",
@@ -824,6 +824,57 @@ export const tools: Tool[] = [
       {
         q: "Is my pasted message sent anywhere?",
         a: "No. Parsing and validation both run locally in your browser using plain JavaScript, checked against the published stable ACP v1 JSON schema — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
+  {
+    slug: "schema-compat-checker",
+    title: "LLM Structured Output Schema Checker",
+    shortTitle: "Schema Compat Checker",
+    description:
+      "Paste a JSON Schema you're using for OpenAI structured outputs, Claude tool use / structured outputs, or Gemini's responseSchema, and see exactly which keywords each provider's structured-output enforcement does and doesn't honor — sourced from each provider's own documentation and SDK source, not a summary. 100% client-side.",
+    metaDescription:
+      "Check a JSON Schema against OpenAI, Claude, and Gemini structured-output support — which keywords are dropped, ignored, or rejected by each. 100% client-side.",
+    keywords: [
+      "json schema compatibility checker",
+      "openai structured outputs strict mode",
+      "claude structured outputs schema",
+      "gemini responseschema validator",
+      "cross provider json schema",
+      "llm tool use schema checker",
+    ],
+    icon: "SOC",
+    category: "AI",
+    content: [
+      {
+        heading: "The problem: one JSON Schema, three different subsets",
+        body: "OpenAI, Anthropic, and Google all now enforce a JSON Schema at the model-sampling level rather than just hoping the model follows it — but none of them implement the full JSON Schema specification, and the three don't implement the same subset of it. A schema with a \"pattern\" on a string field, a \"minItems\" on an array, or a \"oneOf\" union might be silently stripped, outright rejected with a 400, or simply ignored depending on which provider you send it to. That's rarely obvious from the outside: the request often still succeeds, just with the constraint quietly not enforced, and the gap only shows up later as a null field or an out-of-range value the schema was supposed to prevent. Anyone building against more than one of these APIs with a shared schema — or porting a schema from one provider to another — is exposed to this gap whether they know it or not.",
+      },
+      {
+        heading: "Where these rules come from",
+        body: "Every rule this tool applies is tied to a specific source: Claude's rules are read directly from Anthropic's own structured-outputs documentation (the exact \"not supported\" list — recursive schemas, complex enum types, external $ref, numeric and string constraints, additionalProperties other than false, and array constraints beyond minItems of 0 or 1). Gemini's rules come from the Schema type defined in Google's own generative-ai SDK source, which is a deliberately narrow, non-standard subset of OpenAPI 3.0 — notably it has no $ref, oneOf, or allOf at all, and no additionalProperties field, but does support pattern, minLength/maxLength, and minItems/maxItems, which Claude's structured outputs explicitly reject. OpenAI's rules reflect the foundational, stable design of strict mode since its introduction — every property forced into \"required\", additionalProperties forced to false, and format/length/numeric constraint keywords not enforced by the constrained-decoding backend. Where a rule isn't clearly documented for a given provider, this tool stays silent rather than guessing — it flags what it can verify, not everything it's possible to imagine going wrong.",
+      },
+    ],
+    faq: [
+      {
+        q: "Why does the same schema pass on one provider and fail on another?",
+        a: "Because OpenAI, Claude, and Gemini each implement a different, non-standard subset of JSON Schema for structured outputs. A keyword like \"pattern\" or \"minItems\" that one provider enforces might be silently dropped by another and outright rejected by a third — this tool exists to make those differences visible before you find out from a production response that doesn't match what your schema promised.",
+      },
+      {
+        q: "Does a schema with no issues shown here mean it will definitely be accepted?",
+        a: "It means this tool found no keyword-level incompatibilities against the documented rules it checks. It can't call any provider's actual API, so it can't catch limits or behaviors that aren't part of the public documentation or SDK source this tool is built from — always do a real test call for anything going to production.",
+      },
+      {
+        q: "Where does the Claude rule set come from specifically?",
+        a: "Anthropic's own structured-outputs documentation, which explicitly lists unsupported features: recursive schemas, complex types inside enum, external $ref, numeric constraints (minimum/maximum/multipleOf), string constraints (minLength/maxLength), array constraints beyond minItems of 0 or 1, and additionalProperties set to anything other than false.",
+      },
+      {
+        q: "Why doesn't Gemini support $ref, oneOf, or allOf?",
+        a: "Gemini's responseSchema uses a deliberately narrow, Gemini-specific Schema type — a subset of OpenAPI 3.0 rather than full JSON Schema — defined directly in Google's own SDK source. That type simply has no field for $ref, oneOf, or allOf, so schemas using them need to be flattened and rewritten with anyOf (which Gemini's Schema type does support) before sending them to Gemini.",
+      },
+      {
+        q: "Is my schema sent anywhere?",
+        a: "No. Everything runs locally in your browser using plain JavaScript — nothing you paste is transmitted or stored.",
       },
     ],
   },
