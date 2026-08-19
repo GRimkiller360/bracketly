@@ -143,18 +143,42 @@ const tool = getTool('gemini-signature-validator')!;
             } else if (frParts.length !== fcParts.length) {
               issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ' has ' + frParts.length + ' functionResponse part(s) but turn ' + i + ' had ' + fcParts.length + ' functionCall part(s) — counts must match.' });
             } else {
-              fcParts.forEach((p, j) => {
-                const fc = fcOf(p);
-                const fr = frOf(frParts[j]);
-                if (fc.name !== fr.name) {
-                  issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionResponse #' + (j + 1) + ' name "' + fr.name + '" does not match functionCall #' + (j + 1) + ' name "' + fc.name + '" — responses must be in the same order as their calls.' });
-                }
-                if (fc.id !== undefined) {
-                  if (fr.id !== fc.id) {
-                    issues.push({ severity: 'medium', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionCall "' + fc.name + '" has id "' + fc.id + '" but its functionResponse is missing/mismatched id — Gemini 3 expects the exact id echoed back.' });
+              const fcs = fcParts.map(fcOf);
+              const frs = frParts.map(frOf);
+              const idsUsable = fcs.every((fc) => fc.id !== undefined) && frs.every((fr) => fr.id !== undefined);
+              if (idsUsable) {
+                // Parallel calls carry an id specifically so a client can match
+                // responses back to calls out of array order — match by id
+                // rather than position, or an out-of-order (but valid) response
+                // list reads as a false name/id mismatch against the wrong pair.
+                const fcById = new Map(fcs.map((fc) => [fc.id, fc]));
+                const matchedIds = new Set();
+                frs.forEach((fr, j) => {
+                  const fc = fcById.get(fr.id);
+                  if (!fc) {
+                    issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionResponse #' + (j + 1) + ' has id "' + fr.id + '", which doesn\'t match any functionCall id from turn ' + i + '.' });
+                  } else {
+                    matchedIds.add(fr.id);
+                    if (fc.name !== fr.name) {
+                      issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionResponse with id "' + fr.id + '" has name "' + fr.name + '" but the matching functionCall\'s name is "' + fc.name + '".' });
+                    }
                   }
-                }
-              });
+                });
+                fcs.forEach((fc) => {
+                  if (!matchedIds.has(fc.id)) {
+                    issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionCall "' + fc.name + '" (id "' + fc.id + '") from turn ' + i + ' has no functionResponse with a matching id.' });
+                  }
+                });
+              } else {
+                // No id on every call/response — the only way left to correlate
+                // them is array order, so require it.
+                fcs.forEach((fc, j) => {
+                  const fr = frs[j];
+                  if (fc.name !== fr.name) {
+                    issues.push({ severity: 'high', turn: i + 1, message: 'Turn ' + (i + 1) + ': functionResponse #' + (j + 1) + ' name "' + fr.name + '" does not match functionCall #' + (j + 1) + ' name "' + fc.name + '" — without an "id" on every call and response, they\'re matched by position, so responses must be in the same order as their calls.' });
+                  }
+                });
+              }
             }
           }
         }
@@ -286,5 +310,11 @@ const tool = getTool('gemini-signature-validator')!;
     });
   });
 
-  input.addEventListener('input', process);
+  var debounceTimer = null;
+  function debouncedProcess() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  }
+
+  input.addEventListener('input', debouncedProcess);
 </script>
