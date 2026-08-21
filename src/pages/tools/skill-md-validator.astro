@@ -1,0 +1,387 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('skill-md-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">SKILL.md content</label>
+      <button class="btn btn-sm" id="btn-clear" aria-label="Clear SKILL.md input">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="16"
+      autocomplete="off"
+      placeholder={`Paste a full SKILL.md file, frontmatter included — e.g.\n---\nname: my-skill\ndescription: Summarizes uncommitted changes. Use when the user asks what changed.\nlicense: MIT\n---\n\n# My Skill\n\nInstructions go here.`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Frontmatter fields found</span></div>
+      <div id="fields-list" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const fieldsList = document.getElementById('fields-list');
+
+  const PORTABLE_FIELDS = ['name', 'description', 'license', 'compatibility', 'metadata', 'allowed-tools'];
+  const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function stripQuotes(s) {
+    const t = s.trim();
+    if (t.length >= 2 && ((t[0] === '"' && t[t.length - 1] === '"') || (t[0] === "'" && t[t.length - 1] === "'"))) {
+      return t.slice(1, -1);
+    }
+    return t;
+  }
+
+  function stripComment(s) {
+    // Strip a trailing " # comment" that isn't inside quotes.
+    let inQuote = null;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (inQuote) {
+        if (c === inQuote) inQuote = null;
+      } else if (c === '"' || c === "'") {
+        inQuote = c;
+      } else if (c === '#' && (i === 0 || /\s/.test(s[i - 1]))) {
+        return s.slice(0, i);
+      }
+    }
+    return s;
+  }
+
+  function indentOf(line) {
+    const m = line.match(/^ */);
+    return m[0].length;
+  }
+
+  // Small, purpose-built parser for the flat, mostly-scalar YAML shape
+  // SKILL.md frontmatter actually uses — not a general YAML implementation.
+  function parseFrontmatter(text) {
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    // A real delimiter line starts at column 0 — matched with an anchored
+    // regex (not a trimmed-line comparison) so an indented "---" inside a
+    // block-scalar value (e.g. a folded description) can't be mistaken for
+    // the closing marker and truncate the rest of the frontmatter.
+    const isDelimiter = (line) => /^---\s*$/.test(line);
+    let i = 0;
+    while (i < lines.length && lines[i].trim() === '') i++;
+    if (i >= lines.length || !isDelimiter(lines[i])) {
+      return { error: 'No opening "---" frontmatter marker found at the top of the file.' };
+    }
+    const start = i + 1;
+    let end = -1;
+    for (let j = start; j < lines.length; j++) {
+      if (isDelimiter(lines[j])) {
+        end = j;
+        break;
+      }
+    }
+    if (end === -1) {
+      return { error: 'Opening "---" found, but no closing "---" marker — the frontmatter block is never terminated.' };
+    }
+
+    const body = lines.slice(start, end);
+    const fields = {};
+    const order = [];
+    const duplicates = [];
+
+    let li = 0;
+    while (li < body.length) {
+      const rawLine = body[li];
+      if (rawLine.trim() === '' || /^\s*#/.test(rawLine)) {
+        li++;
+        continue;
+      }
+      const indent = indentOf(rawLine);
+      if (indent !== 0) {
+        // Orphaned indented line with no owning top-level key — skip defensively.
+        li++;
+        continue;
+      }
+      const m = rawLine.match(/^([A-Za-z0-9_-]+):(.*)$/);
+      if (!m) {
+        li++;
+        continue;
+      }
+      const key = m[1];
+      let valuePart = stripComment(m[2]).trim();
+      li++;
+
+      let value;
+      if (valuePart === '') {
+        // Look ahead for a block list or nested map.
+        const children = [];
+        while (li < body.length && (body[li].trim() === '' || indentOf(body[li]) > indent)) {
+          if (body[li].trim() !== '') children.push(body[li]);
+          li++;
+        }
+        if (children.length > 0 && children.every((l) => /^\s*-/.test(l))) {
+          value = children.map((l) => stripQuotes(stripComment(l.replace(/^\s*-\s?/, ''))));
+        } else if (children.length > 0) {
+          const map = {};
+          for (const l of children) {
+            const cm = l.match(/^\s*([A-Za-z0-9_-]+):(.*)$/);
+            if (cm) map[cm[1]] = stripQuotes(stripComment(cm[2]));
+          }
+          value = map;
+        } else {
+          value = '';
+        }
+      } else if (valuePart === '|' || valuePart === '>' || /^[|>][+-]?$/.test(valuePart)) {
+        const folded = valuePart[0] === '>';
+        const parts = [];
+        while (li < body.length && (body[li].trim() === '' || indentOf(body[li]) > indent)) {
+          parts.push(body[li].replace(/^\s{1,}/, ''));
+          li++;
+        }
+        value = folded ? parts.join(' ').trim() : parts.join('\n').replace(/\n+$/, '');
+      } else if (valuePart[0] === '[' && valuePart[valuePart.length - 1] === ']') {
+        value = valuePart
+          .slice(1, -1)
+          .split(',')
+          .map((s) => stripQuotes(s))
+          .filter((s) => s.length > 0);
+      } else if (valuePart[0] === '{' && valuePart[valuePart.length - 1] === '}') {
+        const map = {};
+        valuePart
+          .slice(1, -1)
+          .split(',')
+          .forEach((pair) => {
+            const idx = pair.indexOf(':');
+            if (idx !== -1) map[pair.slice(0, idx).trim()] = stripQuotes(pair.slice(idx + 1));
+          });
+        value = map;
+      } else {
+        value = stripQuotes(valuePart);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(fields, key)) {
+        duplicates.push(key);
+      } else {
+        order.push(key);
+      }
+      fields[key] = value;
+    }
+
+    return { fields, order, duplicates, bodyAfter: lines.slice(end + 1).join('\n') };
+  }
+
+  function validate(parsed) {
+    const issues = [];
+    const { fields, order, duplicates } = parsed;
+
+    for (const dup of duplicates) {
+      issues.push({ severity: 'high', message: 'Field "' + dup + '" is defined more than once in the frontmatter — YAML forbids duplicate keys, and parsers vary on which one wins.' });
+    }
+
+    if (!('name' in fields)) {
+      issues.push({ severity: 'high', message: 'Missing required field "name".' });
+    } else if (typeof fields.name !== 'string' || fields.name === '') {
+      issues.push({ severity: 'high', message: '"name" must be a non-empty string.' });
+    } else {
+      const name = fields.name;
+      if (name.length > 64) {
+        issues.push({ severity: 'high', message: '"name" is ' + name.length + ' characters — the spec caps it at 64.' });
+      }
+      if (!NAME_RE.test(name)) {
+        issues.push({ severity: 'high', message: '"name" (' + JSON.stringify(name) + ') must use only lowercase letters, digits, and single hyphens, with no leading, trailing, or doubled hyphen.' });
+      }
+    }
+
+    if (!('description' in fields)) {
+      issues.push({ severity: 'high', message: 'Missing "description" — required by the spec, and how Claude decides when to use the skill.' });
+    } else if (typeof fields.description !== 'string' || fields.description.trim() === '') {
+      issues.push({ severity: 'high', message: '"description" must be a non-empty string.' });
+    } else if (fields.description.length > 1024) {
+      issues.push({ severity: 'high', message: '"description" is ' + fields.description.length + ' characters — the spec caps it at 1,024.' });
+    }
+
+    if ('compatibility' in fields) {
+      if (typeof fields.compatibility !== 'string') {
+        issues.push({ severity: 'medium', message: '"compatibility" should be a plain string, not a list or map.' });
+      } else if (fields.compatibility.length > 500) {
+        issues.push({ severity: 'medium', message: '"compatibility" is ' + fields.compatibility.length + ' characters — it\'s capped at 500.' });
+      }
+    }
+
+    if ('metadata' in fields) {
+      const md = fields.metadata;
+      if (typeof md !== 'object' || md === null || Array.isArray(md)) {
+        issues.push({ severity: 'medium', message: '"metadata" must be a YAML mapping (key: value pairs on indented lines), not a plain string or list.' });
+      } else if (Object.prototype.hasOwnProperty.call(md, 'paths')) {
+        issues.push({ severity: 'low', message: '"metadata" reuses "paths" as a key — that name is reserved by other frontmatter fields, so avoid it.' });
+      }
+    }
+
+    if ('allowed-tools' in fields) {
+      const at = fields['allowed-tools'];
+      if (typeof at !== 'string' && !Array.isArray(at)) {
+        issues.push({ severity: 'medium', message: '"allowed-tools" should be a space/comma-separated string or a YAML list of tool names.' });
+      }
+    }
+
+    if ('license' in fields && typeof fields.license !== 'string') {
+      issues.push({ severity: 'low', message: '"license" should be a plain string (typically an SPDX identifier like "MIT").' });
+    }
+
+    for (const key of order) {
+      if (!PORTABLE_FIELDS.includes(key)) {
+        issues.push({ severity: 'low', message: '"' + key + '" isn\'t one of the six portable fields (name, description, license, compatibility, metadata, allowed-tools). It may be a host-specific extension (e.g. Claude Code) — fine there, but packaging for claude.ai or the Skills API will fail with an "unexpected key" error until it\'s removed.' });
+      }
+    }
+
+    return issues;
+  }
+
+  function fieldPreview(value) {
+    if (Array.isArray(value)) return '[' + value.join(', ') + ']';
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    const s = String(value);
+    return s.length > 90 ? s.slice(0, 90) + '…' : s;
+  }
+
+  function render(parsed, issues) {
+    clearChildren(issuesList);
+    clearChildren(fieldsList);
+
+    parsed.order.forEach((key) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.35rem 0;border-bottom:1px dashed var(--border);overflow-wrap:anywhere;word-break:break-word;';
+      const isPortable = PORTABLE_FIELDS.includes(key);
+      row.textContent = key + ': ' + fieldPreview(parsed.fields[key]) + (isPortable ? '' : '  (host extension)');
+      fieldsList.appendChild(row);
+    });
+
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ Valid — all frontmatter fields match the portable Agent Skills spec.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break in a client', low: 'Recommendation' };
+      for (const issue of issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('SKILL.md frontmatter validation');
+    if (issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value;
+    if (!raw.trim()) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const parsed = parseFrontmatter(raw);
+    if (parsed.error) {
+      results.style.display = 'none';
+      setStatus('✗ ' + parsed.error, 'error');
+      return;
+    }
+
+    const issues = validate(parsed);
+    render(parsed, issues);
+    results.style.display = 'block';
+
+    if (issues.length === 0) {
+      setStatus('✓ Valid — frontmatter matches the portable Agent Skills spec.', 'ok');
+    } else {
+      const highCount = issues.filter((x) => x.severity === 'high').length;
+      setStatus('✗ Found ' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

@@ -827,6 +827,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "skill-md-validator",
+    title: "Agent Skills (SKILL.md) Validator",
+    shortTitle: "SKILL.md Validator",
+    description:
+      "Validate a SKILL.md file's YAML frontmatter against the open Agent Skills standard. Catches the field-name typos and length violations that cause a hard failure when packaging or uploading a skill. Runs entirely in your browser.",
+    metaDescription:
+      "Validate SKILL.md frontmatter against the Agent Skills spec — catches invalid field names, bad name/description formats, and portability errors. 100% client-side.",
+    keywords: ["skill.md validator", "agent skills spec", "claude skills", "skill frontmatter", "agent skills format"],
+    icon: "SKL",
+    category: "AI",
+    content: [
+      {
+        heading: "What the Agent Skills standard requires",
+        body: "Agent Skills is an open, vendor-neutral standard for packaging reusable agent instructions as a SKILL.md file with YAML frontmatter. The portable spec recognizes exactly six frontmatter fields — name, description, license, compatibility, metadata, and allowed-tools — and nothing else. name must be required, lowercase, 1–64 characters, using only letters, digits, and hyphens, with no leading/trailing or doubled hyphen. description is required and capped at 1,024 characters, and should say both what the skill does and when to use it. compatibility is a free-text string capped at 500 characters. metadata must be a YAML mapping of your own key/value data, not a plain string or list. Tools like Claude Code accept extra fields beyond these six — argument-hint, when_to_use, disallowed-tools, and others — but those are host-specific extensions: packaging a skill for claude.ai or the Skills API with any field outside the six-field allowlist fails with a hard 'unexpected key' error rather than a warning.",
+      },
+      {
+        heading: "How this tool checks a SKILL.md file",
+        body: "Paste the full file, frontmatter included. This parses the YAML block between the opening and closing --- markers with a small hand-written parser built for the flat, mostly-scalar shape SKILL.md frontmatter actually uses (strings, comma/space-separated or block lists for allowed-tools, and a nested map for metadata) — it isn't a general YAML implementation, so a deeply nested or multi-document file may not parse correctly. Every recognized field is checked against the length and character rules above; every field name that isn't one of the six portable keys is flagged as a host extension rather than a spec violation, since those are valid in Claude Code but will break portability elsewhere. Everything runs locally — nothing you paste is sent anywhere.",
+      },
+    ],
+    faq: [
+      {
+        q: "What are the six portable SKILL.md frontmatter fields?",
+        a: "name, description, license, compatibility, metadata, and allowed-tools. These are the only fields the open Agent Skills spec defines, and the only ones accepted by claude.ai skill uploads, the Skills API, and the official packaging script — any other key causes those paths to reject the file outright.",
+      },
+      {
+        q: "Why did my SKILL.md fail with 'unexpected key'?",
+        a: "Claude Code supports several extra frontmatter fields as its own extensions — argument-hint, when_to_use, disallowed-tools, effort, context, disable-model-invocation, and more. They work fine inside Claude Code, but the portable Agent Skills spec doesn't recognize them, so packaging or uploading the same file through a spec-only path (claude.ai, the Skills API) fails with a hard error. This tool flags every non-portable field it finds so you know which ones to strip before packaging elsewhere.",
+      },
+      {
+        q: "What are the exact rules for the name field?",
+        a: "Required, 1–64 characters, lowercase letters/digits/hyphens only, and it can't start or end with a hyphen or contain two hyphens in a row. Most tooling also expects it to match the skill's own directory name, though that's a convention this tool can't check since it only sees the pasted file, not its folder.",
+      },
+      {
+        q: "Does this validate the markdown body or just the frontmatter?",
+        a: "Just the YAML frontmatter between the --- markers. The spec places no format requirements on the markdown body beyond it being valid Markdown, so there's nothing meaningful to lint there — this focuses on the structured metadata that tooling actually parses and can silently reject.",
+      },
+      {
+        q: "Is my SKILL.md content sent anywhere?",
+        a: "No. Parsing happens entirely in your browser with plain JavaScript — nothing you paste is transmitted or stored, which matters since skill files often contain internal tool names or workflow details.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

@@ -133,3 +133,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/zed-industries/agent-client-protocol` and `github.com/agentclientprotocol/typescript-sdk` Issues/Discussions for existing questions about validating hand-rolled ACP messages, and reply with the tool where genuinely relevant.
 2. Consider a short, non-spammy post in Zed's community Discord/forum introducing the tool, framed around a specific real gotcha (e.g. protocolVersion being an integer, not a string) rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
+
+## 2026-08-21 — Submit the new SKILL.md Validator to Agent Skills / Claude Code community channels
+
+**What it is:** Today's run added `/tools/skill-md-validator/`, a client-side validator for SKILL.md frontmatter — the packaging format for Agent Skills, the open standard Claude Code and other tools use for reusable agent instructions. It checks both the portable six-field spec (name/description/license/compatibility/metadata/allowed-tools, with real format and length rules) and flags Claude Code's own documented extension fields (`argument-hint`, `when_to_use`, etc.) as host-specific, since those pass locally but hard-fail an upload to claude.ai or the Skills API. Research while building it turned up a live, filed confusion about exactly this gap — a validator rejecting Claude Code's own documented extended frontmatter because it checked against the narrower spec instead. Natural places to surface the tool: the `agentskills/agentskills` GitHub repo's Issues/Discussions (the spec's own home), and any Claude Code or Agent Skills community channel where people are actively writing skills right now.
+
+**Why it's a real fit for Bracketly specifically:** Same recency-and-narrowness logic behind every prior AI-tooling submission proposal here, but with an unusually concrete hook — this isn't just "new spec, no validator yet," it's "the exact confusion between two rulebooks (Claude Code's accepted fields vs. the portable spec's six) already has people filing bugs about it." A validator that explains the split, rather than just checking one side of it, solves a problem people are visibly already hitting.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — this agent's GitHub App cannot fork `agentskills/agentskills` to open a PR against any resources/tooling list, and posting to a Discord/forum or replying in someone else's GitHub Discussion requires a human account and per-community judgment about self-promotion norms.
+
+**What a human needs to do:**
+1. Check `github.com/agentskills/agentskills` Issues/Discussions for existing questions about frontmatter validation or the Claude-Code-extensions-vs-portable-spec confusion, and reply with the tool where genuinely relevant.
+2. Consider a short, non-spammy post in a Claude Code or Agent Skills community channel, framed around the specific "works locally, fails on upload" gotcha rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.

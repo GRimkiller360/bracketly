@@ -79,36 +79,61 @@ const tool = getTool('regex-tester')!;
   var matchesPanel = document.getElementById('matches-panel');
   var matchesOut  = document.getElementById('matches-out');
 
-  function test() {
-    var pat = patternEl.value;
-    var rawFlags = flagsEl.value;
-    var fl  = rawFlags.replace(/[^gimsuy]/g, '');
-    fl = fl.split('').filter(function (c, i) { return fl.indexOf(c) === i; }).join('');
+  // Matching runs in a Web Worker so a pathological pattern (e.g. the
+  // classic catastrophic-backtracking case ^(a+)+$) can be aborted by
+  // terminating the worker instead of freezing the whole tab — a native
+  // regex exec on the main thread can't be interrupted once it starts.
+  var MATCH_TIMEOUT_MS = 2000;
+  var worker = null;
+  var runToken = 0;
+  var timeoutHandle = null;
 
-    statusEl.textContent = '';
-    statusEl.className   = 'status';
-    matchCount.textContent = '';
-    matchesPanel.style.display = 'none';
+  function workerSource() {
+    self.onmessage = function (e) {
+      var pat = e.data.pattern, flags = e.data.flags, text = e.data.text;
+      var re;
+      try {
+        re = new RegExp(pat, flags);
+      } catch (err) {
+        self.postMessage({ error: err.message });
+        return;
+      }
+      var matches = [];
+      try {
+        var m;
+        while ((m = re.exec(text)) !== null) {
+          matches.push({
+            index: m.index,
+            text: m[0],
+            groups: m.slice(1).map(function (g) { return g === undefined ? null : g; }),
+            named: m.groups || null,
+          });
+          if (m[0].length === 0) re.lastIndex++;
+        }
+      } catch (err) {
+        self.postMessage({ error: err.message });
+        return;
+      }
+      self.postMessage({ matches: matches });
+    };
+  }
 
-    if (!pat) return;
+  function getWorker() {
+    if (worker) return worker;
+    var src = '(' + workerSource.toString() + ')();';
+    var blob = new Blob([src], { type: 'application/javascript' });
+    worker = new Worker(URL.createObjectURL(blob));
+    return worker;
+  }
 
-    var flagWarning = fl !== rawFlags
-      ? '⚠ Ignored unsupported or duplicate flag character(s) — using "' + fl + '". '
-      : '';
-
-    var text = testStr.value;
-    var re;
-    try {
-      // Ensure global flag is present for matchAll
-      var flags = fl.includes('g') ? fl : fl + 'g';
-      re = new RegExp(pat, flags);
-    } catch (e) {
-      statusEl.textContent = flagWarning + '✗ Invalid pattern: ' + e.message;
-      statusEl.className   = 'status error';
-      return;
+  function killWorker() {
+    if (worker) {
+      worker.terminate();
+      worker = null;
     }
+  }
 
-    var matches = Array.from(text.matchAll(re));
+  function renderMatches(matches, flagWarning) {
     matchCount.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
 
     if (matches.length === 0) {
@@ -118,15 +143,15 @@ const tool = getTool('regex-tester')!;
     }
 
     var lines = matches.map(function (m, i) {
-      var line = 'Match ' + (i + 1) + ' [' + m.index + '–' + (m.index + m[0].length) + ']: ' + JSON.stringify(m[0]);
-      if (m.length > 1) {
-        var groups = m.slice(1).map(function (g, gi) {
-          return '  Group ' + (gi + 1) + ': ' + (g === undefined ? '(no match)' : JSON.stringify(g));
+      var line = 'Match ' + (i + 1) + ' [' + m.index + '–' + (m.index + m.text.length) + ']: ' + JSON.stringify(m.text);
+      if (m.groups.length > 0) {
+        var groups = m.groups.map(function (g, gi) {
+          return '  Group ' + (gi + 1) + ': ' + (g === null ? '(no match)' : JSON.stringify(g));
         });
         line += '\n' + groups.join('\n');
       }
-      if (m.groups && Object.keys(m.groups).length) {
-        line += '\n  Named: ' + JSON.stringify(m.groups);
+      if (m.named && Object.keys(m.named).length) {
+        line += '\n  Named: ' + JSON.stringify(m.named);
       }
       return line;
     });
@@ -140,6 +165,70 @@ const tool = getTool('regex-tester')!;
       statusEl.textContent = '✓ ' + matches.length + ' match' + (matches.length !== 1 ? 'es' : '') + ' found';
       statusEl.className   = 'status ok';
     }
+  }
+
+  function test() {
+    var pat = patternEl.value;
+    var rawFlags = flagsEl.value;
+    var fl  = rawFlags.replace(/[^dgimsuvy]/g, '');
+    fl = fl.split('').filter(function (c, i) { return fl.indexOf(c) === i; }).join('');
+
+    var myToken = ++runToken;
+    clearTimeout(timeoutHandle);
+
+    statusEl.textContent = '';
+    statusEl.className   = 'status';
+    matchCount.textContent = '';
+    matchesPanel.style.display = 'none';
+
+    if (!pat) return;
+
+    var flagWarning = fl !== rawFlags
+      ? '⚠ Ignored unsupported or duplicate flag character(s) — using "' + fl + '". '
+      : '';
+
+    var text = testStr.value;
+    try {
+      // Cheap up-front validity check so an invalid pattern reports
+      // immediately without waiting on the worker round-trip.
+      new RegExp(pat, fl);
+    } catch (e) {
+      statusEl.textContent = flagWarning + '✗ Invalid pattern: ' + e.message;
+      statusEl.className   = 'status error';
+      return;
+    }
+
+    var flags = fl.includes('g') ? fl : fl + 'g';
+    statusEl.textContent = flagWarning + 'Running…';
+    statusEl.className   = flagWarning ? 'status warning' : 'status';
+
+    var w = getWorker();
+    w.onmessage = function (e) {
+      if (myToken !== runToken) return;
+      clearTimeout(timeoutHandle);
+      if (e.data.error) {
+        statusEl.textContent = flagWarning + '✗ Invalid pattern: ' + e.data.error;
+        statusEl.className   = 'status error';
+        return;
+      }
+      renderMatches(e.data.matches, flagWarning);
+    };
+    w.onerror = function () {
+      if (myToken !== runToken) return;
+      clearTimeout(timeoutHandle);
+      killWorker();
+      statusEl.textContent = flagWarning + '✗ Matching failed unexpectedly.';
+      statusEl.className   = 'status error';
+    };
+    w.postMessage({ pattern: pat, flags: flags, text: text });
+
+    timeoutHandle = setTimeout(function () {
+      if (myToken !== runToken) return;
+      killWorker();
+      statusEl.textContent = flagWarning + '⚠ This pattern is taking too long against the current text — likely catastrophic backtracking from nested quantifiers (e.g. (a+)+). Simplify the pattern or shorten the test string.';
+      statusEl.className   = 'status error';
+      matchCount.textContent = '';
+    }, MATCH_TIMEOUT_MS);
   }
 
   var debounceTimer = null;

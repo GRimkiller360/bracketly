@@ -130,6 +130,10 @@ const tool = getTool('citations-viewer')!;
     return [...docs.entries()].sort((a, b) => a[0] - b[0]);
   }
 
+  function documentHasVerifiableCitation(docIndex, groups) {
+    return groups.some((g) => g.citations.some((c) => c.document_index === docIndex && c.type === 'char_location'));
+  }
+
   function locationLabel(c) {
     if (c.type === 'char_location') return 'Characters ' + c.start_char_index + '–' + c.end_char_index;
     if (c.type === 'page_location') return 'Page ' + c.start_page_number + '–' + c.end_page_number;
@@ -289,19 +293,26 @@ const tool = getTool('citations-viewer')!;
       label.appendChild(span);
       block.appendChild(label);
 
-      const ta = document.createElement('textarea');
-      ta.rows = 4;
-      ta.id = 'verify-doc-input-' + docIndex;
-      ta.setAttribute('aria-labelledby', labelId);
-      ta.placeholder = 'Paste the full source text of this document to verify its citations…';
-      ta.dataset.docIndex = String(docIndex);
-      const restored = previousValues[String(docIndex)];
-      if (restored) ta.value = restored;
-      ta.addEventListener('input', () => runVerification(docIndex, ta.value));
-      block.appendChild(ta);
-
-      verifyDocs.appendChild(block);
-      if (restored) runVerification(docIndex, restored);
+      if (documentHasVerifiableCitation(docIndex, groups)) {
+        const ta = document.createElement('textarea');
+        ta.rows = 4;
+        ta.id = 'verify-doc-input-' + docIndex;
+        ta.setAttribute('aria-labelledby', labelId);
+        ta.placeholder = 'Paste the full source text of this document to verify its citations…';
+        ta.dataset.docIndex = String(docIndex);
+        const restored = previousValues[String(docIndex)];
+        if (restored) ta.value = restored;
+        ta.addEventListener('input', () => runVerification(docIndex, ta.value));
+        block.appendChild(ta);
+        verifyDocs.appendChild(block);
+        if (restored) runVerification(docIndex, restored);
+      } else {
+        const note = document.createElement('p');
+        note.style.cssText = 'color:var(--text-muted);font-size:0.85rem;margin:0.3rem 0 0;';
+        note.textContent = "This document's citations all use page or content-block locations, not character offsets — this tool can only verify char_location citations against pasted text.";
+        block.appendChild(note);
+        verifyDocs.appendChild(block);
+      }
     }
   }
 
