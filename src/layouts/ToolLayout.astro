@@ -1,7 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import AdUnit from '../components/AdUnit.astro';
-import { getCategoryColor, type Tool } from '../data/tools';
+import { getCategoryColor, tools, type Tool } from '../data/tools';
 
 interface Props {
   tool: Tool;
@@ -12,6 +12,9 @@ const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const pageUrl = siteUrl + Astro.url.pathname;
 const categoryColor = getCategoryColor(tool.category);
 const metaDescription = tool.metaDescription ?? tool.description;
+const relatedTools = tools
+  .filter((t) => t.category === tool.category && t.slug !== tool.slug)
+  .slice(0, 4);
 
 const webAppSchema = {
   '@context': 'https://schema.org',
@@ -83,6 +86,21 @@ const faqSchema = {
         ))}
       </div>
     </section>
+
+    {relatedTools.length > 0 && (
+      <section style="margin-top:2.5rem;">
+        <h2 style="font-size:1.15rem;margin:0 0 1rem;">Related {tool.category} tools</h2>
+        <div class="tool-grid" style={`--card-accent-light:${categoryColor.light};--card-accent-dark:${categoryColor.dark};`}>
+          {relatedTools.map((t) => (
+            <a href={`/tools/${t.slug}/`} class="tool-card">
+              <div class="icon">{t.icon}</div>
+              <h3>{t.shortTitle}</h3>
+              <p>{t.description.split(/\.(?=\s|$)/)[0]}.</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
 
     <div class="panel" style="text-align:center;padding:2.25rem;margin-top:2.5rem;">
       <p style="margin:0 0 1rem;font-size:1.05rem;">

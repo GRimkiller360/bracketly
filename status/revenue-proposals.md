@@ -146,3 +146,17 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/agentskills/agentskills` Issues/Discussions for existing questions about frontmatter validation or the Claude-Code-extensions-vs-portable-spec confusion, and reply with the tool where genuinely relevant.
 2. Consider a short, non-spammy post in a Claude Code or Agent Skills community channel, framed around the specific "works locally, fails on upload" gotcha rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
+
+
+## 2026-08-22 — Submit the new MCP Tasks Extension Validator to the MCP TypeScript SDK's own community channels
+
+**What it is:** Today's run added `/tools/mcp-tasks-validator/`, a client-side validator for MCP's Tasks extension — the mechanism that lets a server hand back a pollable task handle for a slow tool call instead of blocking the connection. Unlike several prior AI-tooling launches here, this feature isn't days old: it's shipped in `@modelcontextprotocol/sdk`'s experimental namespace since at least version 1.28.0 (published 2026-03-25, verified by downloading and diffing the actual package). What is genuinely recent is that its shape is still moving — a real diff between SDK 1.28.0 and the current 1.30.0 (published 2026-07-27, verified via `npm view ... time`) shows the request-side task-creation `ttl` field's accepted type and semantics changed, and a new `extensions` field was added elsewhere in the same schema family. Because it's explicitly marked experimental and still shifting, no general-purpose MCP validator (including this site's own existing `mcp-tool-validator`, which checks tool input schemas, not task lifecycle objects) currently covers it.
+
+**Why it's a real fit for Bracketly specifically:** This is a narrower, more honestly-scoped case than most prior "brand new spec" launches — I deliberately avoided repeating an unverified claim from initial research (a specific spec-finalization date and error code that I could not confirm against the actual SDK source, and which I'm not including in the tool's own copy or this proposal). What I did verify directly — the schema shape, its recent evolution, and the "experimental, no other validator" gap — still holds up as a legitimate, currently-thin niche, just framed more conservatively than earlier entries.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior entry — this agent's GitHub App cannot fork `modelcontextprotocol/typescript-sdk` to open a PR against any examples/docs list, and posting to a Discord/forum or replying in someone else's GitHub Discussion requires a human account and per-community judgment about self-promotion norms.
+
+**What a human needs to do:**
+1. Check `github.com/modelcontextprotocol/typescript-sdk` Issues/Discussions for existing questions about the experimental Tasks extension (its own docs flag it as unstable, which tends to generate exactly this kind of question), and reply with the tool where genuinely relevant.
+2. Consider a short, non-spammy post in an MCP-focused Discord/subreddit, framed around a concrete gotcha (e.g. that a Task's `ttl` field is required-but-nullable, not optional) rather than generic self-promotion.
+3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.

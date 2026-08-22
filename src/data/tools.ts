@@ -609,7 +609,7 @@ export const tools: Tool[] = [
       },
       {
         heading: "What this checks",
-        body: "This tool parses each data: line as its own SSE event, matches its \"type\" field against the documented UI Message Stream Protocol part types (start, text-start/delta/end, reasoning-start/delta/end, tool-input-start/delta/available, tool-output-available/denied, tool-approval-request/response, file, source-url, source-document, data-*, error, start-step/finish-step/finish, abort), and checks that required fields are present with the right JSON type. It also tracks state across the whole stream — flagging a text-delta or reasoning-delta that references an id with no matching *-start, a *-start that's never closed, and a tool-output event referencing a toolCallId that was never introduced — then reconstructs the assembled message text a real client would have rendered, so you can see the end result of the stream at a glance.",
+        body: "This tool parses each data: line as its own SSE event, matches its \"type\" field against the documented UI Message Stream Protocol part types (start, text-start/delta/end, reasoning-start/delta/end, reasoning-file, tool-input-start/delta/available, tool-output-available/denied, tool-approval-request/response, file, source-url, source-document, custom, data-*, error, start-step/finish-step/finish, abort), and checks that required fields are present with the right JSON type. It also tracks state across the whole stream — flagging a text-delta or reasoning-delta that references an id with no matching *-start, a *-start that's never closed, and a tool-output event referencing a toolCallId that was never introduced — then reconstructs the assembled message text a real client would have rendered, so you can see the end result of the stream at a glance.",
       },
     ],
     faq: [
@@ -868,6 +868,50 @@ export const tools: Tool[] = [
       {
         q: "Is my SKILL.md content sent anywhere?",
         a: "No. Parsing happens entirely in your browser with plain JavaScript — nothing you paste is transmitted or stored, which matters since skill files often contain internal tool names or workflow details.",
+      },
+    ],
+  },
+  {
+    slug: "mcp-tasks-validator",
+    title: "MCP Tasks Extension Validator",
+    shortTitle: "MCP Tasks Validator",
+    description:
+      "Validate a Model Context Protocol Task/status object, a tasks/get, tasks/cancel, or tasks/list message, a task-creation request, or a tasks capability negotiation object against the official Tasks extension shape. Runs entirely in your browser.",
+    metaDescription:
+      "Validate MCP Tasks extension objects — Task/status shape, tasks/get|cancel|list messages, and capability negotiation. 100% client-side.",
+    keywords: ["mcp tasks extension", "model context protocol tasks", "mcp async tool call", "tasks/get validator", "mcp long-running tools"],
+    icon: "TSK",
+    category: "AI",
+    content: [
+      {
+        heading: "What the Tasks extension is for",
+        body: "MCP's Tasks extension lets a server hand back a durable task handle instead of blocking the connection on a slow operation — a CI run, a batch job, or a step waiting on human approval. The caller polls tasks/get (or waits for a notifications/tasks/status push) until the task reaches a terminal status, then fetches the actual output with a separate tasks/result request. It's shipped in the official TypeScript SDK's experimental tasks module, marked explicitly as experimental and subject to change — the shape checked here reflects the current SDK, not a settled, unchangeable spec.",
+      },
+      {
+        heading: "What this tool checks",
+        body: "Paste a bare Task/status object (taskId, status, ttl, createdAt, lastUpdatedAt, plus optional pollInterval/statusMessage) and it checks every field's type and the five valid status values (working, input_required, completed, failed, cancelled) — including that ttl is present and either a number or null, since treating it as optional and omitting it is a common but invalid shortcut. It also catches a natural misunderstanding: putting the actual result or error directly on the task object, when the schema requires fetching a completed task's payload separately via tasks/result. It recognizes and validates the full family of related shapes too — a wrapped CreateTaskResult ({ task: {...} }), a ListTasksResult ({ tasks: [...] }), tasks/get / tasks/result / tasks/cancel / tasks/list requests, a notifications/tasks/status notification, a request that asks for task-backed execution via params.task, the io.modelcontextprotocol/related-task _meta key, and a capabilities.tasks negotiation object (flagging the common mistake of passing true instead of an empty object {} for a support flag, following MCP's own capability-presence convention).",
+      },
+    ],
+    faq: [
+      {
+        q: "What is the MCP Tasks extension?",
+        a: "A mechanism that lets an MCP server represent a slow operation as a pollable task instead of blocking the request — the server returns a task handle immediately, the client polls its status (or receives push notifications), and fetches the final result separately once the task reaches a terminal state (completed, failed, or cancelled).",
+      },
+      {
+        q: "Why does my parser reject ttl: null?",
+        a: "It shouldn't — ttl on a Task/status object is required to be present but is allowed to be null (meaning no fixed expiry). The common bug this catches is the opposite: omitting the ttl key entirely because it looks optional, which is invalid — the key must be present even when its value is null.",
+      },
+      {
+        q: "Why is there no \"result\" field directly on my task object?",
+        a: "That's intentional, not a bug in your data — the Task/status object only ever carries status metadata (taskId, status, timestamps). The actual output of a completed task is fetched with a separate tasks/result request. If your server puts the result directly on the task object, a strict client following the schema won't know where to find it.",
+      },
+      {
+        q: "Is the Tasks extension a finished, stable spec?",
+        a: "No — it ships in the official SDK's experimental namespace and its own source carries an explicit warning that the shape may change without notice. This tool validates against the extension as currently implemented; treat a flagged field as a signal to double-check the latest SDK, not an unappealable verdict.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
       },
     ],
   },

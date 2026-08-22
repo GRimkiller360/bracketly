@@ -1,0 +1,392 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-tasks-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Task/status object, a tasks/* request or response, or a tasks capability object</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      autocomplete="off"
+      placeholder={`Paste a Task/status object, e.g.\n{\n  "taskId": "task_abc123",\n  "status": "working",\n  "ttl": 60000,\n  "createdAt": "2026-08-22T10:00:00Z",\n  "lastUpdatedAt": "2026-08-22T10:00:05Z",\n  "pollInterval": 2000\n}\n\nOr a tasks/get request/response, a notifications/tasks/status notification, a request whose params.task asks for task-backed execution, or a capabilities.tasks negotiation object.`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Detected shape</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const summaryEl = document.getElementById('summary');
+
+  const TASK_STATUSES = ['working', 'input_required', 'completed', 'failed', 'cancelled'];
+  const TERMINAL_STATUSES = ['completed', 'failed', 'cancelled'];
+  const RELATED_TASK_META_KEY = 'io.modelcontextprotocol/related-task';
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function isIsoDateString(s) {
+    if (typeof s !== 'string') return false;
+    const d = new Date(s);
+    return !isNaN(d.getTime());
+  }
+
+  function validateTaskShape(task, path, issues) {
+    if (!isPlainObject(task)) {
+      issues.push({ severity: 'high', message: path + ' should be an object.' });
+      return;
+    }
+    if (typeof task.taskId !== 'string' || task.taskId.length === 0) {
+      issues.push({ severity: 'high', message: path + '.taskId is required and must be a non-empty string.' });
+    }
+    if (typeof task.status !== 'string' || TASK_STATUSES.indexOf(task.status) === -1) {
+      issues.push({ severity: 'high', message: path + '.status must be one of "' + TASK_STATUSES.join('", "') + '" — got ' + JSON.stringify(task.status) + '.' });
+    }
+    if (!('ttl' in task)) {
+      issues.push({ severity: 'high', message: path + '.ttl is a required field (it can be null, but the key must be present) — a common mistake is treating it as optional and omitting it entirely.' });
+    } else if (task.ttl !== null && typeof task.ttl !== 'number') {
+      issues.push({ severity: 'high', message: path + '.ttl must be a number or null — got ' + JSON.stringify(task.ttl) + '.' });
+    }
+    if (typeof task.createdAt !== 'string') {
+      issues.push({ severity: 'high', message: path + '.createdAt is required and must be a string.' });
+    } else if (!isIsoDateString(task.createdAt)) {
+      issues.push({ severity: 'medium', message: path + '.createdAt ("' + task.createdAt + '") doesn’t parse as a valid timestamp.' });
+    }
+    if (typeof task.lastUpdatedAt !== 'string') {
+      issues.push({ severity: 'high', message: path + '.lastUpdatedAt is required and must be a string.' });
+    } else if (!isIsoDateString(task.lastUpdatedAt)) {
+      issues.push({ severity: 'medium', message: path + '.lastUpdatedAt ("' + task.lastUpdatedAt + '") doesn’t parse as a valid timestamp.' });
+    }
+    if (isIsoDateString(task.createdAt) && isIsoDateString(task.lastUpdatedAt)) {
+      if (new Date(task.lastUpdatedAt).getTime() < new Date(task.createdAt).getTime()) {
+        issues.push({ severity: 'low', message: path + '.lastUpdatedAt is earlier than ' + path + '.createdAt.' });
+      }
+    }
+    if ('pollInterval' in task && task.pollInterval !== undefined && typeof task.pollInterval !== 'number') {
+      issues.push({ severity: 'medium', message: path + '.pollInterval should be a number (milliseconds) when present — got ' + JSON.stringify(task.pollInterval) + '.' });
+    }
+    if ('statusMessage' in task && task.statusMessage !== undefined && typeof task.statusMessage !== 'string') {
+      issues.push({ severity: 'medium', message: path + '.statusMessage should be a string when present — got ' + JSON.stringify(task.statusMessage) + '.' });
+    }
+    if ('result' in task || 'error' in task) {
+      issues.push({ severity: 'high', message: path + ' has a top-level "result"/"error" field — the Task/status object never carries the actual outcome. A completed task’s result must be fetched separately with a tasks/result request; embedding it here is not part of the schema.' });
+    }
+    if ('inputRequests' in task) {
+      issues.push({ severity: 'medium', message: path + ' has an "inputRequests" field — that’s not part of the current Task schema (taskId/status/ttl/createdAt/lastUpdatedAt/pollInterval/statusMessage only). An "input_required" status signals that input is needed; how the input requests themselves are described is a separate, method-specific concern.' });
+    }
+    if (TERMINAL_STATUSES.indexOf(task.status) !== -1 && task.pollInterval !== undefined) {
+      issues.push({ severity: 'low', message: path + '.pollInterval is set but status is already terminal ("' + task.status + '") — harmless, but there’s nothing left to poll for.' });
+    }
+  }
+
+  function validateRelatedTaskMeta(meta, path, issues) {
+    const rt = meta[RELATED_TASK_META_KEY];
+    if (rt === undefined) return;
+    if (!isPlainObject(rt) || typeof rt.taskId !== 'string') {
+      issues.push({ severity: 'high', message: path + '["' + RELATED_TASK_META_KEY + '"] must be an object with a string "taskId" field.' });
+    }
+  }
+
+  function validateCapabilityFlag(obj, key, path, issues) {
+    if (obj[key] === undefined) return;
+    if (!isPlainObject(obj[key])) {
+      issues.push({ severity: 'medium', message: path + '.' + key + ' should be an object (conventionally {}) to signal support, following MCP’s capability-flag pattern — got ' + JSON.stringify(obj[key]) + ' (' + typeof obj[key] + ').' });
+    }
+  }
+
+  function validateTasksCapability(cap, path, issues) {
+    if (!isPlainObject(cap)) {
+      issues.push({ severity: 'high', message: path + ' should be an object.' });
+      return;
+    }
+    validateCapabilityFlag(cap, 'list', path, issues);
+    validateCapabilityFlag(cap, 'cancel', path, issues);
+    if (cap.requests !== undefined) {
+      if (!isPlainObject(cap.requests)) {
+        issues.push({ severity: 'medium', message: path + '.requests should be an object.' });
+      } else {
+        const req = cap.requests;
+        if (isPlainObject(req.sampling)) validateCapabilityFlag(req.sampling, 'createMessage', path + '.requests.sampling', issues);
+        else if (req.sampling !== undefined) issues.push({ severity: 'medium', message: path + '.requests.sampling should be an object.' });
+        if (isPlainObject(req.elicitation)) validateCapabilityFlag(req.elicitation, 'create', path + '.requests.elicitation', issues);
+        else if (req.elicitation !== undefined) issues.push({ severity: 'medium', message: path + '.requests.elicitation should be an object.' });
+        if (isPlainObject(req.tools)) validateCapabilityFlag(req.tools, 'call', path + '.requests.tools', issues);
+        else if (req.tools !== undefined) issues.push({ severity: 'medium', message: path + '.requests.tools should be an object.' });
+      }
+    }
+  }
+
+  function analyze(raw) {
+    const issues = [];
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level JSON must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    if (body.method === 'notifications/tasks/status') {
+      if (body.jsonrpc !== '2.0') issues.push({ severity: 'medium', message: '"jsonrpc" should be the literal string "2.0".' });
+      if ('id' in body) issues.push({ severity: 'high', message: 'A notification must not include an "id" field — including one makes this look like a request expecting a response.' });
+      if (!isPlainObject(body.params)) {
+        issues.push({ severity: 'high', message: '"params" is required and must be an object.' });
+      } else {
+        validateTaskShape(body.params, 'params', issues);
+      }
+      return { kind: 'notifications/tasks/status notification', issues };
+    }
+
+    if (body.method === 'tasks/get' || body.method === 'tasks/result' || body.method === 'tasks/cancel') {
+      if (body.jsonrpc !== '2.0') issues.push({ severity: 'medium', message: '"jsonrpc" should be the literal string "2.0".' });
+      if (body.id === undefined) issues.push({ severity: 'high', message: 'Requests must include an "id" field.' });
+      if (!isPlainObject(body.params) || typeof body.params.taskId !== 'string') {
+        issues.push({ severity: 'high', message: 'params.taskId is required and must be a string for ' + body.method + '.' });
+      }
+      if (isPlainObject(body.params) && isPlainObject(body.params._meta)) {
+        validateRelatedTaskMeta(body.params._meta, 'params._meta', issues);
+      }
+      return { kind: body.method + ' request', issues };
+    }
+
+    if (body.method === 'tasks/list') {
+      if (body.jsonrpc !== '2.0') issues.push({ severity: 'medium', message: '"jsonrpc" should be the literal string "2.0".' });
+      if (body.id === undefined) issues.push({ severity: 'high', message: 'Requests must include an "id" field.' });
+      if (body.params !== undefined) {
+        if (!isPlainObject(body.params)) {
+          issues.push({ severity: 'high', message: 'params should be an object when present.' });
+        } else if (body.params.cursor !== undefined && typeof body.params.cursor !== 'string') {
+          issues.push({ severity: 'medium', message: 'params.cursor should be a string when present.' });
+        }
+      }
+      return { kind: 'tasks/list request', issues };
+    }
+
+    if (typeof body.method === 'string' && isPlainObject(body.params) && isPlainObject(body.params.task)) {
+      if (body.jsonrpc !== '2.0') issues.push({ severity: 'medium', message: '"jsonrpc" should be the literal string "2.0".' });
+      if (body.id === undefined) issues.push({ severity: 'high', message: 'Only requests (which include an "id") can ask for task-backed execution — a notification has no response to attach a task to.' });
+      const t = body.params.task;
+      if (t.ttl !== undefined && typeof t.ttl !== 'number') {
+        issues.push({ severity: 'medium', message: 'params.task.ttl should be a number (milliseconds) when present — got ' + JSON.stringify(t.ttl) + '. Unlike the Task object’s own ttl field, this request-side field does not accept null.' });
+      }
+      if (t.pollInterval !== undefined && typeof t.pollInterval !== 'number') {
+        issues.push({ severity: 'medium', message: 'params.task.pollInterval should be a number (milliseconds) when present.' });
+      }
+      if (isPlainObject(body.params._meta)) {
+        validateRelatedTaskMeta(body.params._meta, 'params._meta', issues);
+      }
+      issues.push({ severity: 'low', message: 'This requests task-backed execution for method "' + body.method + '" — the receiving side must have advertised support for it under capabilities.tasks.requests (e.g. requests.tools.call on the server for a tools/call request) or it may reject the task field.' });
+      return { kind: 'task-augmented ' + body.method + ' request', issues };
+    }
+
+    if (typeof body.method === 'string' && isPlainObject(body.params) && isPlainObject(body.params._meta) && body.params._meta[RELATED_TASK_META_KEY] !== undefined) {
+      validateRelatedTaskMeta(body.params._meta, 'params._meta', issues);
+      return { kind: body.method + ' request related to an existing task', issues };
+    }
+
+    if (typeof body.taskId === 'string' && typeof body.status === 'string' && TASK_STATUSES.indexOf(body.status) !== -1) {
+      validateTaskShape(body, '(root)', issues);
+      return { kind: 'bare Task/status object', issues };
+    }
+
+    if ('result' in body || 'error' in body) {
+      if ('error' in body) {
+        if (!isPlainObject(body.error) || typeof body.error.code !== 'number' || typeof body.error.message !== 'string') {
+          issues.push({ severity: 'medium', message: '"error" should be an object with a numeric "code" and string "message".' });
+        }
+        return { kind: 'JSON-RPC error response', issues };
+      }
+      const result = body.result;
+      if (!isPlainObject(result)) {
+        return { fatal: '"result" should be an object.' };
+      }
+      if (isPlainObject(result.task)) {
+        validateTaskShape(result.task, 'result.task', issues);
+        return { kind: 'CreateTaskResult', issues };
+      }
+      if (Array.isArray(result.tasks)) {
+        if (result.nextCursor !== undefined && typeof result.nextCursor !== 'string') {
+          issues.push({ severity: 'medium', message: 'result.nextCursor should be a string when present.' });
+        }
+        result.tasks.forEach(function (t, i) { validateTaskShape(t, 'result.tasks[' + i + ']', issues); });
+        return { kind: 'ListTasksResult', issues };
+      }
+      if (typeof result.taskId === 'string' || typeof result.status === 'string') {
+        validateTaskShape(result, 'result', issues);
+        return { kind: 'GetTaskResult / CancelTaskResult', issues };
+      }
+      return { fatal: 'This is a JSON-RPC response, but "result" doesn’t contain a recognizable Tasks-extension shape (no "task", "tasks", or "taskId"/"status" fields). Paste a tasks/get, tasks/cancel, tasks/list, or task-creation response.' };
+    }
+
+    if (isPlainObject(body.task)) {
+      validateTaskShape(body.task, 'task', issues);
+      return { kind: 'CreateTaskResult (unwrapped)', issues };
+    }
+    if (Array.isArray(body.tasks)) {
+      body.tasks.forEach(function (t, i) { validateTaskShape(t, 'tasks[' + i + ']', issues); });
+      return { kind: 'ListTasksResult (unwrapped)', issues };
+    }
+    if (typeof body.taskId === 'string') {
+      validateTaskShape(body, '(root)', issues);
+      return { kind: 'Task/status object (unrecognized status value)', issues };
+    }
+    if (isPlainObject(body.capabilities) && isPlainObject(body.capabilities.tasks)) {
+      validateTasksCapability(body.capabilities.tasks, 'capabilities.tasks', issues);
+      return { kind: 'capabilities object', issues };
+    }
+    if (isPlainObject(body.tasks) && !Array.isArray(body.tasks)) {
+      validateTasksCapability(body.tasks, 'tasks', issues);
+      return { kind: 'tasks capability object (unwrapped)', issues };
+    }
+    if (body.list !== undefined || body.cancel !== undefined || body.requests !== undefined) {
+      validateTasksCapability(body, '(root)', issues);
+      return { kind: 'tasks capability object (bare)', issues };
+    }
+
+    return { fatal: 'This doesn’t look like a Tasks-extension message. Paste a Task/status object (taskId + status), a tasks/get / tasks/result / tasks/cancel / tasks/list request or its response, a notifications/tasks/status notification, a request whose params.task asks for task-backed execution, or a capabilities.tasks negotiation object.' };
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    summaryEl.textContent = result.kind;
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break a client', low: 'Note' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP Tasks extension check — ' + result.kind);
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter(function (x) { return x.severity === 'high'; }).length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

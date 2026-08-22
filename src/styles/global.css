@@ -402,6 +402,8 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-muted);
