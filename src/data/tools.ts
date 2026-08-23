@@ -152,7 +152,7 @@ export const tools: Tool[] = [
       },
       {
         q: "Can two generated UUIDs ever collide?",
-        a: "Technically possible but astronomically unlikely: a v4 UUID has 122 random bits, so you'd need to generate roughly a trillion per second for a billion years before a 50% chance of one collision.",
+        a: "Technically possible but astronomically unlikely: a v4 UUID has 122 random bits, so even generating a billion of them per second, it would take roughly 86 years before you'd have a 50% chance of one collision.",
       },
     ],
   },

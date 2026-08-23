@@ -160,3 +160,14 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Check `github.com/modelcontextprotocol/typescript-sdk` Issues/Discussions for existing questions about the experimental Tasks extension (its own docs flag it as unstable, which tends to generate exactly this kind of question), and reply with the tool where genuinely relevant.
 2. Consider a short, non-spammy post in an MCP-focused Discord/subreddit, framed around a concrete gotcha (e.g. that a Task's `ttl` field is required-but-nullable, not optional) rather than generic self-promotion.
 3. No code or account changes needed on the Bracketly side — this is purely outbound promotion of an already-shipped tool.
+
+## 2026-08-23 — List Bracketly on AlternativeTo.net
+
+**What it is:** [AlternativeTo.net](https://alternativeto.net/) is a free, community-curated software directory built around "X alternative" comparison pages (e.g. its pages for jwt.io, Postman, DevUtils, CyberChef) that rank well in Google for searches like "jwt.io alternative" or "postman alternative lightweight." Listing is a one-time free submission via "Suggest new application" after creating an account.
+
+**Why it's a real fit for Bracketly specifically:** The 2026-08-12 entry already diagnosed Bracketly's core distribution problem with real data: Search Console shows impressions for base64-related terms but essentially zero clicks, consistent with a domain too new/low-authority to rank on its own yet. Every remedy logged so far is either a one-time launch-day traffic spike (Show HN) or a niche community post tied to a single tool. AlternativeTo addresses a different gap: a single, durable, high-authority (DR ~85+) backlink and directory presence that doesn't decay after a day. Because Bracketly bundles ~22 tools spanning encoding/JSON/JWT/hashing/timestamps/regex, one listing can be tagged as an alternative to several established tools at once (jwt.io, DevUtils, Postman's format helpers, CyberChef, generic epoch converters, regex101), giving compounding long-tail SEO surface across multiple "alternative to" queries rather than one launch spike. It requires no contract, no billing, and no per-community etiquette judgment call — just a signup and a form.
+
+**What a human needs to do:**
+1. Create a free account at alternativeto.net.
+2. Use the profile menu's "Suggest new application," enter `bracketly.pages.dev`, and fill in the description, platform (Web), license (Free), and tags — specifically naming the well-known tools it's a lightweight/privacy-first alternative to (JWT.io, Postman, DevUtils, CyberChef, epoch/timestamp converters) so it surfaces on those comparison pages.
+3. Wait for moderator approval — no code or account changes needed on the Bracketly repo side.
