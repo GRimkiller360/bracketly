@@ -86,7 +86,9 @@
         bait.clientHeight === 0 ||
         getComputedStyle(bait).display === 'none';
       var networkBlock = window.__bracketlyAdsFailed === true;
-      document.body.removeChild(bait);
+      if (bait.parentNode) {
+        bait.parentNode.removeChild(bait);
+      }
       var blocked = cosmeticBlock || networkBlock;
       if (!blocked) return;
 

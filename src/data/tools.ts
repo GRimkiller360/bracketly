@@ -915,6 +915,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-server-json-validator",
+    title: "MCP Registry server.json Validator",
+    shortTitle: "server.json Validator",
+    description:
+      "Validate a server.json manifest against the official Model Context Protocol Registry schema before publishing — required fields, name format, package/remote transports, icons, and repository metadata. Runs entirely in your browser.",
+    metaDescription:
+      "Validate an MCP Registry server.json manifest — name format, packages, remotes, transports, and icons. 100% client-side.",
+    keywords: ["mcp registry", "server.json validator", "model context protocol registry", "mcp-publisher", "mcp server manifest"],
+    icon: "SRV",
+    category: "AI",
+    content: [
+      {
+        heading: "What server.json is for",
+        body: "The MCP Registry is a central directory MCP clients use to discover and install servers. To list a server there, its author writes a server.json manifest describing the server's name, version, and how to run it — either as an installable package (npm, PyPI, an OCI image, a NuGet package, or an MCPB bundle) or as a hosted remote endpoint reachable over HTTP. The official publishing tool, mcp-publisher, reads this file directly; getting its shape wrong is the most common reason a publish attempt fails or a listed server can't actually be launched by a client.",
+      },
+      {
+        heading: "What this tool checks",
+        body: "Paste a server.json document and it checks the top-level required fields (name in reverse-DNS namespace form like io.github.user/weather, a 1-100 character description, and a version that isn't a range or the literal \"latest\"), then walks every packages[] entry (registryType, identifier, and a transport — stdio, streamable-http, or sse — plus a rejected-if-\"latest\" version and a 64-character hex fileSha256 when present, flagged as required for MCPB packages specifically), every remotes[] entry (must use streamable-http or sse, never stdio, since a remote is by definition reachable over the network), any repository metadata (url and source), and any icons (HTTPS-only src, a closed set of MIME types, and WxH-or-\"any\" size strings). It also flags the case where neither packages nor remotes is present — a listing a client has no actual way to run or connect to.",
+      },
+    ],
+    faq: [
+      {
+        q: "What's the difference between packages and remotes?",
+        a: "packages[] describes something a client downloads and runs locally — an npm/PyPI/OCI/NuGet package or an MCPB bundle, launched over stdio or a local HTTP transport. remotes[] describes a server that's already running somewhere and reachable directly over the network via streamable-http or sse — there's nothing to install. A stdio transport is only valid inside packages[]; it's rejected under remotes[].",
+      },
+      {
+        q: "Why is my version rejected even though it looks like a normal version?",
+        a: "The registry requires a single, specific version — version ranges like ^1.2.3, ~1.2.3, >=1.2.3, or 1.x are rejected, and packages[].version additionally rejects the literal string \"latest\" outright (the schema explicitly forbids it). This tool flags range-like patterns as a warning at the top level and as a hard error inside packages[].",
+      },
+      {
+        q: "When is fileSha256 actually required?",
+        a: "The official schema marks it required for MCPB packages specifically, and optional for every other registry type — though when it is present for any package type, clients are expected to verify the downloaded file's hash against it before running the package.",
+      },
+      {
+        q: "Is this the same as running mcp-publisher --dry-run?",
+        a: "No — this checks your manifest's shape against the same published JSON Schema mcp-publisher validates against, entirely in your browser, before you run the official CLI. It's a quick first pass, not a replacement for actually publishing.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

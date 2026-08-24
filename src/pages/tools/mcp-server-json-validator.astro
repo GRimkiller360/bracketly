@@ -1,0 +1,450 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-server-json-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">server.json manifest</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="16"
+      autocomplete="off"
+      placeholder={`Paste a server.json manifest, e.g.\n{\n  "name": "io.github.user/weather",\n  "description": "MCP server providing weather data and forecasts",\n  "version": "1.0.2",\n  "packages": [\n    {\n      "registryType": "npm",\n      "identifier": "@example/weather-server",\n      "version": "1.0.2",\n      "transport": { "type": "stdio" }\n    }\n  ]\n}`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+
+  const NAME_PATTERN = /^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/;
+  const HTTP_URL_PATTERN = /^https?:\/\/[^\s]+$/;
+  const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+  const SIZES_PATTERN = /^(\d+x\d+|any)$/;
+  const ICON_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+  const INPUT_FORMATS = ['string', 'number', 'boolean', 'filepath'];
+  const RANGE_LIKE_VERSION = /^[\^~]|^[<>]=?|\.x$|\.\*$|\*$|^latest$/i;
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function push(issues, severity, message) {
+    issues.push({ severity: severity, message: message });
+  }
+
+  function validateArgument(arg, path, issues) {
+    if (!isPlainObject(arg)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (arg.type === 'positional') {
+      if (arg.valueHint === undefined && arg.value === undefined) {
+        push(issues, 'high', path + ' is a positional argument but has neither "valueHint" nor "value" — one of the two is required.');
+      }
+    } else if (arg.type === 'named') {
+      if (typeof arg.name !== 'string' || arg.name.length === 0) {
+        push(issues, 'high', path + '.name is required for a named argument (the flag name, e.g. "--port").');
+      }
+    } else {
+      push(issues, 'high', path + '.type must be "positional" or "named" — got ' + JSON.stringify(arg.type) + '.');
+    }
+    if (arg.isRequired !== undefined && typeof arg.isRequired !== 'boolean') {
+      push(issues, 'medium', path + '.isRequired should be a boolean.');
+    }
+    if (arg.isSecret !== undefined && typeof arg.isSecret !== 'boolean') {
+      push(issues, 'medium', path + '.isSecret should be a boolean.');
+    }
+    if (arg.format !== undefined && INPUT_FORMATS.indexOf(arg.format) === -1) {
+      push(issues, 'medium', path + '.format must be one of "' + INPUT_FORMATS.join('", "') + '" — got ' + JSON.stringify(arg.format) + '.');
+    }
+  }
+
+  function validateKeyValueInput(kv, path, issues) {
+    if (!isPlainObject(kv)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (typeof kv.name !== 'string' || kv.name.length === 0) {
+      push(issues, 'high', path + '.name is required.');
+    }
+  }
+
+  function validateLocalTransport(t, path, issues) {
+    if (!isPlainObject(t)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (t.type === 'stdio') {
+      return;
+    }
+    if (t.type === 'streamable-http' || t.type === 'sse') {
+      if (typeof t.url !== 'string') {
+        push(issues, 'high', path + '.url is required for a "' + t.type + '" transport.');
+      } else if (!HTTP_URL_PATTERN.test(t.url)) {
+        push(issues, 'high', path + '.url ("' + t.url + '") must start with http:// or https://.');
+      }
+      if (t.headers !== undefined) {
+        if (!Array.isArray(t.headers)) {
+          push(issues, 'medium', path + '.headers should be an array.');
+        } else {
+          t.headers.forEach(function (h, i) { validateKeyValueInput(h, path + '.headers[' + i + ']', issues); });
+        }
+      }
+      return;
+    }
+    push(issues, 'high', path + '.type must be "stdio", "streamable-http", or "sse" — got ' + JSON.stringify(t.type) + '.');
+  }
+
+  function validateRemoteTransport(t, path, issues) {
+    if (!isPlainObject(t)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (t.type === 'stdio') {
+      push(issues, 'high', path + ' cannot use "stdio" — entries in "remotes" describe a server reachable over the network. A locally-launched stdio server belongs under "packages" instead.');
+      return;
+    }
+    validateLocalTransport(t, path, issues);
+    if (t.variables !== undefined && !isPlainObject(t.variables)) {
+      push(issues, 'medium', path + '.variables should be an object.');
+    }
+  }
+
+  function validatePackage(pkg, i, issues) {
+    const path = 'packages[' + i + ']';
+    if (!isPlainObject(pkg)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (typeof pkg.registryType !== 'string' || pkg.registryType.length === 0) {
+      push(issues, 'high', path + '.registryType is required (e.g. "npm", "pypi", "oci", "nuget", "mcpb").');
+    }
+    if (typeof pkg.identifier !== 'string' || pkg.identifier.length === 0) {
+      push(issues, 'high', path + '.identifier is required (a package name for registries, or a URL for direct downloads).');
+    }
+    if (pkg.transport === undefined) {
+      push(issues, 'high', path + '.transport is required.');
+    } else {
+      validateLocalTransport(pkg.transport, path + '.transport', issues);
+    }
+    if (pkg.version !== undefined) {
+      if (typeof pkg.version !== 'string' || pkg.version.length === 0) {
+        push(issues, 'high', path + '.version should be a non-empty string.');
+      } else if (pkg.version === 'latest') {
+        push(issues, 'high', path + '.version cannot be the literal string "latest" — a specific version is required.');
+      } else if (RANGE_LIKE_VERSION.test(pkg.version)) {
+        push(issues, 'medium', path + '.version ("' + pkg.version + '") looks like a version range — the registry requires a single specific version, not a range (^, ~, >=, x, or * are all rejected).');
+      }
+    }
+    if (pkg.fileSha256 !== undefined && !SHA256_PATTERN.test(pkg.fileSha256)) {
+      push(issues, 'high', path + '.fileSha256 must be a 64-character lowercase hex SHA-256 hash.');
+    }
+    if (pkg.registryType === 'mcpb' && pkg.fileSha256 === undefined) {
+      push(issues, 'medium', path + '.fileSha256 is required for MCPB packages (optional for other registry types).');
+    }
+    if (pkg.registryBaseUrl !== undefined && typeof pkg.registryBaseUrl !== 'string') {
+      push(issues, 'medium', path + '.registryBaseUrl should be a string URL.');
+    }
+    if (pkg.environmentVariables !== undefined) {
+      if (!Array.isArray(pkg.environmentVariables)) {
+        push(issues, 'medium', path + '.environmentVariables should be an array.');
+      } else {
+        pkg.environmentVariables.forEach(function (ev, j) { validateKeyValueInput(ev, path + '.environmentVariables[' + j + ']', issues); });
+      }
+    }
+    if (pkg.packageArguments !== undefined) {
+      if (!Array.isArray(pkg.packageArguments)) {
+        push(issues, 'medium', path + '.packageArguments should be an array.');
+      } else {
+        pkg.packageArguments.forEach(function (a, j) { validateArgument(a, path + '.packageArguments[' + j + ']', issues); });
+      }
+    }
+    if (pkg.runtimeArguments !== undefined) {
+      if (!Array.isArray(pkg.runtimeArguments)) {
+        push(issues, 'medium', path + '.runtimeArguments should be an array.');
+      } else {
+        pkg.runtimeArguments.forEach(function (a, j) { validateArgument(a, path + '.runtimeArguments[' + j + ']', issues); });
+        if (pkg.runtimeHint === undefined) {
+          push(issues, 'low', path + '.runtimeHint should be provided when runtimeArguments are present (a hint like "npx", "uvx", or "docker" for the launching runtime).');
+        }
+      }
+    }
+  }
+
+  function validateIcon(icon, path, issues) {
+    if (!isPlainObject(icon)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (typeof icon.src !== 'string') {
+      push(issues, 'high', path + '.src is required.');
+    } else {
+      if (icon.src.length > 255) {
+        push(issues, 'high', path + '.src exceeds the 255-character limit.');
+      }
+      if (!/^https:\/\//i.test(icon.src)) {
+        push(issues, 'high', path + '.src ("' + icon.src + '") must be an HTTPS URL.');
+      }
+    }
+    if (icon.mimeType !== undefined && ICON_MIME_TYPES.indexOf(icon.mimeType) === -1) {
+      push(issues, 'high', path + '.mimeType must be one of "' + ICON_MIME_TYPES.join('", "') + '" — got ' + JSON.stringify(icon.mimeType) + '.');
+    }
+    if (icon.sizes !== undefined) {
+      if (!Array.isArray(icon.sizes)) {
+        push(issues, 'medium', path + '.sizes should be an array.');
+      } else {
+        icon.sizes.forEach(function (s, j) {
+          if (typeof s !== 'string' || !SIZES_PATTERN.test(s)) {
+            push(issues, 'high', path + '.sizes[' + j + '] ("' + s + '") must match "WxH" (e.g. "48x48") or "any".');
+          }
+        });
+      }
+    }
+    if (icon.theme !== undefined && icon.theme !== 'light' && icon.theme !== 'dark') {
+      push(issues, 'high', path + '.theme must be "light" or "dark" — got ' + JSON.stringify(icon.theme) + '.');
+    }
+  }
+
+  function validateRepository(repo, path, issues) {
+    if (!isPlainObject(repo)) {
+      push(issues, 'high', path + ' should be an object.');
+      return;
+    }
+    if (typeof repo.url !== 'string') {
+      push(issues, 'high', path + '.url is required.');
+    }
+    if (typeof repo.source !== 'string') {
+      push(issues, 'high', path + '.source is required (e.g. "github").');
+    }
+    if (repo.subfolder !== undefined && typeof repo.subfolder !== 'string') {
+      push(issues, 'medium', path + '.subfolder should be a string.');
+    }
+  }
+
+  function analyze(raw) {
+    const issues = [];
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level JSON must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    if (typeof body.name !== 'string') {
+      push(issues, 'high', '"name" is required and must be a string.');
+    } else {
+      if (body.name.length < 3 || body.name.length > 200) {
+        push(issues, 'high', '"name" must be 3-200 characters — got ' + body.name.length + '.');
+      }
+      if (!NAME_PATTERN.test(body.name)) {
+        push(issues, 'high', '"name" ("' + body.name + '") must be reverse-DNS namespace form with exactly one slash, e.g. "io.github.user/weather".');
+      }
+    }
+
+    if (typeof body.description !== 'string') {
+      push(issues, 'high', '"description" is required and must be a string.');
+    } else if (body.description.length < 1 || body.description.length > 100) {
+      push(issues, 'high', '"description" must be 1-100 characters — got ' + body.description.length + '. Keep it focused on capabilities, not implementation details.');
+    }
+
+    if (typeof body.version !== 'string') {
+      push(issues, 'high', '"version" is required and must be a string.');
+    } else {
+      if (body.version.length > 255) {
+        push(issues, 'high', '"version" exceeds the 255-character limit.');
+      }
+      if (RANGE_LIKE_VERSION.test(body.version)) {
+        push(issues, 'medium', '"version" ("' + body.version + '") looks like a version range or the literal "latest" — the registry expects a single specific version (ideally semver).');
+      }
+    }
+
+    if (body.title !== undefined) {
+      if (typeof body.title !== 'string') {
+        push(issues, 'medium', '"title" should be a string.');
+      } else if (body.title.length < 1 || body.title.length > 100) {
+        push(issues, 'medium', '"title" must be 1-100 characters when present.');
+      }
+    }
+
+    if (body.websiteUrl !== undefined && typeof body.websiteUrl !== 'string') {
+      push(issues, 'medium', '"websiteUrl" should be a string URL.');
+    }
+
+    if (body.icons !== undefined) {
+      if (!Array.isArray(body.icons)) {
+        push(issues, 'medium', '"icons" should be an array.');
+      } else {
+        body.icons.forEach(function (icon, i) { validateIcon(icon, 'icons[' + i + ']', issues); });
+      }
+    }
+
+    if (body.repository !== undefined) {
+      validateRepository(body.repository, 'repository', issues);
+    }
+
+    let packageCount = 0;
+    if (body.packages !== undefined) {
+      if (!Array.isArray(body.packages)) {
+        push(issues, 'high', '"packages" should be an array.');
+      } else {
+        packageCount = body.packages.length;
+        body.packages.forEach(function (pkg, i) { validatePackage(pkg, i, issues); });
+      }
+    }
+
+    let remoteCount = 0;
+    if (body.remotes !== undefined) {
+      if (!Array.isArray(body.remotes)) {
+        push(issues, 'high', '"remotes" should be an array.');
+      } else {
+        remoteCount = body.remotes.length;
+        body.remotes.forEach(function (r, i) { validateRemoteTransport(r, 'remotes[' + i + ']', issues); });
+      }
+    }
+
+    if (packageCount === 0 && remoteCount === 0) {
+      push(issues, 'low', 'Neither "packages" nor "remotes" is present — a client has no installable package or reachable endpoint to actually run or connect to this server.');
+    }
+
+    return { kind: 'server.json manifest', issues: issues };
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to fail publishing', low: 'Note' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP server.json check');
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter(function (x) { return x.severity === 'high'; }).length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>
