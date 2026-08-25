@@ -118,8 +118,9 @@ jobs:
                 top_pages: gsc.top_pages ?? [],
               },
               adsense: {
-                note: 'account_state NEEDS_ATTENTION means AdSense has not approved the account for ad serving yet — earnings will be null until approved, this is expected and not a bug to fix.',
+                note: 'account_state is account-level only (READY there just means the AdSense account itself is approved). The real answer to whether ads will actually show on this site is sites[].state: READY means cleared to serve, GETTING_READY means still under review, NEEDS_ATTENTION means a site-specific policy issue (e.g. low value content) is blocking it. Earnings stay null until a site is READY and getting real fills.',
                 account_state: adsense.account_state ?? 'UNKNOWN',
+                sites: adsense.sites ?? [],
                 earnings_last_7_days: adsense.earnings ?? null,
                 ad_unit_slot: process.argv[6],
                 ad_unit_rendering: process.argv[7] === 'true',
@@ -142,6 +143,7 @@ jobs:
               lighthouse_performance: lighthouse?.performance ?? null,
               gsc_total_query_clicks: (gsc.top_queries ?? []).reduce((a, r) => a + (r.clicks ?? 0), 0),
               adsense_account_state: adsense.account_state ?? null,
+              adsense_site_state: adsense.sites?.[0]?.state ?? null,
               adsense_estimated_earnings: adsense.earnings?.estimated_earnings ?? null,
               ad_unit_rendering: process.argv[7] === 'true',
             });

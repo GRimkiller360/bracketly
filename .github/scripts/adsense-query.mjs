@@ -1,8 +1,15 @@
 // Queries Google AdSense revenue via a long-lived OAuth refresh token and
-// prints {account_state, earnings} as JSON. Requires ADSENSE_CLIENT_ID,
+// prints {account_state, sites, earnings} as JSON. Requires ADSENSE_CLIENT_ID,
 // ADSENSE_CLIENT_SECRET, ADSENSE_REFRESH_TOKEN in the environment.
 // Before approval, the account exists but reports have no rows — that's
 // expected, not an error.
+//
+// account_state (from accounts.get) is coarse — READY there just means the
+// AdSense *account* itself is approved, not that any individual site is
+// cleared to serve ads. The per-site review status (what the dashboard's
+// "Sites" tab shows — GETTING_READY / NEEDS_ATTENTION / READY) is a
+// separate resource (accounts.sites.list) and is the one that actually
+// explains whether ads will render on this specific domain.
 
 async function getAccessToken() {
   const resp = await fetch('https://oauth2.googleapis.com/token', {
@@ -28,9 +35,19 @@ const accountsData = await accountsResp.json();
 const account = accountsData.accounts?.[0];
 
 if (!account) {
-  console.log(JSON.stringify({ account_state: 'NOT_FOUND', earnings: null }));
+  console.log(JSON.stringify({ account_state: 'NOT_FOUND', sites: [], earnings: null }));
   process.exit(0);
 }
+
+const sitesResp = await fetch(`https://adsense.googleapis.com/v2/${account.name}/sites`, {
+  headers: authHeader,
+});
+const sitesData = await sitesResp.json();
+const sites = (sitesData.sites ?? []).map((s) => ({
+  domain: s.domain,
+  state: s.state,
+  autoAdsEnabled: s.autoAdsEnabled ?? null,
+}));
 
 const qs = 'dateRange=LAST_7_DAYS&metrics=ESTIMATED_EARNINGS&metrics=IMPRESSIONS&metrics=PAGE_VIEWS&metrics=CLICKS';
 const reportResp = await fetch(`https://adsense.googleapis.com/v2/${account.name}/reports:generate?${qs}`, {
@@ -49,4 +66,4 @@ const earnings = row
     }
   : null;
 
-console.log(JSON.stringify({ account_state: account.state, earnings }));
+console.log(JSON.stringify({ account_state: account.state, sites, earnings }));
