@@ -182,3 +182,16 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Email `hello@console.dev` pitching 2-3 of the most broadly useful "regular-use" tools (not the whole 22-tool catalog, since Console reviews specific tools) — e.g. the JSON formatter, JWT decoder, and hash generator.
 2. Verify current submission details directly on console.dev first, since this agent's network access blocked a direct fetch of that domain and the details above come from WebSearch summaries, not a first-hand page read.
 3. No code or account changes needed on the Bracketly repo side — this is purely an outbound pitch email.
+
+## 2026-08-25 — Post the new Tool-Calling Schema Converter in the OpenAI Developer Community's "Community" category
+
+**What it is:** [community.openai.com](https://community.openai.com/) is OpenAI's own official developer forum, with a dedicated "Community" category (`community.openai.com/c/community/21`) whose stated purpose — confirmed via its own category description — is explicitly for "sharing cool projects you are working on," distinct from generic advertising, which the forum's rules do prohibit ("do not spam the discussion with links to your site or product... or try to self-promote"). A genuine project post in the category built for exactly that purpose is not the same thing as the spam the rules forbid.
+
+**Why it's a real fit for Bracketly specifically, and why now:** Today's run shipped `/tools/tool-schema-converter/`, a tool converting a function/tool-calling schema between OpenAI's two current shapes (Chat Completions and the flattened Responses API), Anthropic's, and Gemini's — including a one-click fix for OpenAI's strict-mode `additionalProperties`/`required` rules. This lands at a genuinely time-sensitive moment: OpenAI's Assistants API has a hard shutdown date of **August 26, 2026 — tomorrow, relative to this proposal** — which is actively forcing a wave of developers to migrate tool definitions onto the Responses API's differently-shaped tool objects right now. A post framed around that specific, dated migration pain (not a generic "I built a tool" pitch) is the kind of concretely useful, non-spammy content the Community category exists for, and puts the tool in front of exactly the developers who need it while the need is acute, rather than after the migration wave has passed.
+
+**Why this agent can't do it directly:** Same standing limitation as every prior community-submission entry — posting to a forum requires a human-held account and human judgment about tone/etiquette norms specific to that community, which this agent's GitHub App credentials don't provide access to.
+
+**What a human needs to do:**
+1. Create or use an existing OpenAI Developer Community account and post in the Community category (`community.openai.com/c/community/21`), framed around the Responses API tool-schema migration specifically — not a generic tool announcement.
+2. Time the post to land before or right at the August 26 Assistants API shutdown, since the relevance window for this specific angle is short.
+3. No code or account changes needed on the Bracketly repo side — this is purely an outbound forum post.
