@@ -302,7 +302,11 @@ const tool = getTool('citations-viewer')!;
         ta.dataset.docIndex = String(docIndex);
         const restored = previousValues[String(docIndex)];
         if (restored) ta.value = restored;
-        ta.addEventListener('input', () => runVerification(docIndex, ta.value));
+        let vTimer = null;
+        ta.addEventListener('input', () => {
+          clearTimeout(vTimer);
+          vTimer = setTimeout(() => runVerification(docIndex, ta.value), 200);
+        });
         block.appendChild(ta);
         verifyDocs.appendChild(block);
         if (restored) runVerification(docIndex, restored);
@@ -396,5 +400,9 @@ const tool = getTool('citations-viewer')!;
     });
   });
 
-  input.addEventListener('input', process);
+  var debounceTimer = null;
+  input.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  });
 </script>

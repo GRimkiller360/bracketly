@@ -446,5 +446,9 @@ const tool = getTool('mcp-server-json-validator')!;
     });
   });
 
-  input.addEventListener('input', process);
+  var debounceTimer = null;
+  input.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  });
 </script>

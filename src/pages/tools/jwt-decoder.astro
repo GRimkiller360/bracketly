@@ -112,7 +112,7 @@ const tool = getTool('jwt-decoder')!;
       payloadOut.textContent = JSON.stringify(payload, null, 2);
 
       // Expiry
-      if (payload.exp) {
+      if (typeof payload.exp === 'number') {
         const expMs  = payload.exp * 1000;
         const expDate = new Date(expMs);
         const now    = Date.now();
