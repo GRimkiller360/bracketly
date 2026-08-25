@@ -959,6 +959,56 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "tool-schema-converter",
+    title: "Tool-Calling Schema Converter — OpenAI, Anthropic, Gemini",
+    shortTitle: "Tool Schema Converter",
+    description:
+      "Paste a function/tool definition in any of OpenAI's two tool-calling shapes (Chat Completions and the Responses API), Anthropic's, or Gemini's format, and get all four back — plus a one-click fix for OpenAI's strict-mode requirements. 100% client-side.",
+    metaDescription:
+      "Convert a function-calling tool schema between OpenAI Chat Completions, OpenAI Responses API, Anthropic, and Gemini formats. 100% client-side.",
+    keywords: [
+      "openai responses api tool schema",
+      "function calling schema converter",
+      "openai strict mode additionalProperties",
+      "anthropic input_schema to openai",
+      "gemini function_declarations converter",
+    ],
+    icon: "FNC",
+    category: "AI",
+    content: [
+      {
+        heading: "Why the same tool definition looks different across providers",
+        body: "Every major LLM API supports function/tool calling, but no two shape the definition the same way. OpenAI's Chat Completions API nests it as { type: \"function\", function: { name, parameters } }; the newer Responses API — now the recommended API, with the older Assistants API being retired — flattens that same object so name and parameters sit directly on the tool, with no nested \"function\" key at all. Anthropic's Messages API drops \"type\" entirely for a custom tool and calls the schema field input_schema instead of parameters. Gemini wraps a name/description/parameters declaration inside a tools[].function_declarations[] array. Hand-converting between any two of these when you switch providers, or when you want to offer the same tool across multiple backends, is exactly the kind of mechanical-but-error-prone JSON reshaping that's easy to get subtly wrong.",
+      },
+      {
+        heading: "What this tool does, and how strict mode gets handled",
+        body: "Paste a single tool definition, an array, or a full tools list in any of the four shapes — it's auto-detected — and this converts it into all four, ready to paste directly into each SDK's tools parameter. It also checks basic structural correctness (a name, a parameters/input_schema object typed \"object\", OpenAI's name-character and 64-character-limit rules) and, when you check \"Fix for OpenAI strict mode\", rewrites the OpenAI outputs to satisfy strict mode's real requirements: additionalProperties: false on every object, and every property listed in required — since strict mode has no concept of an optional field, a field that wasn't originally required is instead made nullable (its type becomes e.g. [\"string\", \"null\"]) so the model can still \"skip\" it by passing null. This only touches the two OpenAI outputs; Anthropic and Gemini don't have this requirement, so their schemas are left as originally written.",
+      },
+    ],
+    faq: [
+      {
+        q: "What's the actual difference between OpenAI's two tool formats?",
+        a: "Chat Completions nests everything under a \"function\" key: { type: \"function\", function: { name, description, parameters } }. The Responses API flattens it — type, name, description, and parameters all sit as siblings on the same object, with no nested \"function\" key. Pasting one shape into an SDK call expecting the other is a common source of a confusing \"tools[0].name\" missing-field error.",
+      },
+      {
+        q: "What does \"Fix for OpenAI strict mode\" actually change?",
+        a: "It recursively sets additionalProperties: false on every object in the schema and moves every property into \"required\" — strict mode requires both, at every nesting level. Since that leaves no way to mark a field as genuinely optional, any property that wasn't already required gets \"null\" added to its type (e.g. \"string\" becomes [\"string\", \"null\"]) so the model can express \"I'm skipping this\" by passing null instead of omitting the key.",
+      },
+      {
+        q: "Why did it skip one of my tools?",
+        a: "Two reasons: the item didn't match any of the four recognized shapes at all, or it matched a \"type\" that isn't \"function\" — like Anthropic's built-in web_search tool or an OpenAI built-in tool — which has no function schema of its own to convert. Both cases are called out by name in the notes below the output rather than silently dropped.",
+      },
+      {
+        q: "Does this validate against each provider's full JSON Schema restrictions?",
+        a: "No — it checks the handful of well-documented, stable rules (a valid name, a typed object schema, OpenAI's strict-mode additionalProperties/required rules) rather than every provider-specific JSON Schema keyword restriction, several of which have changed meaningfully in the last year (Gemini's own additionalProperties support, for instance, only landed in a November 2025 update) and are easy to state wrong. Treat this as a shape converter with baseline sanity checks, not a full compliance validator for any one provider.",
+      },
+      {
+        q: "Is my tool schema sent anywhere?",
+        a: "No. Detection, conversion, and validation all run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

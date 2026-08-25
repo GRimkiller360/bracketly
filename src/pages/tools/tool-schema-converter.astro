@@ -1,0 +1,489 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('tool-schema-converter')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Tool / function definition</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="12"
+      autocomplete="off"
+      placeholder={`Paste one tool definition, an array of tools, or a full "tools" list from any of the four formats — e.g.\n{\n  "name": "get_weather",\n  "description": "Get the current weather for a location",\n  "input_schema": {\n    "type": "object",\n    "properties": { "location": { "type": "string" } },\n    "required": ["location"]\n  }\n}`}
+    ></textarea>
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;">
+      <input type="checkbox" id="strict-toggle" style="width:auto;margin:0;" />
+      <label for="strict-toggle" style="font-size:0.85rem;color:var(--text-muted);cursor:pointer;">
+        Fix for OpenAI strict mode (adds <code>additionalProperties: false</code>, makes every field required, and makes originally-optional fields nullable — OpenAI outputs only)
+      </label>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite" style="margin-top:0.6rem;"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;" id="issues-panel">
+      <div class="field-label"><span>Notes</span></div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1rem;">
+      <div class="panel">
+        <div class="field-label">
+          <span>OpenAI — Chat Completions</span>
+          <button class="btn btn-sm" id="btn-copy-chat" aria-label="Copy OpenAI Chat Completions tools array">Copy</button>
+        </div>
+        <textarea id="out-chat" rows="12" readonly style="font-size:0.8rem;"></textarea>
+      </div>
+      <div class="panel">
+        <div class="field-label">
+          <span>OpenAI — Responses API</span>
+          <button class="btn btn-sm" id="btn-copy-responses" aria-label="Copy OpenAI Responses API tools array">Copy</button>
+        </div>
+        <textarea id="out-responses" rows="12" readonly style="font-size:0.8rem;"></textarea>
+      </div>
+      <div class="panel">
+        <div class="field-label">
+          <span>Anthropic — Messages API</span>
+          <button class="btn btn-sm" id="btn-copy-anthropic" aria-label="Copy Anthropic tools array">Copy</button>
+        </div>
+        <textarea id="out-anthropic" rows="12" readonly style="font-size:0.8rem;"></textarea>
+      </div>
+      <div class="panel">
+        <div class="field-label">
+          <span>Gemini — function_declarations</span>
+          <button class="btn btn-sm" id="btn-copy-gemini" aria-label="Copy Gemini tools array">Copy</button>
+        </div>
+        <textarea id="out-gemini" rows="12" readonly style="font-size:0.8rem;"></textarea>
+      </div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const strictToggle = document.getElementById('strict-toggle');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const outChat = document.getElementById('out-chat');
+  const outResponses = document.getElementById('out-responses');
+  const outAnthropic = document.getElementById('out-anthropic');
+  const outGemini = document.getElementById('out-gemini');
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function deepClone(v) {
+    return v === undefined ? v : JSON.parse(JSON.stringify(v));
+  }
+
+  // ---- Detection & extraction ----
+  // Every supported paste shape reduces to a flat array of individual tool
+  // definitions before per-item format detection runs:
+  //   - a single bare tool object (any of the 4 shapes)
+  //   - a bare array of tool objects, possibly mixed formats
+  //   - { tools: [...] }                     (OpenAI/Anthropic convention)
+  //   - { function_declarations: [...] }     (bare Gemini wrapper)
+  //   - { tools: [{ function_declarations: [...] }] }  (full Gemini request shape)
+  function flattenGeminiToolWrapper(arr) {
+    const out = [];
+    for (const item of arr) {
+      if (isPlainObject(item) && Array.isArray(item.function_declarations)) {
+        out.push(...item.function_declarations);
+      } else {
+        out.push(item);
+      }
+    }
+    return out;
+  }
+
+  function extractItems(parsed) {
+    if (Array.isArray(parsed)) return flattenGeminiToolWrapper(parsed);
+    if (!isPlainObject(parsed)) return null;
+    if (Array.isArray(parsed.function_declarations)) return parsed.function_declarations;
+    if (Array.isArray(parsed.tools)) return flattenGeminiToolWrapper(parsed.tools);
+    return [parsed];
+  }
+
+  // Distinguishing signal per format:
+  //  - OpenAI Chat Completions: { type:"function", function:{ name, ... } }  (nested)
+  //  - OpenAI Responses API:    { type:"function", name, ... }               (flat)
+  //  - Anthropic:               has "input_schema"; no "type" for custom tools
+  //  - Gemini declaration:      has "name" + "parameters", no "type", no "input_schema"
+  //  - Any other "type" value (e.g. Anthropic's web_search_20260209, an
+  //    OpenAI built-in tool) has no convertible function schema at all.
+  function detectOne(obj) {
+    if (!isPlainObject(obj)) return { format: 'invalid' };
+    if (obj.type === 'function') {
+      if (isPlainObject(obj.function)) return { format: 'openai-chat' };
+      if (typeof obj.name === 'string' && obj.name.length > 0) return { format: 'openai-responses' };
+      return { format: 'openai-malformed' };
+    }
+    if (typeof obj.type === 'string') {
+      return { format: 'non-function-tool', typeValue: obj.type };
+    }
+    if (obj.input_schema !== undefined) return { format: 'anthropic' };
+    if (obj.parameters !== undefined && typeof obj.name === 'string' && obj.name.length > 0) {
+      return { format: 'gemini' };
+    }
+    return { format: 'unknown' };
+  }
+
+  // Gemini's own examples use lowercase JSON Schema type values ("object",
+  // "string"); some older tutorials and one legacy SDK path use uppercase
+  // ("OBJECT", "STRING"). Normalizing on read means either pasted form
+  // converts correctly; output always uses the current lowercase form.
+  function lowercaseSchemaTypes(schema) {
+    if (Array.isArray(schema)) return schema.map(lowercaseSchemaTypes);
+    if (!isPlainObject(schema)) return schema;
+    const out = {};
+    for (const k of Object.keys(schema)) {
+      if (k === 'type' && typeof schema[k] === 'string') {
+        out[k] = schema[k].toLowerCase();
+      } else if (k === 'properties' && isPlainObject(schema[k])) {
+        const props = {};
+        for (const pk of Object.keys(schema[k])) props[pk] = lowercaseSchemaTypes(schema[k][pk]);
+        out[k] = props;
+      } else if (k === 'items' || k === 'anyOf' || k === 'oneOf') {
+        out[k] = lowercaseSchemaTypes(schema[k]);
+      } else {
+        out[k] = schema[k];
+      }
+    }
+    return out;
+  }
+
+  function toCanonical(obj, format) {
+    switch (format) {
+      case 'openai-chat': {
+        const f = obj.function || {};
+        return { name: f.name, description: f.description, parameters: f.parameters, strict: f.strict };
+      }
+      case 'openai-responses':
+        return { name: obj.name, description: obj.description, parameters: obj.parameters, strict: obj.strict };
+      case 'anthropic':
+        return { name: obj.name, description: obj.description, parameters: obj.input_schema, strict: obj.strict };
+      case 'gemini':
+        return { name: obj.name, description: obj.description, parameters: lowercaseSchemaTypes(obj.parameters), strict: undefined };
+      default:
+        return null;
+    }
+  }
+
+  function dropUndefined(obj) {
+    const out = {};
+    for (const k of Object.keys(obj)) {
+      if (obj[k] !== undefined) out[k] = obj[k];
+    }
+    return out;
+  }
+
+  // ---- OpenAI strict-mode auto-fix ----
+  // Strict mode requires additionalProperties:false and every property key
+  // present in "required" (recursively). A field that was originally
+  // optional is represented by adding "null" to its allowed type (or enum)
+  // instead — OpenAI's own documented workaround, since strict mode leaves
+  // no other way to mark a field non-mandatory.
+  function makeNullable(propSchema) {
+    if (!isPlainObject(propSchema)) return propSchema;
+    const copy = { ...propSchema };
+    if (typeof copy.type === 'string') {
+      if (copy.type !== 'null') copy.type = [copy.type, 'null'];
+    } else if (Array.isArray(copy.type)) {
+      if (!copy.type.includes('null')) copy.type = [...copy.type, 'null'];
+    } else if (Array.isArray(copy.enum) && !copy.type) {
+      if (!copy.enum.includes(null)) copy.enum = [...copy.enum, null];
+    }
+    return copy;
+  }
+
+  function strictifyNode(s) {
+    if (!isPlainObject(s)) return s;
+    const isObjectLike = s.type === 'object' || (s.properties !== undefined && s.type === undefined);
+    if (isObjectLike) {
+      s.additionalProperties = false;
+      const propKeys = isPlainObject(s.properties) ? Object.keys(s.properties) : [];
+      if (propKeys.length > 0) {
+        const existingRequired = Array.isArray(s.required) ? s.required : [];
+        for (const key of propKeys) {
+          if (!existingRequired.includes(key)) {
+            s.properties[key] = makeNullable(s.properties[key]);
+          }
+        }
+        s.required = propKeys.slice();
+      }
+    }
+    if (isPlainObject(s.properties)) {
+      for (const k of Object.keys(s.properties)) {
+        s.properties[k] = strictifyNode(s.properties[k]);
+      }
+    }
+    if (isPlainObject(s.items)) {
+      s.items = strictifyNode(s.items);
+    } else if (Array.isArray(s.items)) {
+      s.items = s.items.map(strictifyNode);
+    }
+    return s;
+  }
+
+  function strictifySchema(schema) {
+    if (!isPlainObject(schema)) return schema;
+    return strictifyNode(deepClone(schema));
+  }
+
+  // ---- Canonical -> each target format ----
+  function toOpenAIChat(t, strictMode) {
+    const params = strictMode ? strictifySchema(t.parameters) : t.parameters;
+    return dropUndefined({
+      type: 'function',
+      function: dropUndefined({
+        name: t.name,
+        description: t.description,
+        parameters: params,
+        strict: strictMode ? true : t.strict,
+      }),
+    });
+  }
+
+  function toOpenAIResponses(t, strictMode) {
+    const params = strictMode ? strictifySchema(t.parameters) : t.parameters;
+    return dropUndefined({
+      type: 'function',
+      name: t.name,
+      description: t.description,
+      parameters: params,
+      strict: strictMode ? true : t.strict,
+    });
+  }
+
+  function toAnthropic(t) {
+    return dropUndefined({
+      name: t.name,
+      description: t.description,
+      input_schema: t.parameters,
+      strict: t.strict === true ? true : undefined,
+    });
+  }
+
+  function toGeminiDeclaration(t) {
+    return dropUndefined({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters,
+    });
+  }
+
+  const NAME_RE = /^[A-Za-z0-9_-]+$/;
+
+  function structuralIssues(canon, label) {
+    const issues = [];
+    if (typeof canon.name !== 'string' || canon.name.length === 0) {
+      issues.push({ severity: 'high', message: label + ' is missing a "name".' });
+    } else {
+      if (!NAME_RE.test(canon.name)) {
+        issues.push({ severity: 'medium', message: label + ': name "' + canon.name + '" contains characters outside [A-Za-z0-9_-] — OpenAI requires function names to match that pattern exactly and will reject this at request time.' });
+      }
+      if (canon.name.length > 64) {
+        issues.push({ severity: 'medium', message: label + ': name is ' + canon.name.length + ' characters — OpenAI caps function names at 64.' });
+      }
+    }
+    if (!isPlainObject(canon.parameters)) {
+      issues.push({ severity: 'high', message: label + ' has no parameters/input_schema object — every target format needs one, even for a zero-argument function (use {"type":"object","properties":{}}).' });
+    } else if (canon.parameters.type !== 'object') {
+      issues.push({ severity: 'medium', message: label + ': parameters.type is ' + JSON.stringify(canon.parameters.type) + ', not "object" — all four providers expect the root schema to describe an object of named arguments.' });
+    }
+    if (typeof canon.description !== 'string' || canon.description.trim().length === 0) {
+      issues.push({ severity: 'low', message: label + ' has no description — the model has only the name to decide when to call it.' });
+    }
+    return issues;
+  }
+
+  let lastOutputs = null;
+
+  function render(items, strictMode) {
+    clearChildren(issuesList);
+    const allIssues = [];
+    const canonicalTools = [];
+
+    items.forEach((item, i) => {
+      const det = detectOne(item);
+      const label = isPlainObject(item) && typeof item.name === 'string' && item.name
+        ? '"' + item.name + '"'
+        : (isPlainObject(item) && isPlainObject(item.function) && typeof item.function.name === 'string' && item.function.name
+          ? '"' + item.function.name + '"'
+          : '#' + (i + 1));
+
+      if (det.format === 'invalid' || det.format === 'unknown' || det.format === 'openai-malformed') {
+        allIssues.push({ severity: 'high', message: 'Item ' + label + ' doesn\'t match any recognized shape (OpenAI Chat Completions, OpenAI Responses API, Anthropic, or Gemini function declaration) — skipped.' });
+        return;
+      }
+      if (det.format === 'non-function-tool') {
+        allIssues.push({ severity: 'low', message: 'Item ' + label + ' has "type": "' + det.typeValue + '" — a built-in/server tool with no function schema of its own, so there\'s nothing to convert. Skipped.' });
+        return;
+      }
+
+      const canon = toCanonical(item, det.format);
+      const fmtLabel = { 'openai-chat': 'OpenAI Chat Completions', 'openai-responses': 'OpenAI Responses API', anthropic: 'Anthropic', gemini: 'Gemini' }[det.format];
+      allIssues.push(...structuralIssues(canon, 'Item ' + label + ' (detected as ' + fmtLabel + ')'));
+      canonicalTools.push(canon);
+    });
+
+    if (canonicalTools.length === 0) {
+      issuesList.appendChild(makeIssueRow({ severity: 'high', message: 'No convertible tool definitions found.' }));
+      results.style.display = 'block';
+      outChat.value = outResponses.value = outAnthropic.value = outGemini.value = '';
+      lastOutputs = null;
+      return { issueCount: allIssues.length, toolCount: 0 };
+    }
+
+    const chatArr = canonicalTools.map((t) => toOpenAIChat(t, strictMode));
+    const respArr = canonicalTools.map((t) => toOpenAIResponses(t, strictMode));
+    const anthArr = canonicalTools.map((t) => toAnthropic(t));
+    const geminiArr = [{ function_declarations: canonicalTools.map((t) => toGeminiDeclaration(t)) }];
+
+    outChat.value = JSON.stringify(chatArr, null, 2);
+    outResponses.value = JSON.stringify(respArr, null, 2);
+    outAnthropic.value = JSON.stringify(anthArr, null, 2);
+    outGemini.value = JSON.stringify(geminiArr, null, 2);
+    lastOutputs = { chat: outChat.value, responses: outResponses.value, anthropic: outAnthropic.value, gemini: outGemini.value };
+
+    if (allIssues.length === 0) {
+      issuesList.appendChild(makeIssueRow({ severity: 'ok', message: '✓ No issues found across ' + canonicalTools.length + ' tool' + (canonicalTools.length === 1 ? '' : 's') + '.' }));
+    } else {
+      for (const issue of allIssues) issuesList.appendChild(makeIssueRow(issue));
+    }
+
+    results.style.display = 'block';
+    return { issueCount: allIssues.length, toolCount: canonicalTools.length };
+  }
+
+  function makeIssueRow(issue) {
+    const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)', ok: 'var(--success)' };
+    const sevLabel = { high: 'Spec violation', medium: 'Worth checking', low: 'Note', ok: 'OK' };
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+    if (issue.severity !== 'ok') {
+      const badge = document.createElement('strong');
+      badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+      badge.textContent = sevLabel[issue.severity];
+      row.appendChild(badge);
+    } else {
+      row.style.cssText += 'color:var(--success);font-weight:600;';
+    }
+    const msg = document.createElement('span');
+    msg.textContent = issue.message;
+    row.appendChild(msg);
+    return row;
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      lastOutputs = null;
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      lastOutputs = null;
+      return;
+    }
+
+    const items = extractItems(parsed);
+    if (!items || items.length === 0) {
+      results.style.display = 'none';
+      setStatus('✗ Could not find a tool definition, a tool array, or a tools/function_declarations list in this input.', 'error');
+      lastOutputs = null;
+      return;
+    }
+
+    const { issueCount, toolCount } = render(items, strictToggle.checked);
+
+    if (toolCount === 0) {
+      setStatus('✗ Nothing convertible found.', 'error');
+    } else if (issueCount === 0) {
+      setStatus('✓ Converted ' + toolCount + ' tool' + (toolCount === 1 ? '' : 's') + ' — no issues found.', 'ok');
+    } else {
+      setStatus('Converted ' + toolCount + ' tool' + (toolCount === 1 ? '' : 's') + ' — ' + issueCount + ' note' + (issueCount === 1 ? '' : 's') + ' below.', '');
+    }
+  }
+
+  function wireCopyButton(btnId, key) {
+    document.getElementById(btnId).addEventListener('click', function () {
+      if (!lastOutputs || !lastOutputs[key]) return;
+      const btn = this;
+      copyText(lastOutputs[key]).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  }
+
+  wireCopyButton('btn-copy-chat', 'chat');
+  wireCopyButton('btn-copy-responses', 'responses');
+  wireCopyButton('btn-copy-anthropic', 'anthropic');
+  wireCopyButton('btn-copy-gemini', 'gemini');
+
+  document.getElementById('btn-clear').addEventListener('click', function () {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    lastOutputs = null;
+    input.focus();
+  });
+
+  strictToggle.addEventListener('change', process);
+
+  var debounceTimer = null;
+  input.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(process, 200);
+  });
+</script>
