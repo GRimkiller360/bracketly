@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-24T07:44:23.299Z",
+  "generated_at": "2026-08-25T06:48:51.153Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 93,
+    "performance": 92,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -161,9 +161,9 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 12,
+        "impressions": 13,
         "ctr": 0,
-        "position": 85.66666666666667
+        "position": 85
       },
       {
         "keys": [
@@ -176,21 +176,21 @@
       },
       {
         "keys": [
+          "b64 encoded"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 66
+      },
+      {
+        "keys": [
           "b64 encoder"
         ],
         "clicks": 0,
         "impressions": 1,
         "ctr": 0,
         "position": 24
-      },
-      {
-        "keys": [
-          "b64 encoding"
-        ],
-        "clicks": 0,
-        "impressions": 3,
-        "ctr": 0,
-        "position": 95
       }
     ],
     "top_pages": [
@@ -208,9 +208,9 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 57,
-        "ctr": 0.03508771929824561,
-        "position": 8.298245614035087
+        "impressions": 58,
+        "ctr": 0.034482758620689655,
+        "position": 8.310344827586206
       },
       {
         "keys": [
@@ -226,9 +226,9 @@
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 1,
-        "impressions": 784,
-        "ctr": 0.0012755102040816326,
-        "position": 83.5420918367347
+        "impressions": 785,
+        "ctr": 0.0012738853503184713,
+        "position": 83.53503184713375
       },
       {
         "keys": [
@@ -259,15 +259,6 @@
       },
       {
         "keys": [
-          "https://bracketly.pages.dev/donate/"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 9
-      },
-      {
-        "keys": [
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
@@ -280,18 +271,18 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 222,
+        "impressions": 321,
         "ctr": 0,
-        "position": 81.51351351351352
+        "position": 80.95015576323988
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 11,
         "ctr": 0,
-        "position": 42.6
+        "position": 44.81818181818182
       },
       {
         "keys": [
@@ -370,21 +361,49 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
+        "impressions": 10,
+        "ctr": 0,
+        "position": 7
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/regex-tester"
+        ],
+        "clicks": 0,
         "impressions": 8,
         "ctr": 0,
-        "position": 7.375
+        "position": 69.375
       }
     ]
   },
   "adsense": {
-    "note": "account_state NEEDS_ATTENTION means AdSense has not approved the account for ad serving yet — earnings will be null until approved, this is expected and not a bug to fix.",
+    "note": "account_state is account-level only (READY there just means the AdSense account itself is approved). The real answer to whether ads will actually show on this site is sites[].state: READY means cleared to serve, GETTING_READY means still under review, NEEDS_ATTENTION means a site-specific policy issue (e.g. low value content) is blocking it. Earnings stay null until a site is READY and getting real fills.",
     "account_state": "READY",
+    "sites": [
+      {
+        "domain": "bracketly.pages.dev",
+        "state": "NEEDS_ATTENTION",
+        "autoAdsEnabled": null
+      }
+    ],
     "earnings_last_7_days": null,
     "ad_unit_slot": "8066491572",
     "ad_unit_rendering": true
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-08-25"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "date": "2026-08-24"
+        }
+      },
       {
         "count": 4,
         "dimensions": {
@@ -420,18 +439,12 @@
         "dimensions": {
           "date": "2026-08-18"
         }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "date": "2026-08-17"
-        }
       }
     ],
-    "total_pageloads": 26,
+    "total_pageloads": 25,
     "top_requests": [
       {
-        "count": 9,
+        "count": 7,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -471,11 +484,11 @@
         }
       },
       {
-        "count": 2,
+        "count": 1,
         "dimensions": {
           "countryName": "CN",
-          "refererHost": "",
-          "requestPath": "/about/"
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/donate/"
         }
       },
       {
@@ -513,14 +526,6 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "FR",
-          "refererHost": "",
-          "requestPath": "/tools/acp-message-validator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
           "countryName": "CN",
           "refererHost": "",
           "requestPath": "/tools/hash-generator/"
@@ -532,6 +537,30 @@
           "countryName": "CN",
           "refererHost": "",
           "requestPath": "/tools/cron-parser/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
+          "requestPath": "/about/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
+          "requestPath": "/tools/mcp-migration-checker/"
         }
       }
     ]
