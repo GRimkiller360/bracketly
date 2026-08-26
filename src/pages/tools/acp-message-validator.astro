@@ -95,8 +95,11 @@ const tool = getTool('acp-message-validator')!;
   const CONTENT_BLOCK_TYPES = ['text', 'image', 'audio', 'resource_link', 'resource'];
 
   function methodDirection(method) {
-    if (CLIENT_TO_AGENT.indexOf(method) !== -1) return 'Client → Agent';
-    if (AGENT_TO_CLIENT.indexOf(method) !== -1) return 'Agent → Client';
+    const c2a = CLIENT_TO_AGENT.indexOf(method) !== -1;
+    const a2c = AGENT_TO_CLIENT.indexOf(method) !== -1;
+    if (c2a && a2c) return 'Client ⇄ Agent';
+    if (c2a) return 'Client → Agent';
+    if (a2c) return 'Agent → Client';
     if (PROTOCOL_LEVEL.indexOf(method) !== -1) return 'Protocol-level';
     return null;
   }
@@ -273,8 +276,7 @@ const tool = getTool('acp-message-validator')!;
         issues.push({ severity: 'medium', message: '"' + body.method + '" is not a recognized ACP v1 method — check for a typo, or this may be a newer/unstable extension not covered by this checker.' });
       }
 
-      const checks = kind === 'notification' ? NOTIFICATION_PARAM_CHECKS : PARAM_CHECKS;
-      const fn = checks[body.method];
+      const fn = PARAM_CHECKS[body.method] || NOTIFICATION_PARAM_CHECKS[body.method];
       if (fn) {
         fn(body.params, issues);
       } else if (body.params !== undefined && !isPlainObject(body.params) && !Array.isArray(body.params)) {
