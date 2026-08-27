@@ -1,0 +1,422 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('structured-output-linter')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="toolbar" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <label for="provider-select" style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">Provider:</label>
+        <select
+          id="provider-select"
+          style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;padding:0.35rem 0.6rem;font-size:0.88rem;color:var(--text);"
+        >
+          <option value="openai">OpenAI (strict Structured Outputs / function calling)</option>
+          <option value="claude">Claude (structured outputs / strict tool use)</option>
+          <option value="gemini">Gemini (responseSchema)</option>
+        </select>
+      </div>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+
+    <div class="field-label">
+      <label for="input">JSON Schema</label>
+    </div>
+    <textarea
+      id="input"
+      rows="16"
+      autocomplete="off"
+      placeholder={`Paste the schema object itself, e.g.\n{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" },\n    "age": { "type": "integer" }\n  },\n  "required": ["name", "age"],\n  "additionalProperties": false\n}\n\nA full response_format / tool / function wrapper is also detected automatically.`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const providerSelect = document.getElementById('provider-select');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+
+  const CLAUDE_SUPPORTED_FORMATS = ['date-time', 'time', 'date', 'duration', 'email', 'hostname', 'uri', 'ipv4', 'ipv6', 'uuid'];
+  const UNSUPPORTED_NUMERIC_STRING_KEYWORDS = ['minLength', 'maxLength', 'minimum', 'maximum', 'multipleOf'];
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function push(issues, severity, message) {
+    issues.push({ severity: severity, message: message });
+  }
+
+  function autoUnwrap(body) {
+    if (isPlainObject(body.json_schema) && isPlainObject(body.json_schema.schema)) {
+      return { schema: body.json_schema.schema, note: 'Detected an OpenAI response_format wrapper — analyzing "json_schema.schema".' };
+    }
+    if (isPlainObject(body.function) && isPlainObject(body.function.parameters)) {
+      return { schema: body.function.parameters, note: 'Detected a function-calling tool wrapper — analyzing "function.parameters".' };
+    }
+    if (body.type === 'function' && isPlainObject(body.parameters)) {
+      return { schema: body.parameters, note: 'Detected a function/tool definition — analyzing "parameters".' };
+    }
+    if (isPlainObject(body.input_schema)) {
+      return { schema: body.input_schema, note: 'Detected a tool definition wrapper — analyzing "input_schema".' };
+    }
+    if (isPlainObject(body.response_schema)) {
+      return { schema: body.response_schema, note: 'Detected a response_schema wrapper — analyzing the inner schema.' };
+    }
+    if (isPlainObject(body.responseSchema)) {
+      return { schema: body.responseSchema, note: 'Detected a responseSchema wrapper — analyzing the inner schema.' };
+    }
+    return null;
+  }
+
+  // Collects every $ref string found anywhere under `node` (used only to
+  // build the $defs/definitions dependency graph for cycle detection).
+  function collectRefs(node, out) {
+    if (Array.isArray(node)) {
+      node.forEach(function (v) { collectRefs(v, out); });
+      return;
+    }
+    if (!isPlainObject(node)) return;
+    if (typeof node.$ref === 'string') out.push(node.$ref);
+    for (const k in node) {
+      if (Object.prototype.hasOwnProperty.call(node, k)) collectRefs(node[k], out);
+    }
+  }
+
+  function refDefName(ref) {
+    const m = /^#\/(?:\$defs|definitions)\/([^\/]+)$/.exec(ref);
+    return m ? m[1] : null;
+  }
+
+  function findCyclicDefs(defs) {
+    const cyclic = new Set();
+    const visited = new Set();
+    Object.keys(defs).forEach(function (name) {
+      if (visited.has(name)) return;
+      const stack = [];
+      (function dfs(n) {
+        if (stack.indexOf(n) !== -1) {
+          stack.slice(stack.indexOf(n)).forEach(function (x) { cyclic.add(x); });
+          return;
+        }
+        if (visited.has(n) || !defs[n]) return;
+        stack.push(n);
+        const refs = [];
+        collectRefs(defs[n], refs);
+        refs.forEach(function (r) {
+          const rn = refDefName(r);
+          if (rn && defs[rn]) dfs(rn);
+        });
+        stack.pop();
+        visited.add(n);
+      })(name);
+    });
+    return cyclic;
+  }
+
+  function analyze(raw, provider) {
+    const issues = [];
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+    if (!isPlainObject(body)) {
+      return { fatal: 'Top-level input must be a JSON object (a schema, or a request/tool wrapper containing one).' };
+    }
+
+    const unwrapped = autoUnwrap(body);
+    let root = body;
+    if (unwrapped) {
+      push(issues, 'low', unwrapped.note);
+      root = unwrapped.schema;
+    }
+
+    const defs = {};
+    if (isPlainObject(root.$defs)) Object.assign(defs, root.$defs);
+    if (isPlainObject(root.definitions)) Object.assign(defs, root.definitions);
+    const cyclicDefs = findCyclicDefs(defs);
+
+    const stats = { maxDepth: 0, totalProperties: 0, enumCount: 0, charCount: 0 };
+    let sawAdditionalPropertiesGemini = false;
+
+    function handleRef(ref, path) {
+      if (provider === 'gemini') {
+        push(issues, 'high', path + ': "$ref" is not supported by Gemini\'s responseSchema format (a constrained OpenAPI 3.0 subset) — inline this definition directly instead of referencing it.');
+        return;
+      }
+      if (/^https?:\/\//i.test(ref)) {
+        push(issues, 'high', path + ': external $ref ("' + ref + '") is not supported — only local $defs/definitions references are allowed.');
+        return;
+      }
+      const name = refDefName(ref);
+      if (name && cyclicDefs.has(name)) {
+        push(issues, 'high', path + ': "' + ref + '" is part of a circular reference chain — recursive schemas are not supported.');
+      } else if (name && !defs[name]) {
+        push(issues, 'medium', path + ': "' + ref + '" doesn\'t resolve to anything in $defs/definitions.');
+      }
+    }
+
+    function walkCombinators(node, path, depth) {
+      ['allOf', 'anyOf', 'oneOf'].forEach(function (kw) {
+        if (Array.isArray(node[kw])) {
+          node[kw].forEach(function (sub, i) { walk(sub, path + '.' + kw + '[' + i + ']', depth); });
+        }
+      });
+    }
+
+    function walk(node, path, depth) {
+      if (!isPlainObject(node)) return;
+
+      if (typeof node.$ref === 'string') {
+        handleRef(node.$ref, path);
+        return;
+      }
+
+      if (Array.isArray(node.enum)) {
+        stats.enumCount += node.enum.length;
+        node.enum.forEach(function (v) {
+          stats.charCount += String(v === null ? 'null' : v).length;
+          const t = v === null ? 'null' : typeof v;
+          if ((provider === 'openai' || provider === 'claude') && ['string', 'number', 'boolean', 'null'].indexOf(t) === -1) {
+            push(issues, 'high', path + '.enum: contains a non-primitive value — only string, number, boolean, and null are supported.');
+          }
+        });
+      }
+      if (node.const !== undefined) stats.charCount += String(node.const).length;
+
+      const hasProps = isPlainObject(node.properties);
+      const isObjectNode = node.type === 'object' || hasProps;
+      const isArrayNode = node.type === 'array' || node.items !== undefined;
+
+      if (isObjectNode) {
+        stats.maxDepth = Math.max(stats.maxDepth, depth);
+        const propsKeys = hasProps ? Object.keys(node.properties) : [];
+        stats.totalProperties += propsKeys.length;
+        propsKeys.forEach(function (k) { stats.charCount += k.length; });
+        const requiredArr = Array.isArray(node.required) ? node.required : null;
+
+        if (provider === 'openai' || provider === 'claude') {
+          if (node.additionalProperties !== false) {
+            push(issues, 'high', path + ': missing "additionalProperties": false — every object must set this explicitly in strict mode.');
+          }
+        } else if (provider === 'gemini' && node.additionalProperties !== undefined) {
+          sawAdditionalPropertiesGemini = true;
+        }
+
+        if (provider === 'openai') {
+          if (!requiredArr) {
+            if (propsKeys.length) push(issues, 'high', path + ': missing "required" — every property must be listed (use ["type", "null"] for one that\'s meant to be optional, don\'t omit it).');
+          } else {
+            const missing = propsKeys.filter(function (k) { return requiredArr.indexOf(k) === -1; });
+            if (missing.length) push(issues, 'high', path + ': ' + missing.map(function (m) { return '"' + m + '"'; }).join(', ') + ' defined in properties but missing from required.');
+            const extra = requiredArr.filter(function (k) { return propsKeys.indexOf(k) === -1; });
+            if (extra.length) push(issues, 'high', path + ': "required" lists ' + extra.map(function (m) { return '"' + m + '"'; }).join(', ') + ' which isn\'t defined in properties.');
+          }
+        } else if (provider === 'claude') {
+          if (requiredArr) {
+            const extra = requiredArr.filter(function (k) { return propsKeys.indexOf(k) === -1; });
+            if (extra.length) push(issues, 'high', path + ': "required" lists ' + extra.map(function (m) { return '"' + m + '"'; }).join(', ') + ' which isn\'t defined in properties.');
+            const missing = propsKeys.filter(function (k) { return requiredArr.indexOf(k) === -1; });
+            if (missing.length) push(issues, 'medium', path + ': ' + missing.map(function (m) { return '"' + m + '"'; }).join(', ') + ' not listed in "required" — recommended for reliable structured output.');
+          } else if (propsKeys.length) {
+            push(issues, 'medium', path + ': no "required" array present — recommended for reliable structured output.');
+          }
+        }
+
+        if (node.patternProperties !== undefined && (provider === 'openai' || provider === 'claude')) {
+          push(issues, 'medium', path + ': "patternProperties" isn\'t part of either provider\'s documented strict-mode subset.');
+        }
+
+        if (hasProps) {
+          Object.keys(node.properties).forEach(function (k) { walk(node.properties[k], path + '.' + k, depth + 1); });
+        }
+        if (isPlainObject(node.additionalProperties)) walk(node.additionalProperties, path + '.additionalProperties', depth + 1);
+        walkCombinators(node, path, depth);
+        return;
+      }
+
+      if (isArrayNode) {
+        stats.maxDepth = Math.max(stats.maxDepth, depth);
+        if (provider === 'claude') {
+          if (node.minItems !== undefined && node.minItems !== 0 && node.minItems !== 1) {
+            push(issues, 'medium', path + ': "minItems": ' + node.minItems + ' — Claude only supports 0 or 1.');
+          }
+          if (node.maxItems !== undefined) {
+            push(issues, 'medium', path + ': "maxItems" isn\'t in Claude\'s documented supported feature list.');
+          }
+        }
+        if (Array.isArray(node.items)) {
+          node.items.forEach(function (it, i) { walk(it, path + '.items[' + i + ']', depth + 1); });
+        } else if (node.items !== undefined) {
+          walk(node.items, path + '.items', depth + 1);
+        }
+        walkCombinators(node, path, depth);
+        return;
+      }
+
+      if (provider === 'openai' || provider === 'claude') {
+        UNSUPPORTED_NUMERIC_STRING_KEYWORDS.forEach(function (k) {
+          if (node[k] !== undefined) {
+            push(issues, provider === 'claude' ? 'high' : 'medium', path + ': "' + k + '" is not supported in strict mode' + (provider === 'claude' ? ' (Claude\'s SDKs strip it silently before re-validating locally)' : '') + '.');
+          }
+        });
+        if (typeof node.pattern === 'string') {
+          push(issues, 'medium', path + ': "pattern" is not supported in strict mode.');
+        }
+        if (provider === 'claude' && typeof node.format === 'string' && CLAUDE_SUPPORTED_FORMATS.indexOf(node.format) === -1) {
+          push(issues, 'medium', path + ': format "' + node.format + '" isn\'t in Claude\'s supported list (' + CLAUDE_SUPPORTED_FORMATS.join(', ') + ') and will be filtered out.');
+        }
+      }
+      walkCombinators(node, path, depth);
+    }
+
+    walk(root, '$', 1);
+    Object.keys(defs).forEach(function (name) { walk(defs[name], '$defs.' + name, 1); });
+
+    if (provider === 'openai') {
+      if (stats.maxDepth > 5) push(issues, 'medium', 'Nesting depth (' + stats.maxDepth + ') exceeds OpenAI\'s documented limit of 5 levels.');
+      if (stats.totalProperties > 100) push(issues, 'medium', 'Total object properties (' + stats.totalProperties + ') exceeds OpenAI\'s documented limit of 100.');
+      if (stats.enumCount > 500) push(issues, 'medium', 'Total enum values (' + stats.enumCount + ') exceeds OpenAI\'s documented limit of 500.');
+      if (stats.charCount > 15000) push(issues, 'medium', 'Combined length of property names, enum values, and const values (~' + stats.charCount + ' chars) exceeds OpenAI\'s documented 15,000-character limit.');
+    }
+    if (provider === 'gemini' && sawAdditionalPropertiesGemini) {
+      push(issues, 'low', '"additionalProperties" is used — the Gemini API itself has accepted this since a November 2025 update, but some client SDK versions (e.g. older google-genai releases) still validate schemas locally and may reject it even though the API would accept it. If it\'s rejected before the request is even sent, that\'s the SDK, not the API.');
+    }
+
+    return { issues: issues };
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Will fail', medium: 'May be rejected or silently stripped', low: 'Note' };
+      for (const issue of result.issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('Structured output schema check (' + providerSelect.value + ')');
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw, providerSelect.value);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const highCount = result.issues.filter(function (x) { return x.severity === 'high'; }).length;
+    if (result.issues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' likely to fail)' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+  providerSelect.addEventListener('change', process);
+</script>

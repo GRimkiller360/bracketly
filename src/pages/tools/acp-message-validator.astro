@@ -95,6 +95,10 @@ const tool = getTool('acp-message-validator')!;
   const CONTENT_BLOCK_TYPES = ['text', 'image', 'audio', 'resource_link', 'resource'];
 
   function methodDirection(method) {
+    // "mcp/message" is the one method listed in both tables above — it
+    // proxies MCP frames and legitimately flows either way, so it can't be
+    // resolved to a single direction from the method name alone.
+    if (method === 'mcp/message') return 'Client ↔ Agent (proxied MCP frame)';
     if (CLIENT_TO_AGENT.indexOf(method) !== -1) return 'Client → Agent';
     if (AGENT_TO_CLIENT.indexOf(method) !== -1) return 'Agent → Client';
     if (PROTOCOL_LEVEL.indexOf(method) !== -1) return 'Protocol-level';

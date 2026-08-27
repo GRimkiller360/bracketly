@@ -959,6 +959,56 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "structured-output-linter",
+    title: "Structured Output Schema Linter — OpenAI, Claude, Gemini",
+    shortTitle: "Schema Linter",
+    description:
+      "Paste a JSON Schema and lint it against OpenAI's strict Structured Outputs, Claude's structured outputs, or Gemini's responseSchema — catches the missing additionalProperties, incomplete required arrays, and unsupported keywords that turn into a 400 error. 100% client-side.",
+    metaDescription:
+      "Lint a JSON Schema against OpenAI strict mode, Claude structured outputs, or Gemini responseSchema — catches the exact causes of a 400 error. 100% client-side.",
+    keywords: [
+      "openai structured outputs validator",
+      "json schema strict mode linter",
+      "additionalProperties false checker",
+      "claude structured outputs schema",
+      "gemini responseschema validator",
+    ],
+    icon: "{✓}",
+    category: "AI",
+    content: [
+      {
+        heading: "Why a schema that looks fine still gets rejected",
+        body: "OpenAI, Claude, and Gemini all accept a JSON Schema to constrain a model's output, but none of them accept the full JSON Schema specification — each imposes its own subset of allowed keywords and its own structural rules on top, and the three subsets don't match each other. A schema that's valid, well-formed JSON Schema by the spec can still fail outright: OpenAI's strict mode rejects any object schema missing \"additionalProperties\": false, Claude silently strips keywords like minLength and minimum rather than erroring on them, and Gemini's schema format doesn't support $ref at all, so a schema built around reusable $defs has to be fully inlined first. None of this shows up as a JSON syntax error — the schema parses fine, it just doesn't mean what you think it means to the provider you're sending it to.",
+      },
+      {
+        heading: "What this checks, and where the confidence bar is set",
+        body: "Pick a provider and paste the schema object itself (the contents of json_schema.schema for OpenAI, an output/tool input_schema for Claude, or responseSchema for Gemini). For OpenAI and Claude, this checks additionalProperties: false on every object, that every property name appears in required, and flags keywords each provider's own documentation lists as unsupported in strict mode (minLength/maxLength/minimum/maximum/multipleOf, unsupported string formats, external or circular $ref). OpenAI's schema also gets checked against its documented numeric limits — 100 total properties, 5 levels of nesting, 500 total enum values, a 15,000-character combined limit across property names and enum/const values. For Gemini, the main check is that no $ref/$defs appear anywhere (unsupported, must be inlined), plus a heads-up that additionalProperties is now accepted by the API itself (since a November 2025 update) even though some client SDK versions still validate it away locally. Every rule here traces to a provider's own published docs rather than general JSON Schema knowledge — where a provider's public documentation didn't explicitly confirm something (like an exact enforcement date), it's left out rather than guessed at.",
+      },
+    ],
+    faq: [
+      {
+        q: "Why does OpenAI reject my schema even though it's valid JSON Schema?",
+        a: "OpenAI's strict Structured Outputs mode only supports a subset of JSON Schema. The most common rejection causes: a missing \"additionalProperties\": false on an object, a property defined but left out of \"required\" (mark it [\"type\", \"null\"] instead of omitting it if it's meant to be optional), or an unsupported keyword like minLength, minimum, or pattern. There are also hard numeric limits — 100 total object properties, 5 levels of nesting, 500 enum values, and a 15,000-character combined limit across all property names and enum/const values.",
+      },
+      {
+        q: "Does Claude enforce the same rules as OpenAI?",
+        a: "Similar in spirit but not identical. Claude also requires additionalProperties: false on every object, but its official SDKs will auto-add that and strip unsupported keywords (minLength, maxLength, minimum, maximum, multipleOf) for you — re-validating your original schema locally afterward. If you're calling the API directly without an SDK, none of that happens automatically, so the same issues this tool flags for OpenAI still apply. Claude also only supports a specific list of string formats (date-time, time, date, duration, email, hostname, uri, ipv4, ipv6, uuid) and caps array minItems to 0 or 1.",
+      },
+      {
+        q: "Why doesn't Gemini support $ref in my schema?",
+        a: "Gemini's responseSchema format is based on a constrained subset of the OpenAPI 3.0 schema object, which doesn't include $ref resolution — every reusable $defs/definitions reference has to be manually inlined into the schema itself before sending it. This is the single most common reason a schema that works fine against OpenAI or Claude fails against Gemini.",
+      },
+      {
+        q: "Is this a substitute for actually calling the API?",
+        a: "No — it's a static lint against each provider's publicly documented schema rules, not a live validator running the provider's real parser. It catches the well-documented, common failure causes, but provider behavior can change, and this tool can't reproduce every edge case a live API call would. Treat a clean result as a strong signal, not an absolute guarantee — especially since exact enforcement details that aren't clearly documented publicly are deliberately left unchecked here rather than guessed at.",
+      },
+      {
+        q: "Is my schema sent anywhere?",
+        a: "No. Parsing and linting both run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
