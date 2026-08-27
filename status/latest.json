@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-26T07:32:31.532Z",
+  "generated_at": "2026-08-27T17:54:34.165Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 57,
+    "performance": 91,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -35,9 +35,9 @@
           "64 base encoder"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 3,
         "ctr": 0,
-        "position": 83
+        "position": 77.33333333333333
       },
       {
         "keys": [
@@ -208,9 +208,9 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 60,
-        "ctr": 0.03333333333333333,
-        "position": 8.333333333333332
+        "impressions": 62,
+        "ctr": 0.03225806451612903,
+        "position": 8.258064516129032
       },
       {
         "keys": [
@@ -271,9 +271,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 386,
+        "impressions": 472,
         "ctr": 0,
-        "position": 80.29274611398964
+        "position": 79.86652542372882
       },
       {
         "keys": [
@@ -361,9 +361,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 12,
         "ctr": 0,
-        "position": 7
+        "position": 7.416666666666667
       },
       {
         "keys": [
@@ -393,7 +393,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 4,
         "dimensions": {
           "date": "2026-08-26"
         }
@@ -433,12 +433,6 @@
         "dimensions": {
           "date": "2026-08-20"
         }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "date": "2026-08-19"
-        }
       }
     ],
     "total_pageloads": 24,
@@ -457,14 +451,6 @@
           "countryName": "ZA",
           "refererHost": "",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "CN",
-          "refererHost": "",
-          "requestPath": "/privacy/"
         }
       },
       {
@@ -528,7 +514,23 @@
         "dimensions": {
           "countryName": "CN",
           "refererHost": "",
+          "requestPath": "/privacy/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
           "requestPath": "/tools/cron-parser/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
+          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
