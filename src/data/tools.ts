@@ -959,6 +959,57 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "mcp-oauth-metadata-validator",
+    title: "MCP OAuth Client Metadata Validator",
+    shortTitle: "OAuth Metadata",
+    description:
+      "Paste a Client ID Metadata Document (CIMD), a Protected Resource Metadata document, or a bare resource URL to check MCP's OAuth client registration and resource-discovery rules: client_id URL well-formedness, redirect_uris scheme rules, token_endpoint_auth_method sanity, leaked private key material, and the correct .well-known discovery URL. 100% client-side.",
+    metaDescription:
+      "Validate an MCP OAuth Client ID Metadata Document or Protected Resource Metadata, and derive the correct .well-known discovery URL. 100% client-side.",
+    keywords: [
+      "mcp oauth validator",
+      "client id metadata document",
+      "cimd validator",
+      "mcp protected resource metadata",
+      "oauth-protected-resource well-known url",
+      "mcp dynamic client registration alternative",
+    ],
+    icon: "CID",
+    category: "AI",
+    content: [
+      {
+        heading: "When you need an MCP OAuth client metadata validator",
+        body: "MCP's authorization model replaced Dynamic Client Registration (RFC 7591) with Client ID Metadata Documents — a static JSON file you host yourself, at a URL that becomes the client_id itself. This became the preferred registration path when MCP adopted it, and the 2026-07-28 spec formally deprecated RFC 7591 DCR, keeping it only for backward compatibility. That means every MCP client author now has to hand-author this document correctly: get the hosting URL, redirect URI schemes, or the auth method wrong, and the authorization server just rejects the client with an opaque error that doesn't point back at the metadata document as the cause. This tool checks the same structural rules an authorization server enforces, before you find out the hard way.",
+      },
+      {
+        heading: "What this tool checks — client metadata and protected resource metadata",
+        body: "Paste a Client ID Metadata Document and it checks that client_id is a well-formed HTTPS URL with a path, no fragment, no userinfo, and no dot-segments — and if you also fill in the URL you intend to host it at, that the two match by exact string comparison, since that's how an authorization server actually verifies a CIMD client (a trailing slash, a different case, or an explicit default port is enough to break it). It checks each redirect_uris entry against MCP's scheme rules (HTTPS always allowed; plain HTTP only for a loopback address; a custom scheme only valid when application_type is \"native\"), flags token_endpoint_auth_method values that don't make sense without a shared secret (client_secret_basic/post/jwt), validates a jwks/jwks_uri when private_key_jwt is used, and — importantly — flags any private key material (a JWK with a \"d\" member) that shouldn't be sitting in a document meant to be published at a public URL. Paste a Protected Resource Metadata document, or just a bare resource server URL, and it derives the correct .well-known discovery URL — a documented common mistake across several real MCP implementations is appending .well-known/oauth-protected-resource after the resource's path instead of inserting it between the origin and the path.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is a Client ID Metadata Document (CIMD)?",
+        a: "A static JSON document you host at a URL, describing an OAuth client's redirect URIs, auth method, and other metadata — the URL it's hosted at is itself the client_id, so there's no separate registration step or client secret to manage. It replaces Dynamic Client Registration (RFC 7591) as MCP's preferred way for a client to identify itself to an authorization server.",
+      },
+      {
+        q: "Why does the authorization server reject my client even though the JSON is valid?",
+        a: "The single most common cause is that client_id doesn't exactly match the URL the document is actually hosted at — the comparison is a plain string match, not a normalized URL comparison, so a trailing slash, different case, or an explicit :443 that the bare URL omits is enough to fail it. This tool's optional \"hosting URL\" field checks that for you.",
+      },
+      {
+        q: "Why does this flag my token_endpoint_auth_method?",
+        a: "Under CIMD there's no registration step where a client secret could have been issued, so client_secret_basic, client_secret_post, and client_secret_jwt don't make sense — the expected value is \"none\" (a public client using PKCE), or private_key_jwt if you're presenting a signed JWT backed by a jwks/jwks_uri you also host.",
+      },
+      {
+        q: "How do I find the correct .well-known URL for a Protected Resource Metadata document?",
+        a: "It's inserted between the origin and the path, not appended after it — for a resource at https://server.example.com/mcp, the metadata lives at https://server.example.com/.well-known/oauth-protected-resource/mcp, not .../mcp/.well-known/oauth-protected-resource. Paste the bare resource URL into this tool and it computes the correct path for you.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser with plain JavaScript — nothing you paste, including any key material in a jwks document, is transmitted or stored anywhere.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

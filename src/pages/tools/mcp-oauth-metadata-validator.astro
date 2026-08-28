@@ -1,0 +1,531 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('mcp-oauth-metadata-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">Client ID Metadata Document, Protected Resource Metadata document, or a bare resource URL</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="12"
+      autocomplete="off"
+      placeholder={`Paste one of:\n\n1) A Client ID Metadata Document, e.g.\n{\n  "client_id": "https://chat.example.com/oauth/client-metadata.json",\n  "client_name": "Example Chat Client",\n  "redirect_uris": ["https://chat.example.com/callback"],\n  "token_endpoint_auth_method": "none",\n  "application_type": "web"\n}\n\n2) A Protected Resource Metadata document, e.g.\n{\n  "resource": "https://server.example.com/mcp",\n  "authorization_servers": ["https://auth.example.com"]\n}\n\n3) Just a bare resource URL, e.g. https://server.example.com/mcp\n   (computes the correct .well-known discovery URL)`}
+    ></textarea>
+
+    <div style="margin-top:0.85rem;">
+      <label for="hosting-url" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.35rem;">
+        Hosting URL (optional — only used for a Client ID Metadata Document, to check it matches client_id exactly)
+      </label>
+      <input
+        type="text"
+        id="hosting-url"
+        autocomplete="off"
+        placeholder="https://chat.example.com/oauth/client-metadata.json"
+        style="width:100%;padding:0.55rem 0.7rem;font-family:var(--font-mono);font-size:0.85rem;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;color:var(--text);"
+      />
+    </div>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel" id="wellknown-panel" style="display:none;">
+      <div class="field-label">
+        <span>Discovery URL</span>
+        <button class="btn btn-sm" id="btn-copy-wellknown" aria-label="Copy well-known discovery URL">Copy URL</button>
+      </div>
+      <div id="wellknown-out" style="font-family:var(--font-mono);font-size:0.88rem;overflow-wrap:anywhere;word-break:break-word;color:var(--text);"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const hostingUrlInput = document.getElementById('hosting-url');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const wellknownPanel = document.getElementById('wellknown-panel');
+  const wellknownOut = document.getElementById('wellknown-out');
+
+  let lastReportText = '';
+  let lastWellKnownUrl = '';
+
+  const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
+  const EC_CURVES = ['P-256', 'P-384', 'P-521'];
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function tryParseUrl(str) {
+    try {
+      return new URL(str);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function deriveWellKnown(resourceUrlStr) {
+    const u = tryParseUrl(resourceUrlStr);
+    if (!u) return null;
+    const path = u.pathname === '/' ? '' : u.pathname.replace(/\/+$/, '');
+    return u.origin + '/.well-known/oauth-protected-resource' + path;
+  }
+
+  function pushIssue(issues, severity, message) {
+    issues.push({ severity, message });
+  }
+
+  function validateClientIdUrl(clientId, hostingUrl, issues) {
+    const u = tryParseUrl(clientId);
+    if (!u) {
+      pushIssue(issues, 'high', 'client_id ("' + clientId + '") is not a valid absolute URL.');
+      return;
+    }
+    if (u.protocol !== 'https:') {
+      pushIssue(issues, 'high', 'client_id must use https:// — got "' + u.protocol + '". A CIMD client_id is always an HTTPS URL.');
+    }
+    if (u.pathname === '' || u.pathname === '/') {
+      pushIssue(issues, 'medium', 'client_id has no path (just the bare origin). Most CIMD guidance expects the document to live at a specific path, not the domain root.');
+    }
+    if (u.hash) {
+      pushIssue(issues, 'high', 'client_id must not include a URL fragment ("#' + u.hash.slice(1) + '").');
+    }
+    if (u.username || u.password) {
+      pushIssue(issues, 'high', 'client_id must not include userinfo (a "user:pass@" prefix).');
+    }
+    if (/(^|\/)\.\.?(\/|$)/.test(u.pathname)) {
+      pushIssue(issues, 'high', 'client_id\'s path contains "." or ".." dot-segments, which is not allowed.');
+    }
+    if (u.search) {
+      pushIssue(issues, 'low', 'client_id has a query string. Not strictly forbidden, but discouraged — some authorization servers compare it as an opaque exact string, so keep it simple.');
+    }
+
+    if (hostingUrl) {
+      if (hostingUrl !== clientId) {
+        pushIssue(
+          issues,
+          'high',
+          'client_id does not exactly match the hosting URL you entered. An authorization server compares these as a plain string, not a normalized URL — check for a trailing slash, case difference, or an explicit default port (e.g. ":443") on one side but not the other.\n  client_id:    ' + clientId + '\n  hosting URL:  ' + hostingUrl
+        );
+      }
+    }
+  }
+
+  function classifyRedirectUri(uriStr, issues, applicationType) {
+    const u = tryParseUrl(uriStr);
+    if (!u) {
+      pushIssue(issues, 'high', 'redirect_uris entry "' + uriStr + '" is not a valid absolute URI.');
+      return;
+    }
+    const scheme = u.protocol.replace(':', '');
+    const isLoopback = LOOPBACK_HOSTS.indexOf(u.hostname) !== -1;
+
+    if (scheme === 'https') {
+      return;
+    }
+    if (scheme === 'http') {
+      if (isLoopback) {
+        if (u.hostname === 'localhost') {
+          pushIssue(
+            issues,
+            'low',
+            'redirect_uris entry "' + uriStr + '" uses the "localhost" hostname over plain HTTP. RFC 8252 (OAuth for native apps) recommends a loopback IP literal (127.0.0.1 or [::1]) instead, since "localhost" can resolve differently depending on local DNS/hosts configuration.'
+          );
+        }
+        return;
+      }
+      pushIssue(issues, 'high', 'redirect_uris entry "' + uriStr + '" uses plain HTTP on a non-loopback host. Only HTTPS is allowed except for loopback addresses (127.0.0.1, [::1], or localhost).');
+      return;
+    }
+    // Any other scheme is a "custom scheme" redirect (e.g. myapp://callback),
+    // only valid for a native client per the MCP/OAuth-for-native-apps profile.
+    if (applicationType === 'native') {
+      return;
+    }
+    if (applicationType === 'web') {
+      pushIssue(issues, 'high', 'redirect_uris entry "' + uriStr + '" uses a custom scheme ("' + scheme + ':"), which is only valid when application_type is "native" — this document declares application_type "web".');
+    } else {
+      pushIssue(issues, 'medium', 'redirect_uris entry "' + uriStr + '" uses a custom scheme ("' + scheme + ':"), which is only valid for a native client — application_type isn\'t set on this document, so this can\'t be fully confirmed as valid.');
+    }
+  }
+
+  function validateJwk(jwk, index, issues) {
+    const label = 'jwks.keys[' + index + ']';
+    if (!isPlainObject(jwk)) {
+      pushIssue(issues, 'high', label + ' must be a JSON object.');
+      return;
+    }
+    if ('d' in jwk) {
+      pushIssue(issues, 'high', label + ' contains a "d" member — that\'s the private key component. A jwks meant to be published for others to verify signatures must only contain public key material; this document should not be hosted publicly as-is.');
+    }
+    if (typeof jwk.kty !== 'string') {
+      pushIssue(issues, 'high', label + ' is missing "kty" (key type).');
+      return;
+    }
+    if (jwk.kty === 'EC') {
+      if (EC_CURVES.indexOf(jwk.crv) === -1) {
+        pushIssue(issues, 'medium', label + ': kty "EC" should have crv set to one of ' + EC_CURVES.join(', ') + ' — got ' + JSON.stringify(jwk.crv) + '.');
+      }
+    } else if (jwk.kty === 'OKP') {
+      if (jwk.crv !== 'Ed25519') {
+        pushIssue(issues, 'medium', label + ': kty "OKP" should have crv "Ed25519" for JWT signing — got ' + JSON.stringify(jwk.crv) + '.');
+      }
+    } else if (jwk.kty !== 'RSA') {
+      pushIssue(issues, 'low', label + ': unusual kty ' + JSON.stringify(jwk.kty) + ' for a client authentication key — RSA, EC, or OKP are the common choices.');
+    }
+  }
+
+  function validateCimd(doc, hostingUrl) {
+    const issues = [];
+
+    if (typeof doc.client_id !== 'string' || !doc.client_id) {
+      pushIssue(issues, 'high', 'Missing "client_id" — required, and it must be the exact URL this document is hosted at.');
+    } else {
+      validateClientIdUrl(doc.client_id, hostingUrl, issues);
+    }
+
+    if (typeof doc.client_name !== 'string' || !doc.client_name.trim()) {
+      pushIssue(issues, 'low', 'No "client_name" set. Not required, but authorization servers commonly show it on a consent screen — without it, users see a bare URL.');
+    }
+
+    const appType = doc.application_type;
+    if (appType === undefined) {
+      pushIssue(issues, 'low', 'No "application_type" set. It defaults to "web" in the base OAuth client metadata spec, but setting it explicitly avoids ambiguity — "native" is required to allow loopback-HTTP or custom-scheme redirect URIs.');
+    } else if (appType !== 'web' && appType !== 'native') {
+      pushIssue(issues, 'high', 'application_type must be "web" or "native" — got ' + JSON.stringify(appType) + '.');
+    }
+
+    if (doc.redirect_uris === undefined) {
+      pushIssue(issues, 'medium', 'No "redirect_uris". Optional in the base IETF draft, but MCP clients need at least one to complete the authorization code flow.');
+    } else if (!Array.isArray(doc.redirect_uris) || doc.redirect_uris.length === 0) {
+      pushIssue(issues, 'high', '"redirect_uris" must be a non-empty array.');
+    } else {
+      for (const uri of doc.redirect_uris) {
+        if (typeof uri !== 'string') {
+          pushIssue(issues, 'high', 'redirect_uris entries must be strings — found ' + typeof uri + '.');
+          continue;
+        }
+        classifyRedirectUri(uri, issues, appType === 'web' || appType === 'native' ? appType : undefined);
+      }
+    }
+
+    const authMethod = doc.token_endpoint_auth_method;
+    if (authMethod === undefined) {
+      pushIssue(issues, 'low', 'No "token_endpoint_auth_method" set — it defaults to "client_secret_basic" in the base OAuth spec, which makes no sense for a CIMD client since there\'s no registration step to issue a secret. Set it explicitly to "none" (or "private_key_jwt" with a jwks).');
+    } else if (authMethod === 'client_secret_basic' || authMethod === 'client_secret_post' || authMethod === 'client_secret_jwt') {
+      pushIssue(issues, 'high', 'token_endpoint_auth_method is "' + authMethod + '", which requires a shared client secret — but CIMD has no registration step to issue one. Use "none" (public client + PKCE) or "private_key_jwt".');
+    } else if (authMethod === 'private_key_jwt') {
+      if (doc.jwks === undefined && doc.jwks_uri === undefined) {
+        pushIssue(issues, 'high', 'token_endpoint_auth_method is "private_key_jwt" but neither "jwks" nor "jwks_uri" is present — the authorization server has no key to verify your signed JWT against.');
+      }
+      if (doc.jwks !== undefined) {
+        if (!isPlainObject(doc.jwks) || !Array.isArray(doc.jwks.keys)) {
+          pushIssue(issues, 'high', '"jwks" must be an object with a "keys" array (a JWK Set, RFC 7517) — a bare array of keys is not valid here.');
+        } else {
+          doc.jwks.keys.forEach((k, i) => validateJwk(k, i, issues));
+        }
+      }
+      if (doc.jwks_uri !== undefined && (typeof doc.jwks_uri !== 'string' || !tryParseUrl(doc.jwks_uri))) {
+        pushIssue(issues, 'high', '"jwks_uri" must be a valid URL string.');
+      }
+    } else if (authMethod !== 'none') {
+      pushIssue(issues, 'medium', 'Unrecognized token_endpoint_auth_method ' + JSON.stringify(authMethod) + '.');
+    }
+
+    if (doc.grant_types !== undefined) {
+      if (!Array.isArray(doc.grant_types)) {
+        pushIssue(issues, 'high', '"grant_types" must be an array.');
+      } else {
+        if (doc.grant_types.indexOf('implicit') !== -1) pushIssue(issues, 'medium', 'grant_types includes "implicit" — deprecated by OAuth 2.1 and not appropriate for a new MCP client.');
+        if (doc.grant_types.indexOf('password') !== -1) pushIssue(issues, 'medium', 'grant_types includes "password" (Resource Owner Password Credentials) — deprecated by OAuth 2.1.');
+      }
+    }
+    if (doc.response_types !== undefined) {
+      if (!Array.isArray(doc.response_types)) {
+        pushIssue(issues, 'high', '"response_types" must be an array.');
+      } else if (doc.response_types.indexOf('token') !== -1) {
+        pushIssue(issues, 'medium', 'response_types includes "token" (the implicit grant\'s response type) — deprecated by OAuth 2.1 in favor of authorization code + PKCE.');
+      }
+    }
+
+    for (const serverOnlyField of ['client_secret', 'client_id_issued_at', 'client_secret_expires_at', 'registration_access_token', 'registration_client_uri']) {
+      if (doc[serverOnlyField] !== undefined) {
+        pushIssue(issues, 'high', '"' + serverOnlyField + '" is present. This is a field an authorization server issues back after Dynamic Client Registration — it has no meaning in a self-authored, publicly-hosted CIMD document and shouldn\'t be here.');
+      }
+    }
+
+    const size = JSON.stringify(doc).length;
+    if (size > 5120) {
+      pushIssue(issues, 'low', 'This document is ' + size + ' bytes. Some authorization server implementations cap fetched CIMD documents at 5KB and will refuse to fetch a larger one — keep it minimal.');
+    }
+
+    return issues;
+  }
+
+  function validatePrm(doc) {
+    const issues = [];
+    let wellKnown = null;
+
+    if (typeof doc.resource !== 'string' || !doc.resource) {
+      pushIssue(issues, 'high', 'Missing "resource" — required, must be the canonical URI of this resource server.');
+    } else {
+      const u = tryParseUrl(doc.resource);
+      if (!u) {
+        pushIssue(issues, 'high', '"resource" ("' + doc.resource + '") is not a valid absolute URL.');
+      } else {
+        if (u.protocol !== 'https:' && LOOPBACK_HOSTS.indexOf(u.hostname) === -1) {
+          pushIssue(issues, 'high', '"resource" must use https:// (plain http is only acceptable for a loopback address during local development).');
+        }
+        if (u.hash) {
+          pushIssue(issues, 'medium', '"resource" should not include a URL fragment.');
+        }
+        wellKnown = deriveWellKnown(doc.resource);
+      }
+    }
+
+    if (doc.authorization_servers === undefined) {
+      pushIssue(issues, 'high', 'Missing "authorization_servers" — required, a non-empty array of authorization server issuer URLs this resource accepts tokens from.');
+    } else if (!Array.isArray(doc.authorization_servers) || doc.authorization_servers.length === 0) {
+      pushIssue(issues, 'high', '"authorization_servers" must be a non-empty array.');
+    } else {
+      for (const as of doc.authorization_servers) {
+        if (typeof as !== 'string' || !tryParseUrl(as)) {
+          pushIssue(issues, 'high', 'authorization_servers entry ' + JSON.stringify(as) + ' is not a valid URL.');
+        }
+      }
+    }
+
+    if (doc.bearer_methods_supported !== undefined && !Array.isArray(doc.bearer_methods_supported)) {
+      pushIssue(issues, 'medium', '"bearer_methods_supported" should be an array (e.g. ["header"]).');
+    }
+
+    return { issues, wellKnown };
+  }
+
+  function parseWwwAuthenticate(raw) {
+    const m = raw.match(/resource_metadata\s*=\s*"([^"]+)"/i);
+    if (!m) return null;
+    return m[1];
+  }
+
+  function renderIssues(issues) {
+    clearChildren(issuesList);
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely to break', low: 'Recommendation' };
+      for (const issue of issues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = [];
+    lines.push('MCP OAuth metadata validation');
+    if (issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function renderWellKnown(url) {
+    if (!url) {
+      wellknownPanel.style.display = 'none';
+      lastWellKnownUrl = '';
+      return;
+    }
+    wellknownPanel.style.display = 'block';
+    wellknownOut.textContent = url;
+    lastWellKnownUrl = url;
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    const hostingUrl = hostingUrlInput.value.trim();
+
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    // Not JSON at all: treat a bare string as either a resource URL (compute
+    // its well-known discovery URL) or a WWW-Authenticate header value.
+    if (raw[0] !== '{' && raw[0] !== '[') {
+      if (/^bearer\s/i.test(raw)) {
+        const rm = parseWwwAuthenticate(raw);
+        if (!rm) {
+          results.style.display = 'none';
+          setStatus('✗ Looks like a WWW-Authenticate header, but no resource_metadata="..." parameter was found in it.', 'error');
+          return;
+        }
+        const issues = [];
+        if (!tryParseUrl(rm)) {
+          pushIssue(issues, 'high', 'resource_metadata value "' + rm + '" is not a valid URL.');
+        } else if (rm.indexOf('/.well-known/oauth-protected-resource') === -1) {
+          pushIssue(issues, 'medium', 'resource_metadata ("' + rm + '") doesn\'t contain "/.well-known/oauth-protected-resource" — double-check this is really a Protected Resource Metadata URL.');
+        }
+        renderIssues(issues);
+        renderWellKnown(rm);
+        results.style.display = 'block';
+        setStatus(issues.length === 0 ? '✓ Parsed WWW-Authenticate header — resource_metadata points to: ' + rm : '✗ Found ' + issues.length + ' issue(s) in the WWW-Authenticate header.', issues.length === 0 ? 'ok' : 'error');
+        return;
+      }
+
+      const wellKnown = deriveWellKnown(raw);
+      if (!wellKnown) {
+        results.style.display = 'none';
+        setStatus('✗ This doesn\'t look like valid JSON or a valid absolute URL.', 'error');
+        return;
+      }
+      renderIssues([]);
+      renderWellKnown(wellKnown);
+      results.style.display = 'block';
+      setStatus('✓ Computed the Protected Resource Metadata discovery URL for this resource.', 'ok');
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      results.style.display = 'none';
+      setStatus('✗ Invalid JSON: ' + e.message, 'error');
+      return;
+    }
+
+    if (!isPlainObject(parsed)) {
+      results.style.display = 'none';
+      setStatus('✗ Expected a JSON object (a client metadata document or a protected resource metadata document).', 'error');
+      return;
+    }
+
+    if (typeof parsed.resource === 'string' && Array.isArray(parsed.authorization_servers)) {
+      const { issues, wellKnown } = validatePrm(parsed);
+      renderIssues(issues);
+      renderWellKnown(wellKnown);
+      results.style.display = 'block';
+      setStatus(
+        issues.length === 0
+          ? '✓ Protected Resource Metadata looks correct.'
+          : '✗ Found ' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + ' in this Protected Resource Metadata document.',
+        issues.length === 0 ? 'ok' : 'error'
+      );
+      return;
+    }
+
+    if (typeof parsed.client_id === 'string' || Array.isArray(parsed.redirect_uris) || typeof parsed.client_name === 'string') {
+      const issues = validateCimd(parsed, hostingUrl);
+      renderIssues(issues);
+      renderWellKnown(null);
+      results.style.display = 'block';
+      const highCount = issues.filter((x) => x.severity === 'high').length;
+      setStatus(
+        issues.length === 0
+          ? '✓ Client ID Metadata Document looks correct.'
+          : '✗ Found ' + issues.length + ' issue' + (issues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.',
+        issues.length === 0 ? 'ok' : 'error'
+      );
+      return;
+    }
+
+    results.style.display = 'none';
+    setStatus('✗ This JSON object doesn\'t look like a Client ID Metadata Document (needs "client_id") or a Protected Resource Metadata document (needs "resource" + "authorization_servers").', 'error');
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    hostingUrlInput.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  document.getElementById('btn-copy-wellknown').addEventListener('click', function () {
+    if (!lastWellKnownUrl) return;
+    const btn = this;
+    copyText(lastWellKnownUrl).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy URL'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy URL'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+  hostingUrlInput.addEventListener('input', process);
+</script>
