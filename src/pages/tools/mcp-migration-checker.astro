@@ -140,11 +140,20 @@ const tool = getTool('mcp-migration-checker')!;
       return { fatal: 'Top-level JSON-RPC message must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
     }
 
-    const isRequest = typeof body.method === 'string';
-    const isResponse = !isRequest && ('result' in body || 'error' in body);
+    const hasMethodField = Object.prototype.hasOwnProperty.call(body, 'method');
+    if (hasMethodField && typeof body.method !== 'string') {
+      return { fatal: '"method" must be a string, got ' + (body.method === null ? 'null' : typeof body.method) + '.' };
+    }
+    const hasResultOrError = ('result' in body || 'error' in body);
+    const isRequest = hasMethodField;
+    const isResponse = !isRequest && hasResultOrError;
 
     if (!isRequest && !isResponse) {
       return { fatal: 'This doesn’t look like a JSON-RPC request (needs a "method" string) or response (needs "result" or "error").' };
+    }
+
+    if (isRequest && hasResultOrError) {
+      issues.push({ severity: 'high', message: 'Message has both a "method" (making it a request) and a "result"/"error" field (which only belongs on a response) — a single JSON-RPC message can’t be both; this is likely a bug in whatever produced it.' });
     }
 
     if (body.jsonrpc !== '2.0') {
@@ -209,8 +218,7 @@ const tool = getTool('mcp-migration-checker')!;
           }
           for (const key of Object.keys(meta)) {
             const labels = key.split('/')[0].split('.');
-            const secondLabel = labels[1];
-            const isReservedPrefix = secondLabel === 'modelcontextprotocol' || secondLabel === 'mcp';
+            const isReservedPrefix = labels[0] === 'io' && (labels[1] === 'modelcontextprotocol' || labels[1] === 'mcp');
             if (isReservedPrefix && META_KEY_VALUES.indexOf(key) === -1) {
               issues.push({ severity: 'low', message: '_meta key "' + key + '" uses the reserved io.modelcontextprotocol/mcp prefix but isn’t one of the four documented keys — check for a typo.' });
             }

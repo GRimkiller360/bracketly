@@ -137,6 +137,7 @@ const tool = getTool('skill-md-validator')!;
     const fields = {};
     const order = [];
     const duplicates = [];
+    const skippedLines = [];
 
     let li = 0;
     while (li < body.length) {
@@ -147,12 +148,17 @@ const tool = getTool('skill-md-validator')!;
       }
       const indent = indentOf(rawLine);
       if (indent !== 0) {
-        // Orphaned indented line with no owning top-level key — skip defensively.
+        // Orphaned indented line with no owning top-level key (e.g. a stray
+        // extra indent from an editor autoformat) — can't attribute it to any
+        // field, so it's dropped, but the drop must be visible to the user
+        // rather than silent, or a field like this can vanish with zero trace.
+        skippedLines.push({ line: start + li + 1, text: rawLine });
         li++;
         continue;
       }
       const m = rawLine.match(/^([A-Za-z0-9_-]+):(.*)$/);
       if (!m) {
+        skippedLines.push({ line: start + li + 1, text: rawLine });
         li++;
         continue;
       }
@@ -216,15 +222,19 @@ const tool = getTool('skill-md-validator')!;
       fields[key] = value;
     }
 
-    return { fields, order, duplicates, bodyAfter: lines.slice(end + 1).join('\n') };
+    return { fields, order, duplicates, skippedLines, bodyAfter: lines.slice(end + 1).join('\n') };
   }
 
   function validate(parsed) {
     const issues = [];
-    const { fields, order, duplicates } = parsed;
+    const { fields, order, duplicates, skippedLines } = parsed;
 
     for (const dup of duplicates) {
       issues.push({ severity: 'high', message: 'Field "' + dup + '" is defined more than once in the frontmatter — YAML forbids duplicate keys, and parsers vary on which one wins.' });
+    }
+
+    for (const skipped of skippedLines || []) {
+      issues.push({ severity: 'medium', message: 'Line ' + skipped.line + ' (' + JSON.stringify(skipped.text.trim()) + ') couldn’t be attributed to any top-level field and was ignored — likely a stray extra indent. If this was meant to be its own field, fix its indentation so it starts at column 0.' });
     }
 
     if (!('name' in fields)) {

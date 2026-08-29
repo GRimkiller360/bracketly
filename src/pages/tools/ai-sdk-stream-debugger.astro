@@ -78,12 +78,14 @@ const tool = getTool('ai-sdk-stream-debugger')!;
   // Stream Protocol part type. "data-*" (custom app data) is handled
   // separately as a wildcard since its suffix varies.
   const KNOWN_TYPES = {
-    'start': { required: ['messageId'], fieldTypes: { messageId: 'string' } },
+    'start': { required: [], fieldTypes: { messageId: 'string' } },
     'start-step': { required: [], fieldTypes: {} },
     'finish-step': { required: [], fieldTypes: {} },
+    'reset-step': { required: [], fieldTypes: {} },
     'finish': { required: [], fieldTypes: {} },
-    'abort': { required: ['reason'], fieldTypes: { reason: 'string' } },
+    'abort': { required: [], fieldTypes: { reason: 'string' } },
     'error': { required: ['errorText'], fieldTypes: { errorText: 'string' } },
+    'message-metadata': { required: ['messageMetadata'], fieldTypes: {} },
     'text-start': { required: ['id'], fieldTypes: { id: 'string' } },
     'text-delta': { required: ['id', 'delta'], fieldTypes: { id: 'string', delta: 'string' } },
     'text-end': { required: ['id'], fieldTypes: { id: 'string' } },
@@ -98,9 +100,11 @@ const tool = getTool('ai-sdk-stream-debugger')!;
     'tool-input-start': { required: ['toolCallId', 'toolName'], fieldTypes: { toolCallId: 'string', toolName: 'string' } },
     'tool-input-delta': { required: ['toolCallId', 'inputTextDelta'], fieldTypes: { toolCallId: 'string', inputTextDelta: 'string' } },
     'tool-input-available': { required: ['toolCallId', 'toolName', 'input'], fieldTypes: { toolCallId: 'string', toolName: 'string' } },
-    'tool-approval-request': { required: ['toolCallId', 'approvalId', 'isAutomatic'], fieldTypes: { toolCallId: 'string', approvalId: 'string', isAutomatic: 'boolean' } },
+    'tool-input-error': { required: ['toolCallId', 'toolName', 'errorText'], fieldTypes: { toolCallId: 'string', toolName: 'string', errorText: 'string' } },
+    'tool-approval-request': { required: ['toolCallId', 'approvalId'], fieldTypes: { toolCallId: 'string', approvalId: 'string', isAutomatic: 'boolean' } },
     'tool-approval-response': { required: ['approvalId', 'approved'], fieldTypes: { approvalId: 'string', approved: 'boolean' } },
     'tool-output-available': { required: ['toolCallId', 'output'], fieldTypes: { toolCallId: 'string' } },
+    'tool-output-error': { required: ['toolCallId', 'errorText'], fieldTypes: { toolCallId: 'string', errorText: 'string' } },
     'tool-output-denied': { required: ['toolCallId'], fieldTypes: { toolCallId: 'string' } },
   };
 

@@ -95,8 +95,15 @@ const tool = getTool('acp-message-validator')!;
   const CONTENT_BLOCK_TYPES = ['text', 'image', 'audio', 'resource_link', 'resource'];
 
   function methodDirection(method) {
-    if (CLIENT_TO_AGENT.indexOf(method) !== -1) return 'Client → Agent';
-    if (AGENT_TO_CLIENT.indexOf(method) !== -1) return 'Agent → Client';
+    // A method (e.g. "mcp/message", the MCP-proxy relay) can legitimately be
+    // sent by either side — check both lists before returning a single
+    // direction, so it isn't mislabeled as one-way when it's actually
+    // bidirectional.
+    const isClientToAgent = CLIENT_TO_AGENT.indexOf(method) !== -1;
+    const isAgentToClient = AGENT_TO_CLIENT.indexOf(method) !== -1;
+    if (isClientToAgent && isAgentToClient) return 'Client ↔ Agent';
+    if (isClientToAgent) return 'Client → Agent';
+    if (isAgentToClient) return 'Agent → Client';
     if (PROTOCOL_LEVEL.indexOf(method) !== -1) return 'Protocol-level';
     return null;
   }
@@ -239,7 +246,11 @@ const tool = getTool('acp-message-validator')!;
       return { fatal: 'Top-level JSON-RPC message must be an object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
     }
 
-    const hasMethod = typeof body.method === 'string';
+    const hasMethodField = 'method' in body;
+    if (hasMethodField && typeof body.method !== 'string') {
+      return { fatal: '"method" must be a string, got ' + (body.method === null ? 'null' : typeof body.method) + '.' };
+    }
+    const hasMethod = hasMethodField;
     const hasId = 'id' in body;
     const hasResult = 'result' in body;
     const hasError = 'error' in body;
@@ -273,7 +284,12 @@ const tool = getTool('acp-message-validator')!;
         issues.push({ severity: 'medium', message: '"' + body.method + '" is not a recognized ACP v1 method — check for a typo, or this may be a newer/unstable extension not covered by this checker.' });
       }
 
-      const checks = kind === 'notification' ? NOTIFICATION_PARAM_CHECKS : PARAM_CHECKS;
+      // Select the param-shape checks by the method's *documented* expected
+      // kind, not by whether this particular message happens to carry an
+      // "id" — a message can get the id-presence wrong (already flagged
+      // above) while still deserving real field-level validation against
+      // the table its method actually belongs to.
+      const checks = NOTIFICATION_METHODS.indexOf(body.method) !== -1 ? NOTIFICATION_PARAM_CHECKS : PARAM_CHECKS;
       const fn = checks[body.method];
       if (fn) {
         fn(body.params, issues);

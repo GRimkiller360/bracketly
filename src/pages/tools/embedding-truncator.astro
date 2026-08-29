@@ -14,6 +14,7 @@ const tool = getTool('embedding-truncator')!;
     <textarea
       id="vec-a"
       rows="6"
+      autocomplete="off"
       placeholder="Paste a vector — [0.012, -0.034, 0.056, ...], comma-separated, or one value per line"
     ></textarea>
     <p id="status-a" class="status" role="status" aria-live="polite"></p>
@@ -47,6 +48,7 @@ const tool = getTool('embedding-truncator')!;
     <textarea
       id="vec-b"
       rows="6"
+      autocomplete="off"
       placeholder="Paste a second vector to see cosine similarity before and after truncation"
     ></textarea>
     <p id="status-b" class="status" role="status" aria-live="polite"></p>

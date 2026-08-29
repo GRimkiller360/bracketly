@@ -95,7 +95,12 @@ const tool = getTool('gemini-signature-validator')!;
       if (content && Array.isArray(content.parts)) {
         return { turns: [{ role: content.role || 'model', parts: content.parts }], singleTurnMode: true };
       }
-      return null;
+      // A recognized "candidates" response shape, but candidates[0].content.parts
+      // is missing or malformed (e.g. an empty candidates array, or a candidate
+      // that only carries a finishReason like "SAFETY"/"MAX_TOKENS" with no
+      // content) — report the specific defect instead of falling through to the
+      // generic "unrecognized shape" error below.
+      return { turns: [], singleTurnMode: true, candidatesMalformed: true };
     }
     if (parsed && parsed.content && Array.isArray(parsed.content.parts)) {
       return { turns: [{ role: parsed.content.role || 'model', parts: parsed.content.parts }], singleTurnMode: true };
@@ -109,9 +114,21 @@ const tool = getTool('gemini-signature-validator')!;
   function validate(parsed) {
     const extracted = extractTurns(parsed);
     if (!extracted) return null;
-    const { turns, singleTurnMode } = extracted;
+    const { turns, singleTurnMode, candidatesMalformed } = extracted;
     const issues = [];
     let totalFunctionCalls = 0;
+
+    if (candidatesMalformed) {
+      const empty = Array.isArray(parsed.candidates) && parsed.candidates.length === 0;
+      issues.push({
+        severity: 'high',
+        turn: 0,
+        message: empty
+          ? 'The "candidates" array is empty — not a valid generateContent response.'
+          : 'candidates[0] is missing content.parts (a candidate that only carries a finishReason like "SAFETY" or "MAX_TOKENS" with no content has nothing to check here).',
+      });
+      return { issues, totalFunctionCalls: 0, turnCount: 0, turns: [], singleTurnMode };
+    }
 
     turns.forEach((turn, i) => {
       const role = turn && turn.role;

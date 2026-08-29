@@ -85,6 +85,15 @@ const tool = getTool('mcp-tool-validator')!;
     if (Array.isArray(parsed)) return { tools: parsed, single: false };
     if (parsed && Array.isArray(parsed.tools)) return { tools: parsed.tools, single: false };
     if (parsed && parsed.result && Array.isArray(parsed.result.tools)) return { tools: parsed.result.tools, single: false };
+    // A JSON-RPC envelope (has "jsonrpc" and/or "method") that isn't one of
+    // the tools-list shapes above is an unrelated MCP protocol message (e.g.
+    // a "tools/list" *request*, or a "tools/call" request/response), not a
+    // tool definition — flag it distinctly instead of falling through to the
+    // single-tool fallback below, which would misreport it as a tool missing
+    // "name"/"inputSchema".
+    if (isPlainObject(parsed) && (typeof parsed.jsonrpc !== 'undefined' || typeof parsed.method === 'string')) {
+      return { tools: [], single: false, jsonRpcEnvelope: true };
+    }
     // Any other plain object is assumed to be a single tool definition —
     // including one missing both "name" and "inputSchema", which is the
     // worst-case malformed input this validator exists to flag. Without
@@ -253,6 +262,11 @@ const tool = getTool('mcp-tool-validator')!;
     if (!extracted) {
       results.style.display = 'none';
       setStatus('✗ Could not find a tool object, a tool array, or a "tools" list in this input.', 'error');
+      return;
+    }
+    if (extracted.jsonRpcEnvelope) {
+      results.style.display = 'none';
+      setStatus('This looks like an MCP JSON-RPC request/response (has "jsonrpc" and/or "method"), not a tool definition. Paste a single tool object, an array of tools, or a "tools/list" result\'s tools array instead.', 'error');
       return;
     }
 
