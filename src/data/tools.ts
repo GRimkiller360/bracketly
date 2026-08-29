@@ -448,12 +448,12 @@ export const tools: Tool[] = [
   },
   {
     slug: "gemini-signature-validator",
-    title: "Gemini Thought Signature Validator",
+    title: "Gemini 3 Function-Calling 400 Error Checker",
     shortTitle: "Signature Validator",
     description:
-      "Paste a Gemini 3 request or response to check its function-calling turns for missing thoughtSignature fields, functionResponse ordering mistakes, and missing id echoes — the exact structural issues that cause a 400 error or silently broken multi-turn tool use. 100% client-side.",
+      "Getting a 400 error or silently broken multi-turn tool use from the Gemini 3 API? Paste your request or response to check function-calling turns for missing thoughtSignature fields, functionResponse ordering mistakes, and missing id echoes. 100% client-side.",
     metaDescription:
-      "Paste a Gemini 3 request or response to check function-calling turns for missing thoughtSignature fields and other 400-error causes. 100% client-side.",
+      "Fix Gemini 3 400 errors from function calling: check for missing thoughtSignature fields, bad functionResponse ordering, and other causes. 100% client-side.",
     keywords: [
       "gemini thought signature",
       "gemini 3 function calling 400 error",
@@ -633,12 +633,12 @@ export const tools: Tool[] = [
   },
   {
     slug: "mcp-migration-checker",
-    title: "MCP 2026-07-28 Protocol Migration Checker",
+    title: "MCP Server Broken After Update? Migration Checker",
     shortTitle: "MCP Migration Checker",
     description:
-      "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite — flags the removed initialize handshake, missing _meta protocol fields, and malformed Multi Round-Trip Request results. 100% client-side.",
+      "MCP server or client stopped working after updating to the 2026-07-28 spec's stateless rewrite? Paste a request or response to check for the removed initialize handshake, missing _meta protocol fields, and malformed Multi Round-Trip Request results. 100% client-side.",
     metaDescription:
-      "Paste an MCP request or response and check it against the 2026-07-28 spec's stateless rewrite: removed handshake, missing _meta, more. 100% client-side.",
+      "MCP server broke after an update? Check requests/responses against the 2026-07-28 stateless spec: removed handshake, missing _meta, more. 100% client-side.",
     keywords: [
       "mcp 2026-07-28 migration",
       "model context protocol stateless spec checker",
