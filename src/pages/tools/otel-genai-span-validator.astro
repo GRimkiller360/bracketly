@@ -1,0 +1,521 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('otel-genai-span-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input">An OTLP span, a full resourceSpans trace export, or a flattened gen_ai.* attribute object</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="input"
+      rows="14"
+      autocomplete="off"
+      placeholder={`Paste a span, e.g.\n{\n  "name": "chat gpt-4o",\n  "kind": "SPAN_KIND_CLIENT",\n  "gen_ai.operation.name": "chat",\n  "gen_ai.provider.name": "openai",\n  "gen_ai.request.model": "gpt-4o",\n  "gen_ai.request.temperature": 0.7,\n  "gen_ai.usage.input_tokens": 120,\n  "gen_ai.usage.output_tokens": 42\n}\n\nOr a real OTLP JSON span with an "attributes" array, or a full resourceSpans export.`}
+    ></textarea>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Detected span(s)</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const summaryEl = document.getElementById('summary');
+
+  let lastReportText = '';
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  // --- Registry, extracted from open-telemetry/semantic-conventions-genai's
+  // machine-readable registry.yaml/spans.yaml (main branch), not a summary. ---
+
+  const ENUM_PROVIDER = ['openai', 'gcp.gen_ai', 'gcp.vertex_ai', 'gcp.gemini', 'anthropic', 'cohere', 'azure.ai.inference', 'azure.ai.openai', 'ibm.watsonx.ai', 'aws.bedrock', 'perplexity', 'x_ai', 'deepseek', 'groq', 'mistral_ai', 'moonshot_ai'];
+  const ENUM_OPERATION = ['chat', 'generate_content', 'text_completion', 'embeddings', 'retrieval', 'fetch_response', 'create_agent', 'invoke_agent', 'execute_tool', 'invoke_workflow', 'plan', 'search_memory', 'create_memory', 'update_memory', 'upsert_memory', 'delete_memory', 'create_memory_store', 'delete_memory_store'];
+  const ENUM_OUTPUT_TYPE = ['text', 'json', 'image', 'speech'];
+  const ENUM_RESPONSE_STATUS = ['queued', 'in_progress', 'completed', 'incomplete', 'failed', 'cancelled'];
+  const ENUM_TOKEN_TYPE = ['input', 'output'];
+
+  // attribute id -> type tag: 'string' | 'int' | 'double' | 'boolean' | 'string[]' | 'any' | an ENUM_* array
+  const ATTR_TYPES = {
+    'gen_ai.provider.name': ENUM_PROVIDER,
+    'gen_ai.request.model': 'string',
+    'gen_ai.request.max_tokens': 'int',
+    'gen_ai.request.choice.count': 'int',
+    'gen_ai.request.temperature': 'double',
+    'gen_ai.request.top_p': 'double',
+    'gen_ai.request.top_k': 'int',
+    'gen_ai.request.stop_sequences': 'string[]',
+    'gen_ai.request.frequency_penalty': 'double',
+    'gen_ai.request.presence_penalty': 'double',
+    'gen_ai.request.encoding_formats': 'string[]',
+    'gen_ai.request.seed': 'int',
+    'gen_ai.request.stream': 'boolean',
+    'gen_ai.request.reasoning.level': 'string',
+    'gen_ai.request.previous_response.id': 'string',
+    'gen_ai.request.stream_cursor': 'string',
+    'gen_ai.response.id': 'string',
+    'gen_ai.response.model': 'string',
+    'gen_ai.response.finish_reasons': 'string[]',
+    'gen_ai.response.status': ENUM_RESPONSE_STATUS,
+    'gen_ai.response.time_to_first_chunk': 'double',
+    'gen_ai.usage.input_tokens': 'int',
+    'gen_ai.usage.cache_read.input_tokens': 'int',
+    'gen_ai.usage.cache_write.input_tokens': 'int',
+    'gen_ai.usage.text.input_tokens': 'int',
+    'gen_ai.usage.image.input_tokens': 'int',
+    'gen_ai.usage.audio.input_tokens': 'int',
+    'gen_ai.usage.output_tokens': 'int',
+    'gen_ai.usage.reasoning.output_tokens': 'int',
+    'gen_ai.usage.text.output_tokens': 'int',
+    'gen_ai.usage.image.output_tokens': 'int',
+    'gen_ai.usage.audio.output_tokens': 'int',
+    'gen_ai.usage.text.cache_read.input_tokens': 'int',
+    'gen_ai.usage.image.cache_read.input_tokens': 'int',
+    'gen_ai.usage.audio.cache_read.input_tokens': 'int',
+    'gen_ai.token.type': ENUM_TOKEN_TYPE,
+    'gen_ai.conversation.id': 'string',
+    'gen_ai.conversation.compacted': 'boolean',
+    'gen_ai.agent.id': 'string',
+    'gen_ai.agent.name': 'string',
+    'gen_ai.agent.description': 'string',
+    'gen_ai.agent.version': 'string',
+    'gen_ai.tool.name': 'string',
+    'gen_ai.tool.call.id': 'string',
+    'gen_ai.tool.description': 'string',
+    'gen_ai.tool.type': 'string',
+    'gen_ai.tool.call.arguments': 'any',
+    'gen_ai.tool.call.result': 'any',
+    'gen_ai.tool.definitions': 'any',
+    'gen_ai.data_source.id': 'string',
+    'gen_ai.operation.name': ENUM_OPERATION,
+    'gen_ai.output.type': ENUM_OUTPUT_TYPE,
+    'gen_ai.embeddings.dimension.count': 'int',
+    'gen_ai.retrieval.documents': 'any',
+    'gen_ai.retrieval.query.text': 'string',
+    'gen_ai.retrieval.top_k': 'int',
+    'gen_ai.memory.store.id': 'string',
+    'gen_ai.memory.record.id': 'string',
+    'gen_ai.memory.record.count': 'int',
+    'gen_ai.memory.query.text': 'string',
+    'gen_ai.memory.records': 'any',
+    'gen_ai.system_instructions': 'any',
+    'gen_ai.input.messages': 'any',
+    'gen_ai.output.messages': 'any',
+    'gen_ai.evaluation.name': 'string',
+    'gen_ai.evaluation.score.value': 'double',
+    'gen_ai.evaluation.score.label': 'string',
+    'gen_ai.evaluation.explanation': 'string',
+    'gen_ai.prompt.name': 'string',
+    'gen_ai.prompt.version': 'string',
+    'gen_ai.prompt.variable': 'any',
+    'gen_ai.workflow.name': 'string',
+    'server.address': 'string',
+    'server.port': 'int',
+    'error.type': 'string',
+  };
+
+  // Per gen_ai.operation.name, which span-definition group it belongs to,
+  // that group's unconditionally-required attributes (conditionally-required
+  // and recommended/opt-in attributes are intentionally not enforced here —
+  // this tool can't evaluate a per-attribute runtime condition from a single
+  // span), and how to compute the expected span name.
+  const OPERATION_GROUPS = {
+    chat: 'inference', generate_content: 'inference', text_completion: 'inference',
+    embeddings: 'embeddings',
+    retrieval: 'retrieval',
+    fetch_response: 'fetch_response',
+    create_agent: 'create_agent',
+    invoke_agent: 'invoke_agent',
+    execute_tool: 'execute_tool',
+    invoke_workflow: 'invoke_workflow',
+    plan: 'plan',
+    search_memory: 'memory', create_memory: 'memory', update_memory: 'memory',
+    upsert_memory: 'memory', delete_memory: 'memory', create_memory_store: 'memory', delete_memory_store: 'memory',
+  };
+
+  const SPAN_GROUPS = {
+    inference: {
+      required: ['gen_ai.operation.name', 'gen_ai.request.model', 'gen_ai.provider.name'],
+      nameOf: (a) => 'gen_ai.request.model' in a ? a['gen_ai.operation.name'] + ' ' + a['gen_ai.request.model'] : null,
+    },
+    embeddings: {
+      required: ['gen_ai.operation.name', 'gen_ai.request.model', 'gen_ai.provider.name'],
+      nameOf: (a) => 'gen_ai.request.model' in a ? a['gen_ai.operation.name'] + ' ' + a['gen_ai.request.model'] : null,
+    },
+    retrieval: {
+      required: ['gen_ai.operation.name'],
+      nameOf: (a) => 'gen_ai.data_source.id' in a ? a['gen_ai.operation.name'] + ' ' + a['gen_ai.data_source.id'] : null,
+    },
+    fetch_response: {
+      required: ['gen_ai.operation.name', 'gen_ai.provider.name', 'gen_ai.response.id'],
+      nameOf: (a) => a['gen_ai.operation.name'],
+    },
+    create_agent: {
+      required: ['gen_ai.operation.name', 'gen_ai.request.model', 'gen_ai.provider.name'],
+      nameOf: (a) => 'gen_ai.agent.name' in a ? 'create_agent ' + a['gen_ai.agent.name'] : null,
+    },
+    invoke_agent: {
+      // The .client variant (span.kind CLIENT) additionally requires
+      // provider.name; the .internal variant (in-process call, no network
+      // hop) does not. Default to the lighter .internal requirement set
+      // when kind is absent/unknown, to avoid false positives.
+      required: ['gen_ai.operation.name'],
+      requiredIfClientKind: ['gen_ai.provider.name'],
+      nameOf: (a) => 'invoke_agent' + ('gen_ai.agent.name' in a ? ' ' + a['gen_ai.agent.name'] : ''),
+    },
+    execute_tool: {
+      required: ['gen_ai.operation.name', 'gen_ai.tool.name'],
+      nameOf: (a) => 'gen_ai.tool.name' in a ? 'execute_tool ' + a['gen_ai.tool.name'] : null,
+    },
+    invoke_workflow: {
+      required: ['gen_ai.operation.name'],
+      nameOf: (a) => 'gen_ai.workflow.name' in a ? 'invoke_workflow ' + a['gen_ai.workflow.name'] : null,
+    },
+    plan: {
+      required: ['gen_ai.operation.name'],
+      nameOf: (a) => 'plan' + ('gen_ai.agent.name' in a ? ' ' + a['gen_ai.agent.name'] : ''),
+    },
+    memory: {
+      required: ['gen_ai.operation.name'],
+      nameOf: (a) => a['gen_ai.operation.name'],
+    },
+  };
+
+  const SPAN_KIND_NAMES = { 0: 'UNSPECIFIED', 1: 'INTERNAL', 2: 'SERVER', 3: 'CLIENT', 4: 'PRODUCER', 5: 'CONSUMER' };
+  function isClientKind(kind) {
+    if (kind === 3 || kind === 'SPAN_KIND_CLIENT') return true;
+    return false;
+  }
+
+  function otlpValueOf(v) {
+    if (v == null || typeof v !== 'object') return undefined;
+    if ('stringValue' in v) return v.stringValue;
+    if ('intValue' in v) return typeof v.intValue === 'string' ? Number(v.intValue) : v.intValue;
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('boolValue' in v) return v.boolValue;
+    if ('arrayValue' in v && v.arrayValue && Array.isArray(v.arrayValue.values)) return v.arrayValue.values.map(otlpValueOf);
+    if ('kvlistValue' in v && v.kvlistValue && Array.isArray(v.kvlistValue.values)) {
+      const o = {};
+      for (const kv of v.kvlistValue.values) if (kv && typeof kv.key === 'string') o[kv.key] = otlpValueOf(kv.value);
+      return o;
+    }
+    return undefined;
+  }
+
+  function attrsFromOtlpArray(attrs) {
+    const out = {};
+    if (!Array.isArray(attrs)) return out;
+    for (const a of attrs) {
+      if (a && typeof a.key === 'string') out[a.key] = otlpValueOf(a.value);
+    }
+    return out;
+  }
+
+  // Returns an array of { name, kind, attributes } — one entry per span found.
+  function findSpans(parsed) {
+    if (parsed && Array.isArray(parsed.resourceSpans)) {
+      const spans = [];
+      for (const rs of parsed.resourceSpans) {
+        for (const ss of (isPlainObject(rs) && Array.isArray(rs.scopeSpans) ? rs.scopeSpans : [])) {
+          for (const sp of (isPlainObject(ss) && Array.isArray(ss.spans) ? ss.spans : [])) {
+            if (isPlainObject(sp)) spans.push({ name: sp.name, kind: sp.kind, attributes: attrsFromOtlpArray(sp.attributes) });
+          }
+        }
+      }
+      return spans;
+    }
+    if (isPlainObject(parsed) && Array.isArray(parsed.attributes)) {
+      return [{ name: parsed.name, kind: parsed.kind, attributes: attrsFromOtlpArray(parsed.attributes) }];
+    }
+    if (isPlainObject(parsed)) {
+      const { name, kind } = parsed;
+      const attributes = {};
+      for (const k of Object.keys(parsed)) {
+        if (k === 'name' || k === 'kind') continue;
+        attributes[k] = parsed[k];
+      }
+      return [{ name, kind, attributes }];
+    }
+    return [];
+  }
+
+  function typeOfValue(v) {
+    if (Array.isArray(v)) return 'string[]';
+    if (typeof v === 'boolean') return 'boolean';
+    if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'double';
+    if (typeof v === 'string') return 'string';
+    return typeof v;
+  }
+
+  function checkAttrType(key, value, issues) {
+    const decl = ATTR_TYPES[key];
+    if (decl === undefined) {
+      issues.push({ severity: 'medium', message: '"' + key + '" is not a gen_ai.* attribute in the GenAI semantic conventions registry — check for a typo, or this may be a newer attribute not yet reflected here.' });
+      return;
+    }
+    if (Array.isArray(decl)) {
+      // Closed enum. gen_ai.provider.name is deliberately open/extensible in
+      // the spec (new providers appear regularly), so an unlisted value is a
+      // note, not a violation; the other four enums here are small, stable,
+      // fixed sets where an unlisted value is a real problem.
+      if (decl === ENUM_PROVIDER) {
+        if (typeof value !== 'string') {
+          issues.push({ severity: 'high', message: '"' + key + '" must be a string, got ' + typeOfValue(value) + '.' });
+        } else if (decl.indexOf(value) === -1) {
+          issues.push({ severity: 'low', message: '"' + key + '" value ' + JSON.stringify(value) + ' is not in the documented provider list — fine if this is a newer or custom provider not yet in the registry.' });
+        }
+        return;
+      }
+      if (typeof value !== 'string' || decl.indexOf(value) === -1) {
+        issues.push({ severity: 'medium', message: '"' + key + '" must be one of "' + decl.join('", "') + '" — got ' + JSON.stringify(value) + '.' });
+      }
+      return;
+    }
+    if (decl === 'any') return;
+    const actual = typeOfValue(value);
+    if (decl === 'string[]') {
+      if (!Array.isArray(value) || !value.every((x) => typeof x === 'string')) {
+        issues.push({ severity: 'high', message: '"' + key + '" must be an array of strings, got ' + JSON.stringify(value) + '.' });
+      }
+      return;
+    }
+    if (decl === 'int') {
+      if (typeof value !== 'number' || !Number.isInteger(value)) {
+        issues.push({ severity: 'high', message: '"' + key + '" must be an integer, got ' + JSON.stringify(value) + '.' });
+      }
+      return;
+    }
+    if (decl === 'double') {
+      if (typeof value !== 'number') {
+        issues.push({ severity: 'high', message: '"' + key + '" must be a number, got ' + JSON.stringify(value) + '.' });
+      }
+      return;
+    }
+    if (decl !== actual) {
+      issues.push({ severity: 'high', message: '"' + key + '" must be ' + (decl === 'string' ? 'a string' : decl === 'boolean' ? 'a boolean' : decl) + ', got ' + JSON.stringify(value) + '.' });
+    }
+  }
+
+  function validateSpan(span, issues) {
+    const attrs = span.attributes || {};
+    const opName = attrs['gen_ai.operation.name'];
+
+    if (opName === undefined) {
+      issues.push({ severity: 'medium', message: 'No "gen_ai.operation.name" attribute found — this is required on every GenAI span, and without it there\'s no way to determine which span type\'s requirements apply. Only generic attribute type/enum checks below were run.' });
+    } else if (ENUM_OPERATION.indexOf(opName) === -1) {
+      issues.push({ severity: 'low', message: '"gen_ai.operation.name" value ' + JSON.stringify(opName) + ' is not one of the documented operation names — proceeding with generic gen_ai.* attribute checks only, since the span-type-specific requirements can\'t be looked up.' });
+    }
+
+    const group = typeof opName === 'string' ? SPAN_GROUPS[OPERATION_GROUPS[opName]] : undefined;
+    if (group) {
+      for (const req of group.required) {
+        if (!(req in attrs)) {
+          issues.push({ severity: 'high', message: 'Missing required attribute "' + req + '" for a "' + opName + '" span.' });
+        }
+      }
+      if (group.requiredIfClientKind && isClientKind(span.kind)) {
+        for (const req of group.requiredIfClientKind) {
+          if (!(req in attrs)) {
+            issues.push({ severity: 'high', message: 'Missing required attribute "' + req + '" — this span has kind CLIENT, and invoke_agent.client requires it (invoke_agent.internal would not).' });
+          }
+        }
+      }
+      if (typeof span.name === 'string' && group.nameOf) {
+        let expected;
+        try {
+          expected = group.nameOf(attrs);
+        } catch (e) {
+          expected = null;
+        }
+        if (typeof expected === 'string' && expected !== span.name) {
+          issues.push({ severity: 'medium', message: 'Span name ' + JSON.stringify(span.name) + ' doesn\'t match the documented template for a "' + opName + '" span — expected ' + JSON.stringify(expected) + '.' });
+        }
+      }
+    }
+
+    for (const key of Object.keys(attrs)) {
+      if (key.indexOf('gen_ai.') !== 0 && key !== 'server.address' && key !== 'server.port' && key !== 'error.type') continue;
+      checkAttrType(key, attrs[key], issues);
+    }
+
+    if (span.kind !== undefined && typeof span.kind === 'number' && !(span.kind in SPAN_KIND_NAMES)) {
+      issues.push({ severity: 'low', message: '"kind" value ' + JSON.stringify(span.kind) + ' is not a valid OTLP SpanKind (0-5).' });
+    }
+  }
+
+  function analyze(raw) {
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+
+    const spans = findSpans(parsed);
+    if (spans.length === 0) {
+      return { fatal: 'Could not find any span data in this input. Paste a single OTLP span object (with an "attributes" array), a full resourceSpans trace export, or a flattened object of gen_ai.* attributes.' };
+    }
+
+    const perSpan = spans.map((span, i) => {
+      const issues = [];
+      validateSpan(span, issues);
+      const gaKeys = Object.keys(span.attributes || {}).filter((k) => k.indexOf('gen_ai.') === 0);
+      const label = (span.name ? JSON.stringify(span.name) : 'span #' + (i + 1)) + (span.kind !== undefined ? ' (kind: ' + (SPAN_KIND_NAMES[span.kind] || JSON.stringify(span.kind)) + ')' : '') + ' — ' + gaKeys.length + ' gen_ai.* attribute' + (gaKeys.length === 1 ? '' : 's');
+      return { label, issues };
+    });
+
+    return { perSpan };
+  }
+
+  function render(result) {
+    clearChildren(issuesList);
+    clearChildren(summaryEl);
+
+    const allIssues = [];
+    result.perSpan.forEach((s, i) => {
+      for (const issue of s.issues) allIssues.push({ span: i, label: s.label, issue });
+    });
+
+    if (allIssues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel = { high: 'Spec violation', medium: 'Likely wrong', low: 'Note' };
+      for (const entry of allIssues) {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[entry.issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+        const badge = document.createElement('strong');
+        badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[entry.issue.severity] + ';display:block;margin-bottom:0.2rem;';
+        badge.textContent = sevLabel[entry.issue.severity] + (result.perSpan.length > 1 ? ' — span ' + (entry.span + 1) : '');
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = entry.issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    for (const s of result.perSpan) {
+      const line = document.createElement('div');
+      line.textContent = s.label;
+      summaryEl.appendChild(line);
+    }
+
+    const lines = ['OTel GenAI span check'];
+    result.perSpan.forEach((s, i) => {
+      lines.push('');
+      lines.push((result.perSpan.length > 1 ? 'Span ' + (i + 1) + ': ' : '') + s.label);
+      if (s.issues.length === 0) {
+        lines.push('No issues found.');
+      } else {
+        for (const issue of s.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+      }
+    });
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const raw = input.value.trim();
+    if (!raw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(raw);
+    if (result.fatal) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const totalIssues = result.perSpan.reduce((n, s) => n + s.issues.length, 0);
+    const highCount = result.perSpan.reduce((n, s) => n + s.issues.filter((x) => x.severity === 'high').length, 0);
+    if (totalIssues === 0) {
+      setStatus('✓ Looks correct — no issues found across ' + result.perSpan.length + ' span' + (result.perSpan.length === 1 ? '' : 's') + '.', 'ok');
+    } else {
+      setStatus('✗ Found ' + totalIssues + ' issue' + (totalIssues === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    input.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    input.focus();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  input.addEventListener('input', process);
+</script>

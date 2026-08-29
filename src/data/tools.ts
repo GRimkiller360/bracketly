@@ -959,6 +959,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "otel-genai-span-validator",
+    title: "OTel GenAI Span Validator",
+    shortTitle: "GenAI Span Validator",
+    description:
+      "Validate an OpenTelemetry span's gen_ai.* attributes against the official GenAI semantic conventions — attribute types, enum values, required fields per operation, and span-name template conformance. Runs entirely in your browser.",
+    metaDescription:
+      "Validate OpenTelemetry gen_ai.* span attributes against the official GenAI semantic conventions: types, enums, required fields, span names. 100% client-side.",
+    keywords: ["otel genai semantic conventions", "gen_ai attributes validator", "opentelemetry llm tracing", "gen_ai.operation.name", "genai span name template"],
+    icon: "OTL",
+    category: "AI",
+    content: [
+      {
+        heading: "What the GenAI semantic conventions are",
+        body: "When an LLM call, an agent invocation, or a tool execution is instrumented with OpenTelemetry, the resulting span is supposed to carry a standardized set of gen_ai.* attributes — the model requested, token usage, the provider, and so on — so that any OTel-compatible backend can render consistent dashboards regardless of which library or provider produced the trace. That standard is the GenAI semantic conventions, recently split out into its own dedicated repository and still explicitly marked Development stability: attribute names and requirement levels are still settling, unlike the long-stable HTTP or database conventions. There's no hosted tool to check a span against it — the only real conformance checker is Weaver, a Rust CLI that runs in CI against a live registry, not something you can paste a span into.",
+      },
+      {
+        heading: "What this tool checks",
+        body: "Paste a single OTLP JSON span (the {\"name\":..., \"attributes\":[{\"key\":...,\"value\":{\"stringValue\":...}}]} shape a real collector export uses), a full resourceSpans trace export (every span inside is checked), or a flattened plain object of gen_ai.* key/value pairs for quick manual testing. For each span, it looks up gen_ai.operation.name to determine the expected span type (chat/generate_content/text_completion, embeddings, retrieval, fetch_response, create_agent, invoke_agent, execute_tool, invoke_workflow, plan, or one of the memory operations) and checks that type's unconditionally-required attributes are present, validates every recognized gen_ai.* attribute's type (string, int, double, boolean, string array) and enum membership (gen_ai.provider.name, gen_ai.output.type, gen_ai.response.status, gen_ai.token.type) against the registry, flags any gen_ai.* key not in the registry at all, and — when the span has a name and enough attributes to compute one — checks it against that operation's documented span-name template (e.g. \"{operation} {model}\" for an inference span). All of this is checked against the semantic-conventions-genai repository's own machine-readable attribute registry and span definitions, downloaded and read directly rather than summarized from a blog post.",
+      },
+    ],
+    faq: [
+      {
+        q: "Why does it need gen_ai.operation.name to check anything else?",
+        a: "The required-attribute set and the span-name template are both defined per operation (a chat span needs gen_ai.request.model and gen_ai.provider.name; an execute_tool span needs gen_ai.tool.name instead, and neither needs the other's fields). Without a recognized operation.name, this tool falls back to only checking the type/enum shape of whatever gen_ai.* attributes are present, since it has no basis for which ones should exist.",
+      },
+      {
+        q: "It didn't flag a missing field I expected — why?",
+        a: "Only unconditionally-required attributes are enforced as violations. Many attributes are conditionally required (\"if applicable\", \"if the request includes a seed\") or opt-in (message content, tool arguments — gated behind explicit consent since they can carry sensitive data). This tool can't evaluate runtime conditions from a single span in isolation, so it doesn't guess at those — a clean report means the unconditional requirements are met, not that every optional field you might expect is present.",
+      },
+      {
+        q: "Does it support the full OTLP protobuf format?",
+        a: "It supports OTLP's JSON encoding (the format a real collector's HTTP JSON exporter produces, or what you'd get from a text-based trace-log pipeline) — either a full resourceSpans export or a single span object with an attributes array. It doesn't parse binary protobuf; export as JSON first if your pipeline produces protobuf.",
+      },
+      {
+        q: "The conventions are still 'Development' stability — will this go stale?",
+        a: "Likely, at least partially — attribute names and requirement levels in this space are actively being revised. Treat a flagged attribute as a prompt to check the current registry at github.com/open-telemetry/semantic-conventions-genai, not an unappealable verdict, the same way you would with any other tool here validating against an evolving spec.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
