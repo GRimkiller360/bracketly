@@ -182,3 +182,20 @@ No code change was made for this — only this write-up, per the rule against cr
 1. Email `hello@console.dev` pitching 2-3 of the most broadly useful "regular-use" tools (not the whole 22-tool catalog, since Console reviews specific tools) — e.g. the JSON formatter, JWT decoder, and hash generator.
 2. Verify current submission details directly on console.dev first, since this agent's network access blocked a direct fetch of that domain and the details above come from WebSearch summaries, not a first-hand page read.
 3. No code or account changes needed on the Bracketly repo side — this is purely an outbound pitch email.
+
+## 2026-08-30 — List Bracketly on DevHunt.org
+
+**What it is:** [DevHunt.org](https://devhunt.org) is a discovery/launch platform built specifically for developer tools — founded in 2023 explicitly because Product Hunt underrepresents dev tools. It runs a daily/weekly "Best Dev Tools" upvoting format, is free to use, and is itself open-source (`github.com/MarsX-dev/devhunt`), using GitHub-based auth for both submissions and voting to keep listings tied to real makers and reduce vote manipulation.
+
+**Why it's a real fit for Bracketly specifically, and distinct from the 18 prior entries:** Show HN (already logged) is a one-shot post to a general tech-news audience; AlternativeTo.net (already logged) is a comparison-page directory; Console.dev (already logged) is an editorial newsletter requiring a pitch and selection against published criteria. DevHunt is a different mechanic entirely — a self-serve, upvote-driven launch platform whose entire audience is developers specifically browsing for developer tools, not a broader tech audience. Bracketly (free, no signup, instantly usable, 24 client-side utilities) is exactly the product shape this platform exists for. It targets the same distribution gap already diagnosed from real Search Console data (2026-08-12, 2026-08-23 entries: real impressions on base64-related terms, near-zero clicks, consistent with a domain too new/low-authority to rank yet) with a small but 100%-relevant audience, complementing rather than duplicating Show HN.
+
+**Evidence:** DevHunt's own GitHub repo description ("A launching platform for dev tools, built by developers... we use GitHub pull requests for listings and user logins for genuine voting") — `github.com/MarsX-dev/devhunt`; its own Product Hunt listing "DevHunt: Best Dev Tools of the Week" — `producthunt.com/products/devhunt-2`; third-party coverage corroborating the free, GitHub-authenticated, dev-tool-specific positioning and 2023 origin.
+
+**Caveat:** devhunt.org itself was blocked by this session's network egress proxy, so the exact current submission flow (a literal GitHub PR to the repo vs. a GitHub-OAuth web form on the live site, and whether there's a paid "featured" upsell tier alongside free listing) could not be verified first-hand — a human should confirm the live flow before submitting.
+
+**Other ad-network alternatives checked and rejected today:** Carbon Ads and NitroPay both require far more traffic than Bracketly currently has (Carbon Ads: ~50,000 monthly pageviews per their published FAQ; NitroPay: 100,000 monthly visitors or 300,000 monthly pageviews) — Bracketly is well under 100 pageloads/day, so neither clears the bar yet. JetBrains and Clerk affiliate/creator programs were also considered and rejected as too generic a fit for a static tool-widget site to be worth logging as a concrete proposal.
+
+**What a human needs to do:**
+1. Visit devhunt.org and sign in with GitHub.
+2. Submit Bracketly following whatever the live submission flow currently is (verify this in person, since this agent couldn't load the site).
+3. No code or account changes needed on the Bracketly repo side.
