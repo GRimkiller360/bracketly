@@ -61,6 +61,7 @@ const tool = getTool('mcp-server-json-validator')!;
 
   const NAME_PATTERN = /^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/;
   const HTTP_URL_PATTERN = /^https?:\/\/[^\s]+$/;
+  const HTTPS_URL_PATTERN = /^https:\/\/[^\s]+$/i;
   const SHA256_PATTERN = /^[a-f0-9]{64}$/;
   const SIZES_PATTERN = /^(\d+x\d+|any)$/;
   const ICON_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
@@ -158,6 +159,10 @@ const tool = getTool('mcp-server-json-validator')!;
       push(issues, 'high', path + ' cannot use "stdio" — entries in "remotes" describe a server reachable over the network. A locally-launched stdio server belongs under "packages" instead.');
       return;
     }
+    if (t.type !== 'streamable-http' && t.type !== 'sse') {
+      push(issues, 'high', path + '.type must be "streamable-http" or "sse" — got ' + JSON.stringify(t.type) + '.');
+      return;
+    }
     validateLocalTransport(t, path, issues);
     if (t.variables !== undefined && !isPlainObject(t.variables)) {
       push(issues, 'medium', path + '.variables should be an object.');
@@ -236,7 +241,7 @@ const tool = getTool('mcp-server-json-validator')!;
       if (icon.src.length > 255) {
         push(issues, 'high', path + '.src exceeds the 255-character limit.');
       }
-      if (!/^https:\/\//i.test(icon.src)) {
+      if (!HTTPS_URL_PATTERN.test(icon.src)) {
         push(issues, 'high', path + '.src ("' + icon.src + '") must be an HTTPS URL.');
       }
     }

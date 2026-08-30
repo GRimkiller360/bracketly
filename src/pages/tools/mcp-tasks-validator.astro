@@ -84,10 +84,11 @@ const tool = getTool('mcp-tasks-validator')!;
     return v !== null && typeof v === 'object' && !Array.isArray(v);
   }
 
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
   function isIsoDateString(s) {
-    if (typeof s !== 'string') return false;
-    const d = new Date(s);
-    return !isNaN(d.getTime());
+    if (typeof s !== 'string' || !ISO_DATE_RE.test(s)) return false;
+    return !isNaN(new Date(s).getTime());
   }
 
   function validateTaskShape(task, path, issues) {
