@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-29T12:51:50.664Z",
+  "generated_at": "2026-08-30T12:14:23.201Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 94,
+    "performance": 95,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -134,9 +134,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 20,
+        "impressions": 22,
         "ctr": 0,
-        "position": 87.75
+        "position": 87.45454545454545
       },
       {
         "keys": [
@@ -170,9 +170,9 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 16,
+        "impressions": 17,
         "ctr": 0,
-        "position": 83.4375
+        "position": 83.41176470588235
       },
       {
         "keys": [
@@ -208,9 +208,9 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 63,
-        "ctr": 0.031746031746031744,
-        "position": 8.269841269841269
+        "impressions": 64,
+        "ctr": 0.03125,
+        "position": 8.15625
       },
       {
         "keys": [
@@ -262,18 +262,18 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 8,
+        "impressions": 11,
         "ctr": 0,
-        "position": 21.5
+        "position": 22.272727272727273
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 698,
+        "impressions": 808,
         "ctr": 0,
-        "position": 79.62750716332378
+        "position": 79.28341584158416
       },
       {
         "keys": [
@@ -361,9 +361,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 14,
+        "impressions": 16,
         "ctr": 0,
-        "position": 12.642857142857142
+        "position": 16
       },
       {
         "keys": [
@@ -394,6 +394,12 @@
     "daily_pageloads": [
       {
         "count": 6,
+        "dimensions": {
+          "date": "2026-08-30"
+        }
+      },
+      {
+        "count": 7,
         "dimensions": {
           "date": "2026-08-29"
         }
@@ -433,15 +439,9 @@
         "dimensions": {
           "date": "2026-08-23"
         }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "date": "2026-08-22"
-        }
       }
     ],
-    "total_pageloads": 30,
+    "total_pageloads": 34,
     "top_requests": [
       {
         "count": 8,
@@ -449,6 +449,22 @@
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/countries"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/faq"
         }
       },
       {
@@ -473,14 +489,6 @@
           "countryName": "ZA",
           "refererHost": "",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/countries"
         }
       },
       {
@@ -512,23 +520,15 @@
         "dimensions": {
           "countryName": "CN",
           "refererHost": "",
+          "requestPath": "/tools/otel-genai-span-validator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CN",
+          "refererHost": "",
           "requestPath": "/tools/jwt-decoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/faq"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "DE",
-          "refererHost": "",
-          "requestPath": "/tools/mcp-tasks-validator/"
         }
       },
       {
@@ -545,14 +545,6 @@
           "countryName": "GB",
           "refererHost": "",
           "requestPath": "/tools/token-counter/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "CN",
-          "refererHost": "",
-          "requestPath": "/tools/cron-parser/"
         }
       },
       {
@@ -585,6 +577,14 @@
           "countryName": "CN",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/terms"
         }
       },
       {
