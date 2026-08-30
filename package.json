@@ -12,6 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "astro": "^7.2.9",
     "js-tiktoken": "^1.0.21"
   }

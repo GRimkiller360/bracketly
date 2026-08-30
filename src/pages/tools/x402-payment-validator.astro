@@ -1,0 +1,541 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('x402-payment-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="payload-input">X-PAYMENT payload (base64 or raw JSON)</label>
+      <button class="btn btn-sm" id="btn-clear">Clear</button>
+    </div>
+    <textarea
+      id="payload-input"
+      rows="8"
+      autocomplete="off"
+      placeholder={`Paste the payment payload, e.g.\n{\n  "x402Version": 1,\n  "scheme": "exact",\n  "network": "base-sepolia",\n  "payload": {\n    "signature": "0x...",\n    "authorization": {\n      "from": "0x...",\n      "to": "0x...",\n      "value": "10000",\n      "validAfter": "1740672089",\n      "validBefore": "1740672154",\n      "nonce": "0x..."\n    }\n  }\n}\n\n...or the base64-encoded string form of the same object.`}
+    ></textarea>
+  </div>
+
+  <details class="panel" style="margin-bottom:1rem;">
+    <summary style="cursor:pointer;font-weight:600;font-size:0.95rem;">
+      Payment requirements (optional — enables signature verification)
+    </summary>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin:0.6rem 0;">
+      The 402 response's PaymentRequirements ("accepts" entry) that this payload responds to. Not needed if
+      the payload above already has its own "accepted" field (the newer v2 payload shape).
+    </p>
+    <textarea
+      id="requirements-input"
+      rows="6"
+      autocomplete="off"
+      placeholder={`{\n  "scheme": "exact",\n  "network": "base-sepolia",\n  "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",\n  "payTo": "0x...",\n  "extra": { "name": "USD Coin", "version": "2" }\n}`}
+    ></textarea>
+  </details>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <div id="results" style="display:none;">
+    <div class="panel">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  import { secp256k1 } from '@noble/curves/secp256k1.js';
+  import { keccak_256 } from '@noble/hashes/sha3.js';
+  import { bytesToHex, hexToBytes, utf8ToBytes, concatBytes } from '@noble/hashes/utils.js';
+
+  function copyText(text: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise<void>(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e as Error);
+      }
+    });
+  }
+
+  const payloadInput = document.getElementById('payload-input') as HTMLTextAreaElement;
+  const requirementsInput = document.getElementById('requirements-input') as HTMLTextAreaElement;
+  const statusEl = document.getElementById('status') as HTMLElement;
+  const results = document.getElementById('results') as HTMLElement;
+  const issuesList = document.getElementById('issues-list') as HTMLElement;
+
+  type Severity = 'high' | 'medium' | 'low';
+  type Issue = { severity: Severity; message: string };
+
+  let lastReportText = '';
+
+  function setStatus(msg: string, kind?: 'ok' | 'error') {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function clearChildren(el: Element) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function isPlainObject(v: unknown): v is Record<string, unknown> {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function push(issues: Issue[], severity: Severity, message: string) {
+    issues.push({ severity, message });
+  }
+
+  // --- decoding ---
+
+  function looksLikeBase64(s: string) {
+    return /^[A-Za-z0-9+/_-]+=*$/.test(s) && s.length > 20;
+  }
+
+  function decodePayload(raw: string): { body: unknown } | { fatal: string } {
+    const trimmed = raw.trim();
+    if (!trimmed) return { fatal: 'empty' };
+
+    // Try raw JSON first (most explicit case).
+    if (trimmed.startsWith('{')) {
+      try {
+        return { body: JSON.parse(trimmed) };
+      } catch (e) {
+        return { fatal: 'Invalid JSON: ' + (e as Error).message };
+      }
+    }
+
+    // Otherwise attempt base64 (standard or URL-safe) decode, then JSON parse.
+    if (looksLikeBase64(trimmed)) {
+      try {
+        const normalized = trimmed.replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = atob(normalized);
+        const bytes = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        return { body: JSON.parse(text) };
+      } catch (e) {
+        return { fatal: 'Could not base64-decode this as a UTF-8 JSON payload: ' + (e as Error).message };
+      }
+    }
+
+    return { fatal: 'Input is neither a JSON object (starting with "{") nor a recognizable base64 string.' };
+  }
+
+  // --- EIP-712 / EIP-3009 crypto ---
+
+  function pad32(bytesOrHex: Uint8Array | string): Uint8Array {
+    const b = typeof bytesOrHex === 'string' ? hexToBytes(bytesOrHex.replace(/^0x/i, '')) : bytesOrHex;
+    if (b.length > 32) throw new Error('value exceeds 32 bytes');
+    const out = new Uint8Array(32);
+    out.set(b, 32 - b.length);
+    return out;
+  }
+
+  function addressToBytes20(addrHex: string): Uint8Array {
+    const b = hexToBytes(addrHex.replace(/^0x/i, '').toLowerCase());
+    if (b.length !== 20) throw new Error('address must be 20 bytes, got ' + b.length);
+    return b;
+  }
+
+  function uint256(n: bigint): Uint8Array {
+    if (n < 0n) throw new Error('negative uint256');
+    let hex = n.toString(16);
+    if (hex.length % 2) hex = '0' + hex;
+    return pad32(hex);
+  }
+
+  const DOMAIN_TYPEHASH = keccak_256(
+    utf8ToBytes('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
+  );
+  const TRANSFER_AUTH_TYPEHASH = keccak_256(
+    utf8ToBytes(
+      'TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)'
+    )
+  );
+
+  function domainSeparator(domain: { name: string; version: string; chainId: bigint; verifyingContract: string }): Uint8Array {
+    return keccak_256(
+      concatBytes(
+        DOMAIN_TYPEHASH,
+        keccak_256(utf8ToBytes(domain.name)),
+        keccak_256(utf8ToBytes(domain.version)),
+        uint256(domain.chainId),
+        pad32(addressToBytes20(domain.verifyingContract))
+      )
+    );
+  }
+
+  function transferWithAuthStructHash(auth: {
+    from: string;
+    to: string;
+    value: string;
+    validAfter: string;
+    validBefore: string;
+    nonce: string;
+  }): Uint8Array {
+    const nonceBytes = hexToBytes(auth.nonce.replace(/^0x/i, ''));
+    if (nonceBytes.length !== 32) throw new Error('nonce must be exactly 32 bytes, got ' + nonceBytes.length);
+    return keccak_256(
+      concatBytes(
+        TRANSFER_AUTH_TYPEHASH,
+        pad32(addressToBytes20(auth.from)),
+        pad32(addressToBytes20(auth.to)),
+        uint256(BigInt(auth.value)),
+        uint256(BigInt(auth.validAfter)),
+        uint256(BigInt(auth.validBefore)),
+        nonceBytes
+      )
+    );
+  }
+
+  function eip712Digest(domainSep: Uint8Array, structHash: Uint8Array): Uint8Array {
+    return keccak_256(concatBytes(Uint8Array.from([0x19, 0x01]), domainSep, structHash));
+  }
+
+  function addressFromUncompressedPub(pub65: Uint8Array): string {
+    const xy = pub65.slice(1);
+    const hash = keccak_256(xy);
+    return '0x' + bytesToHex(hash.slice(12));
+  }
+
+  function recoverSignerAddress(digest: Uint8Array, sigHex: string): string {
+    const sigBytes = hexToBytes(sigHex.replace(/^0x/i, ''));
+    if (sigBytes.length !== 65) {
+      throw new Error('signature must be 65 bytes (r + s + v), got ' + sigBytes.length);
+    }
+    let v = sigBytes[64];
+    if (v >= 27) v -= 27;
+    if (v !== 0 && v !== 1) throw new Error('signature recovery byte (v) must be 27/28 or 0/1, got ' + sigBytes[64]);
+    // The signature above is in Ethereum wire order (r || s || v, v LAST). @noble/curves'
+    // own "recovered" format instead expects the recovery byte PREPENDED (v || r || s) —
+    // see Signature.fromBytes in @noble/curves/abstract/weierstrass.js, which reads
+    // recid from byte 0. Reassemble into that order before calling recoverPublicKey.
+    const r = sigBytes.slice(0, 32);
+    const s = sigBytes.slice(32, 64);
+    const recoveredFormat = concatBytes(Uint8Array.from([v]), r, s);
+    const compressedPub = secp256k1.recoverPublicKey(recoveredFormat, digest, { prehash: false });
+    const point = secp256k1.Point.fromBytes(compressedPub);
+    return addressFromUncompressedPub(point.toBytes(false));
+  }
+
+  // Known CAIP-2-ish / simple x402 network name -> EVM chain ID. Not exhaustive —
+  // a manual chainId isn't accepted via the UI, but eip155:<id> CAIP-2 strings
+  // (which the "accepted" requirements themselves may use) are parsed directly.
+  const KNOWN_NETWORKS: Record<string, bigint> = {
+    base: 8453n,
+    'base-sepolia': 84532n,
+    ethereum: 1n,
+    'ethereum-sepolia': 11155111n,
+    sepolia: 11155111n,
+    avalanche: 43114n,
+    'avalanche-fuji': 43113n,
+    polygon: 137n,
+    'polygon-amoy': 80002n,
+  };
+
+  function resolveChainId(network: unknown): bigint | null {
+    if (typeof network !== 'string') return null;
+    const caip2 = /^eip155:(\d+)$/i.exec(network.trim());
+    if (caip2) return BigInt(caip2[1]);
+    const known = KNOWN_NETWORKS[network.trim().toLowerCase()];
+    return known ?? null;
+  }
+
+  // --- structural validation ---
+
+  function validateAuthorization(auth: unknown, issues: Issue[]): boolean {
+    if (!isPlainObject(auth)) {
+      push(issues, 'high', '"payload.authorization" is required and must be an object.');
+      return false;
+    }
+    let ok = true;
+    const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
+    const NONCE_RE = /^0x[0-9a-fA-F]{64}$/;
+    const UINT_RE = /^\d+$/;
+
+    for (const field of ['from', 'to'] as const) {
+      const v = auth[field];
+      if (typeof v !== 'string' || !ADDR_RE.test(v)) {
+        push(issues, 'high', `"payload.authorization.${field}" must be a 20-byte hex address (0x + 40 hex chars) — got ${JSON.stringify(v)}.`);
+        ok = false;
+      }
+    }
+    for (const field of ['value', 'validAfter', 'validBefore'] as const) {
+      const v = auth[field];
+      if (typeof v !== 'string' || !UINT_RE.test(v)) {
+        push(issues, 'high', `"payload.authorization.${field}" must be a decimal-string non-negative integer — got ${JSON.stringify(v)}.`);
+        ok = false;
+      }
+    }
+    if (typeof auth.nonce !== 'string' || !NONCE_RE.test(auth.nonce)) {
+      push(issues, 'high', `"payload.authorization.nonce" must be a 32-byte hex value (0x + 64 hex chars) — got ${JSON.stringify(auth.nonce)}.`);
+      ok = false;
+    }
+
+    if (ok && typeof auth.validAfter === 'string' && typeof auth.validBefore === 'string') {
+      const validAfter = BigInt(auth.validAfter);
+      const validBefore = BigInt(auth.validBefore);
+      const nowSec = BigInt(Math.floor(Date.now() / 1000));
+      if (validBefore <= validAfter) {
+        push(issues, 'high', `"validBefore" (${auth.validBefore}) must be after "validAfter" (${auth.validAfter}) — the authorization window is empty or inverted.`);
+      } else if (nowSec < validAfter) {
+        push(issues, 'medium', `This authorization is not valid yet — "validAfter" is ${new Date(Number(validAfter) * 1000).toISOString()}, and your clock reads ${new Date().toISOString()}.`);
+      } else if (nowSec > validBefore) {
+        push(issues, 'medium', `This authorization has expired — "validBefore" was ${new Date(Number(validBefore) * 1000).toISOString()}, and your clock reads ${new Date().toISOString()}.`);
+      }
+    }
+    return ok;
+  }
+
+  function validateSignatureFormat(sig: unknown, issues: Issue[]): boolean {
+    if (typeof sig !== 'string' || !/^0x[0-9a-fA-F]{130}$/.test(sig)) {
+      push(issues, 'high', `"payload.signature" must be a 65-byte hex string (0x + 130 hex chars: r + s + v) — got ${typeof sig === 'string' ? sig.length + ' chars' : JSON.stringify(sig)}.`);
+      return false;
+    }
+    const vByte = parseInt(sig.slice(-2), 16);
+    if (vByte !== 27 && vByte !== 28 && vByte !== 0 && vByte !== 1) {
+      push(issues, 'medium', `"payload.signature"'s recovery byte (v) is ${vByte} — expected 27/28 (or raw 0/1), this may not recover correctly.`);
+    }
+    return true;
+  }
+
+  type DomainInfo = { verifyingContract: string; chainId: bigint; name: string; version: string } | null;
+
+  function extractDomainInfo(requirements: unknown, issues: Issue[], sourceLabel: string): DomainInfo {
+    if (!isPlainObject(requirements)) return null;
+    const asset = requirements.asset;
+    const network = requirements.network;
+    const extra = requirements.extra;
+    if (typeof asset !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(asset)) {
+      push(issues, 'low', `${sourceLabel}.asset is missing or not a valid address — can't derive the EIP-712 verifying contract, so signature verification is skipped.`);
+      return null;
+    }
+    const chainId = resolveChainId(network);
+    if (chainId === null) {
+      push(issues, 'low', `${sourceLabel}.network ("${String(network)}") isn't a recognized network name or "eip155:<chainId>" CAIP-2 string — can't derive the chain ID, so signature verification is skipped.`);
+      return null;
+    }
+    if (!isPlainObject(extra) || typeof extra.name !== 'string' || typeof extra.version !== 'string') {
+      push(issues, 'low', `${sourceLabel}.extra.name/extra.version (the token contract's EIP-712 domain name/version) are missing — can't reconstruct the signing digest, so signature verification is skipped.`);
+      return null;
+    }
+    return { verifyingContract: asset, chainId, name: extra.name, version: extra.version };
+  }
+
+  type AnalyzeResult = { issues: Issue[]; verified: boolean | null } | { fatal: string };
+
+  function analyze(payloadRaw: string, requirementsRaw: string): AnalyzeResult {
+    const decoded = decodePayload(payloadRaw);
+    if ('fatal' in decoded) return { fatal: decoded.fatal };
+    const body = decoded.body;
+    if (!isPlainObject(body)) {
+      return { fatal: 'Decoded payload must be a JSON object, not ' + (Array.isArray(body) ? 'an array' : typeof body) + '.' };
+    }
+
+    const issues: Issue[] = [];
+
+    if (typeof body.x402Version !== 'number') {
+      push(issues, 'high', '"x402Version" is required and must be a number.');
+    }
+
+    // v2 shape: {x402Version, resource, accepted, payload, extensions}
+    // v1 shape: {x402Version, scheme, network, payload}
+    const isV2Shape = 'accepted' in body;
+    const scheme = isV2Shape ? (isPlainObject(body.accepted) ? body.accepted.scheme : undefined) : body.scheme;
+    const network = isV2Shape ? (isPlainObject(body.accepted) ? body.accepted.network : undefined) : body.network;
+    const schemePayload = body.payload;
+
+    if (scheme !== 'exact') {
+      push(
+        issues,
+        'medium',
+        `Scheme is ${JSON.stringify(scheme)} — this tool only checks the "exact" EVM scheme's EIP-3009 authorization+signature shape; structural/signature checks below assume that scheme.`
+      );
+    }
+    if (typeof network !== 'string' || network.length === 0) {
+      push(issues, 'high', (isV2Shape ? '"accepted.network"' : '"network"') + ' is required and must be a non-empty string.');
+    }
+
+    if (!isPlainObject(schemePayload)) {
+      push(issues, 'high', '"payload" is required and must be an object.');
+      return { issues, verified: null };
+    }
+
+    validateSignatureFormat(schemePayload.signature, issues);
+    validateAuthorization(schemePayload.authorization, issues);
+
+    // Resolve domain info: prefer embedded v2 "accepted", else the optional
+    // second textarea's pasted PaymentRequirements.
+    let domainInfo: DomainInfo = null;
+    if (isV2Shape && isPlainObject(body.accepted)) {
+      domainInfo = extractDomainInfo(body.accepted, issues, '"accepted"');
+    } else {
+      const reqRaw = requirementsRaw.trim();
+      if (reqRaw) {
+        let reqBody: unknown;
+        try {
+          reqBody = JSON.parse(reqRaw);
+        } catch (e) {
+          push(issues, 'low', 'Payment requirements input is not valid JSON: ' + (e as Error).message + ' — signature verification skipped.');
+        }
+        if (reqBody !== undefined) {
+          domainInfo = extractDomainInfo(reqBody, issues, 'Payment requirements');
+        }
+      }
+    }
+
+    let verified: boolean | null = null;
+    if (
+      domainInfo &&
+      typeof schemePayload.signature === 'string' &&
+      /^0x[0-9a-fA-F]{130}$/.test(schemePayload.signature) &&
+      isPlainObject(schemePayload.authorization)
+    ) {
+      const auth = schemePayload.authorization as {
+        from: unknown;
+        to: unknown;
+        value: unknown;
+        validAfter: unknown;
+        validBefore: unknown;
+        nonce: unknown;
+      };
+      try {
+        const dSep = domainSeparator(domainInfo);
+        const sHash = transferWithAuthStructHash(auth as any);
+        const digest = eip712Digest(dSep, sHash);
+        const recovered = recoverSignerAddress(digest, schemePayload.signature as string);
+        const claimedFrom = String(auth.from);
+        verified = recovered.toLowerCase() === claimedFrom.toLowerCase();
+        if (verified) {
+          push(issues, 'low', `✓ Signature verified — recovered signer ${recovered} matches the authorization's "from" address.`);
+        } else {
+          push(
+            issues,
+            'high',
+            `Signature does NOT match — recovered signer is ${recovered}, but the authorization claims "from": ${claimedFrom}. This payload is not validly signed by its claimed sender.`
+          );
+        }
+      } catch (e) {
+        push(issues, 'high', 'Signature verification failed to run: ' + (e as Error).message);
+        verified = false;
+      }
+    }
+
+    return { issues, verified };
+  }
+
+  function render(result: { issues: Issue[]; verified: boolean | null }) {
+    clearChildren(issuesList);
+
+    const highIssues = result.issues.filter((i) => i.severity !== 'low' || i.message.startsWith('✓'));
+    if (result.issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+    } else {
+      const sevColor: Record<Severity, string> = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+      const sevLabel: Record<Severity, string> = { high: 'Spec violation / signature mismatch', medium: 'Warning', low: 'Note' };
+      for (const issue of highIssues) {
+        const isCheck = issue.message.startsWith('✓');
+        const color = isCheck ? 'var(--success)' : sevColor[issue.severity];
+        const row = document.createElement('div');
+        row.style.cssText = `padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ${color};background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;`;
+        const badge = document.createElement('strong');
+        badge.style.cssText = `text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:${color};display:block;margin-bottom:0.2rem;`;
+        badge.textContent = isCheck ? 'Verified' : sevLabel[issue.severity];
+        row.appendChild(badge);
+        const msg = document.createElement('span');
+        msg.textContent = issue.message;
+        row.appendChild(msg);
+        issuesList.appendChild(row);
+      }
+    }
+
+    const lines = ['x402 payment payload check'];
+    if (result.issues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of result.issues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+  }
+
+  function process() {
+    const payloadRaw = payloadInput.value.trim();
+    if (!payloadRaw) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const result = analyze(payloadRaw, requirementsInput.value);
+    if ('fatal' in result) {
+      results.style.display = 'none';
+      setStatus('✗ ' + result.fatal, 'error');
+      return;
+    }
+
+    render(result);
+    results.style.display = 'block';
+
+    const blockingCount = result.issues.filter((i) => i.severity === 'high').length;
+    if (blockingCount === 0 && result.verified !== false) {
+      setStatus(
+        result.verified === true
+          ? '✓ Structurally valid, signature verified.'
+          : '✓ Structurally valid.' + (result.verified === null ? ' Add payment requirements to verify the signature.' : ''),
+        'ok'
+      );
+    } else {
+      setStatus(`✗ Found ${blockingCount} issue${blockingCount === 1 ? '' : 's'}.`, 'error');
+    }
+  }
+
+  document.getElementById('btn-clear')!.addEventListener('click', () => {
+    payloadInput.value = '';
+    requirementsInput.value = '';
+    results.style.display = 'none';
+    statusEl.textContent = '';
+    payloadInput.focus();
+  });
+
+  document.getElementById('btn-copy-report')!.addEventListener('click', function (this: HTMLButtonElement) {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(
+      function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () {
+          btn.textContent = 'Copy report';
+        }, 1500);
+      },
+      function () {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () {
+          btn.textContent = 'Copy report';
+        }, 1500);
+      }
+    );
+  });
+
+  payloadInput.addEventListener('input', process);
+  requirementsInput.addEventListener('input', process);
+</script>

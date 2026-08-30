@@ -1003,6 +1003,50 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "x402-payment-validator",
+    title: "x402 Payment Payload Decoder & Signature Validator",
+    shortTitle: "x402 Payment Validator",
+    description:
+      "Decode and validate an x402 protocol payment payload (the header AI agents and APIs exchange for HTTP 402 machine payments), including a real EIP-712/EIP-3009 ECDSA signature check against the declared sender. 100% client-side.",
+    metaDescription:
+      "Decode an x402 X-PAYMENT payload, check it against the spec, and cryptographically verify its EIP-3009 signature — entirely in your browser.",
+    keywords: ["x402 protocol", "x402 payment validator", "eip-3009", "http 402 payment required", "transferwithauthorization", "eip-712 signature verification"],
+    icon: "402",
+    category: "Security",
+    content: [
+      {
+        heading: "What x402 is, and why a payload here needs checking",
+        body: "x402 revives the long-dormant HTTP 402 \"Payment Required\" status code into a real machine-to-machine payment protocol: a server responds to a request with 402 and a PaymentRequirements body (who to pay, how much, on which chain), and the client retries with a payment payload proving it authorized that exact transfer. Originated by Coinbase in mid-2025 and now stewarded by the independent x402 Foundation under the Linux Foundation, it's aimed squarely at AI agents and APIs that need to pay for a resource without a human clicking a checkout button. Because the payload is a base64-encoded, cryptographically signed authorization rather than plain JSON, a bug in how your client builds or your server verifies one doesn't fail loudly — it just silently rejects (or worse, silently accepts something it shouldn't).",
+      },
+      {
+        heading: "How this tool checks it",
+        body: "For the \"exact\" scheme's EVM authorization (the one built on EIP-3009's transferWithAuthorization), this tool decodes the base64 or raw JSON payload, checks every required field is present and correctly shaped (addresses, the 32-byte nonce, the timestamp window), and — when you also provide the matching PaymentRequirements (either pasted directly, or already embedded as the payload's own \"accepted\" field in the newer v2 payload shape) — reconstructs the exact EIP-712 typed-data digest and recovers the signing address from the signature using real secp256k1 elliptic-curve math (the audited @noble/curves library, not a hand-rolled implementation), then checks it matches the authorization's declared \"from\" address. That last step is a genuine cryptographic verification, not a pretty-printer: a payload with a tampered value, altered recipient, or signature that simply doesn't belong to the claimed sender gets caught, the same way a real facilitator's own verification would catch it.",
+      },
+    ],
+    faq: [
+      {
+        q: "What do I paste in — the X-PAYMENT header, or something else?",
+        a: "Paste the payment payload itself: either the raw JSON object (x402Version, scheme, network, payload), or the base64-encoded string form some clients send as the X-PAYMENT request header — this tool detects and decodes either automatically.",
+      },
+      {
+        q: "Why does it ask for a second \"payment requirements\" input?",
+        a: "Verifying the signature requires knowing which token contract, chain, and EIP-712 domain (name/version) the authorization was signed against — information that lives in the server's original 402 response (PaymentRequirements), not in the payment payload itself for the v1 payload shape. The newer v2 payload shape bundles this as an \"accepted\" field, in which case you don't need to paste it separately. Without either, this tool still checks the payload's structure and timestamp window, just not the signature.",
+      },
+      {
+        q: "Is this checking a real signature, or just formatting?",
+        a: "A real one. It reconstructs the same EIP-712 digest the signer originally signed (verified against EIP-3009's own published domain and struct type hashes) and performs actual secp256k1 public-key recovery from the signature, entirely in your browser using the widely-used, audited @noble/curves library — the same category of check a payment facilitator itself would run, not a cosmetic display of the fields.",
+      },
+      {
+        q: "Does this send my payload anywhere, or touch a real blockchain?",
+        a: "No. Everything — decoding, structural checks, and signature verification — runs locally in your browser with no network calls of any kind. It never submits a transaction, checks an on-chain balance, or contacts a facilitator; it only checks whether the payload is well-formed and whether its signature actually belongs to who it claims.",
+      },
+      {
+        q: "The spec mentions v1 and v2 payload shapes — does this handle both?",
+        a: "Yes. v1's top-level {x402Version, scheme, network, payload} shape and v2's {x402Version, resource, accepted, payload} shape are both detected automatically; the scheme-specific authorization/signature check works the same way once either shape is unwrapped.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
