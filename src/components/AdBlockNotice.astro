@@ -72,8 +72,14 @@
       return;
     }
 
+    // Deliberately excludes the literal "adsbygoogle" class: that's the exact
+    // selector Google's real adsbygoogle.js scans the DOM for when filling ad
+    // slots, and a bare bait <div> carrying it (no data-ad-client/data-ad-slot)
+    // risked being picked up by that scan and logging a spurious console error.
+    // The remaining classes are still commonly targeted by ad-blocker cosmetic
+    // filter lists, so detection accuracy is unaffected.
     var bait = document.createElement('div');
-    bait.className = 'adsbygoogle adsbox ad-banner ad-placement';
+    bait.className = 'adsbox ad-banner ad-placement textad banner-ad ad-unit';
     bait.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:300px;height:250px;';
     document.body.appendChild(bait);
 

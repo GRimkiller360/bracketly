@@ -87,6 +87,7 @@ const tool = getTool('regex-tester')!;
   // regex exec on the main thread can't be interrupted once it starts.
   var MATCH_TIMEOUT_MS = 2000;
   var worker = null;
+  var workerUrl = null;
   var runToken = 0;
   var timeoutHandle = null;
 
@@ -124,7 +125,8 @@ const tool = getTool('regex-tester')!;
     if (worker) return worker;
     var src = '(' + workerSource.toString() + ')();';
     var blob = new Blob([src], { type: 'application/javascript' });
-    worker = new Worker(URL.createObjectURL(blob));
+    workerUrl = URL.createObjectURL(blob);
+    worker = new Worker(workerUrl);
     return worker;
   }
 
@@ -132,6 +134,10 @@ const tool = getTool('regex-tester')!;
     if (worker) {
       worker.terminate();
       worker = null;
+    }
+    if (workerUrl) {
+      URL.revokeObjectURL(workerUrl);
+      workerUrl = null;
     }
   }
 
