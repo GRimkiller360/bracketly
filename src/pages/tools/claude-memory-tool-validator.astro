@@ -1,0 +1,591 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+import { getTool } from '../../data/tools';
+
+const tool = getTool('claude-memory-tool-validator')!;
+---
+
+<ToolLayout tool={tool}>
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input-root">Memory root</label>
+    </div>
+    <input
+      id="input-root"
+      type="text"
+      value="/memories"
+      autocomplete="off"
+      style="width:100%;padding:0.5rem 0.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-subtle);color:var(--text);font-family:var(--font-mono);font-size:0.85rem;"
+    />
+  </div>
+
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="field-label">
+      <label for="input-memory">Memory command (tool_use JSON), or one path per line for a bulk scan</label>
+      <button class="btn btn-sm" id="btn-clear-memory" aria-label="Clear memory command input">Clear</button>
+    </div>
+    <textarea
+      id="input-memory"
+      rows="10"
+      autocomplete="off"
+      placeholder={`{\n  "type": "tool_use",\n  "name": "memory",\n  "input": { "command": "create", "path": "/memories/notes.txt", "file_text": "..." }\n}\n\n...or switch to a bulk path scan by pasting one path per line, e.g.\n/memories/notes.txt\n/memories-backup/secrets.env\n/memories/../../etc/passwd\n/memories/%2e%2e/%2e%2e/secrets.env`}
+    ></textarea>
+  </div>
+
+  <details class="panel" style="margin-bottom:1rem;">
+    <summary style="cursor:pointer;font-weight:600;font-size:0.95rem;">
+      Context editing config (optional)
+    </summary>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin:0.6rem 0;">
+      Paste a context_management object, a bare edits array, or a single edit object to check it against the
+      clear_tool_uses_20250919 / clear_thinking_20251015 schemas.
+    </p>
+    <div class="field-label">
+      <span></span>
+      <button class="btn btn-sm" id="btn-clear-context" aria-label="Clear context editing config input">Clear</button>
+    </div>
+    <textarea
+      id="input-context"
+      rows="8"
+      autocomplete="off"
+      placeholder={`{\n  "context_management": {\n    "edits": [\n      { "type": "clear_thinking_20251015", "keep": { "type": "thinking_turns", "value": 2 } },\n      { "type": "clear_tool_uses_20250919", "trigger": { "type": "input_tokens", "value": 50000 }, "keep": { "type": "tool_uses", "value": 5 } }\n    ]\n  }\n}`}
+    ></textarea>
+  </details>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <div id="results" style="display:none;">
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="field-label">
+        <span>Issues found</span>
+        <button class="btn btn-sm" id="btn-copy-report" aria-label="Copy issue report as plain text">Copy report</button>
+      </div>
+      <div id="issues-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+    </div>
+
+    <div id="path-panel" class="panel" style="margin-bottom:1rem;display:none;">
+      <div class="field-label"><span>Path safety detail — naive vs. hardened check</span></div>
+      <div id="path-list" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="field-label"><span>Detected shape</span></div>
+      <div id="summary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0;overflow-wrap:anywhere;word-break:break-word;"></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script is:inline>
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  const rootInput = document.getElementById('input-root');
+  const memInput = document.getElementById('input-memory');
+  const ctxInput = document.getElementById('input-context');
+  const statusEl = document.getElementById('status');
+  const results = document.getElementById('results');
+  const issuesList = document.getElementById('issues-list');
+  const pathPanel = document.getElementById('path-panel');
+  const pathList = document.getElementById('path-list');
+  const summaryEl = document.getElementById('summary');
+
+  let lastReportText = '';
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (kind === 'ok' ? 'ok' : kind === 'error' ? 'error' : '');
+  }
+
+  function normalizeSlashRoot(root) {
+    root = String(root || '').trim();
+    if (!root) root = '/memories';
+    if (root.charAt(0) !== '/') root = '/' + root;
+    if (root.length > 1 && root.charAt(root.length - 1) === '/') root = root.slice(0, -1);
+    return root;
+  }
+
+  function normalizePath(raw) {
+    const p = String(raw).replace(/\\/g, '/');
+    const absolute = p.charAt(0) === '/';
+    const parts = p.split('/');
+    const stack = [];
+    for (const seg of parts) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') {
+        if (stack.length) stack.pop();
+        continue;
+      }
+      stack.push(seg);
+    }
+    return (absolute ? '/' : '') + stack.join('/');
+  }
+
+  function decodeFully(p) {
+    let cur = p;
+    for (let i = 0; i < 6; i++) {
+      const dec = decodeURIComponent(cur);
+      if (dec === cur) break;
+      cur = dec;
+    }
+    return cur;
+  }
+
+  function isContained(normalizedPath, normalizedRoot) {
+    return normalizedPath === normalizedRoot || normalizedPath.indexOf(normalizedRoot + '/') === 0;
+  }
+
+  // Naive check replicates the vulnerable pattern behind CVE-2026-34451: a
+  // bare string-prefix test with no boundary guard, so "/memories-evil/x"
+  // (or "/memories/../../secrets.env") wrongly passes because it merely
+  // starts with the root string.
+  function naiveCheck(rawPath, root) {
+    return typeof rawPath === 'string' && rawPath.indexOf(root) === 0;
+  }
+
+  function hardenedCheck(rawPath, root) {
+    let decoded = rawPath;
+    let decodeError = false;
+    try {
+      decoded = decodeFully(rawPath);
+    } catch (e) {
+      decodeError = true;
+    }
+    const hasNull = decoded.indexOf('\u0000') !== -1 || /%00/i.test(decoded);
+    const normalizedRoot = normalizePath(root);
+    const normalized = normalizePath(decoded);
+    const safe = !decodeError && !hasNull && isContained(normalized, normalizedRoot);
+    return { safe, normalized, decodeError, hasNull };
+  }
+
+  function addPathCheck(pathRows, issues, label, rawPath, root) {
+    if (typeof rawPath !== 'string' || rawPath.length === 0) {
+      issues.push({ severity: 'high', message: label + ' must be a non-empty string.' });
+      return;
+    }
+    const naiveSafe = naiveCheck(rawPath, root);
+    const hardened = hardenedCheck(rawPath, root);
+    pathRows.push({ label, rawPath, naiveSafe, hardenedSafe: hardened.safe, normalized: hardened.normalized });
+
+    if (!hardened.safe) {
+      if (naiveSafe) {
+        issues.push({
+          severity: 'high',
+          message:
+            label + ' ("' + rawPath + '") escapes the memory root once fully resolved (to "' + hardened.normalized +
+            '"), even though a naive prefix check (path.startsWith(root)) would wrongly accept it — this is the ' +
+            'exact bug class behind CVE-2026-34451 / GHSA-5474-4w2j-mq4c. A handler must canonicalize the path and ' +
+            'verify containment, not just check a string prefix.',
+        });
+      } else {
+        issues.push({
+          severity: 'high',
+          message: label + ' ("' + rawPath + '") resolves outside the memory root ("' + root + '") and should be rejected.',
+        });
+      }
+    }
+  }
+
+  function requireStringField(obj, key, issues) {
+    if (typeof obj[key] !== 'string' || obj[key].length === 0) {
+      issues.push({ severity: 'high', message: '"' + key + '" is required and must be a non-empty string — got ' + JSON.stringify(obj[key]) + '.' });
+    }
+  }
+
+  const VALID_COMMANDS = ['view', 'create', 'str_replace', 'insert', 'delete', 'rename'];
+
+  function validateMemoryCommand(cmd, issues, pathRows, root) {
+    if (VALID_COMMANDS.indexOf(cmd.command) === -1) {
+      issues.push({ severity: 'high', message: '"command" must be one of "' + VALID_COMMANDS.join('", "') + '" — got ' + JSON.stringify(cmd.command) + '.' });
+      return;
+    }
+    const normalizedRoot = normalizePath(root);
+    if (cmd.command === 'view') {
+      requireStringField(cmd, 'path', issues);
+      if (typeof cmd.path === 'string') addPathCheck(pathRows, issues, 'path', cmd.path, root);
+      if ('view_range' in cmd) {
+        const vr = cmd.view_range;
+        if (!Array.isArray(vr) || vr.length !== 2 || typeof vr[0] !== 'number' || typeof vr[1] !== 'number') {
+          issues.push({ severity: 'high', message: 'view_range must be a two-number array [start_line, end_line] — got ' + JSON.stringify(vr) + '.' });
+        } else if (vr[1] !== -1 && vr[1] < vr[0]) {
+          issues.push({ severity: 'medium', message: 'view_range end (' + vr[1] + ') is before its start (' + vr[0] + '); use -1 to mean "to the end of the file".' });
+        }
+      }
+    } else if (cmd.command === 'create') {
+      requireStringField(cmd, 'path', issues);
+      if (typeof cmd.file_text !== 'string') {
+        issues.push({ severity: 'high', message: '"file_text" is required and must be a string (an empty string is valid).' });
+      }
+      if (typeof cmd.path === 'string') addPathCheck(pathRows, issues, 'path', cmd.path, root);
+    } else if (cmd.command === 'str_replace') {
+      requireStringField(cmd, 'path', issues);
+      requireStringField(cmd, 'old_str', issues);
+      if ('new_str' in cmd && typeof cmd.new_str !== 'string') {
+        issues.push({ severity: 'medium', message: '"new_str" should be a string when present (omit it entirely to delete old_str with no replacement).' });
+      }
+      if (typeof cmd.path === 'string') addPathCheck(pathRows, issues, 'path', cmd.path, root);
+    } else if (cmd.command === 'insert') {
+      requireStringField(cmd, 'path', issues);
+      if (typeof cmd.insert_line !== 'number' || cmd.insert_line < 0 || !Number.isInteger(cmd.insert_line)) {
+        issues.push({ severity: 'high', message: '"insert_line" is required and must be a non-negative integer (0 inserts at the start of the file) — got ' + JSON.stringify(cmd.insert_line) + '.' });
+      }
+      if (typeof cmd.insert_text !== 'string') {
+        issues.push({ severity: 'high', message: '"insert_text" is required and must be a string.' });
+      }
+      if (typeof cmd.path === 'string') addPathCheck(pathRows, issues, 'path', cmd.path, root);
+    } else if (cmd.command === 'delete') {
+      requireStringField(cmd, 'path', issues);
+      if (typeof cmd.path === 'string') {
+        addPathCheck(pathRows, issues, 'path', cmd.path, root);
+        if (normalizePath(cmd.path) === normalizedRoot) {
+          issues.push({ severity: 'high', message: '"path" is the memory root itself (' + root + ') — Claude is told it cannot delete the memory root; a handler should reject this rather than wiping the whole directory.' });
+        }
+      }
+    } else if (cmd.command === 'rename') {
+      requireStringField(cmd, 'old_path', issues);
+      requireStringField(cmd, 'new_path', issues);
+      if (typeof cmd.old_path === 'string') {
+        addPathCheck(pathRows, issues, 'old_path', cmd.old_path, root);
+        if (normalizePath(cmd.old_path) === normalizedRoot) {
+          issues.push({ severity: 'high', message: '"old_path" is the memory root itself (' + root + ') — Claude is told it cannot rename the memory root; a handler should reject this.' });
+        }
+      }
+      if (typeof cmd.new_path === 'string') addPathCheck(pathRows, issues, 'new_path', cmd.new_path, root);
+    }
+  }
+
+  function analyzeMemory(raw, root) {
+    raw = raw.trim();
+    if (!raw) return { empty: true };
+
+    const issues = [];
+    const pathRows = [];
+    let parsed;
+    let parseOk = true;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      parseOk = false;
+    }
+
+    if (parseOk) {
+      if (typeof parsed === 'string') {
+        addPathCheck(pathRows, issues, 'path', parsed, root);
+        return { kind: 'single path string', issues, pathRows };
+      }
+      if (Array.isArray(parsed)) {
+        if (parsed.length > 0 && parsed.every(function (x) { return typeof x === 'string'; })) {
+          parsed.forEach(function (p, i) { addPathCheck(pathRows, issues, 'paths[' + i + ']', p, root); });
+          return { kind: 'bulk path list (JSON array)', issues, pathRows };
+        }
+        return { fatal: 'A top-level JSON array must contain only path strings for a bulk scan.' };
+      }
+      if (isPlainObject(parsed)) {
+        let cmdObj = parsed;
+        if (parsed.type === 'tool_use' && parsed.name === 'memory' && isPlainObject(parsed.input)) {
+          cmdObj = parsed.input;
+        } else if (typeof parsed.command !== 'string' && isPlainObject(parsed.input) && typeof parsed.input.command === 'string') {
+          cmdObj = parsed.input;
+        }
+        if (typeof cmdObj.command === 'string') {
+          validateMemoryCommand(cmdObj, issues, pathRows, root);
+          return { kind: 'memory tool_use command ("' + cmdObj.command + '")', issues, pathRows };
+        }
+        return { fatal: 'This JSON doesn’t look like a memory command (no "command" field, directly or inside a tool_use "input"). Paste a {"command": ...} object, a full tool_use block, or switch to one raw path per line.' };
+      }
+      return { fatal: 'Top-level JSON must be a command object, a tool_use block, or an array of path strings.' };
+    }
+
+    const lines = raw.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+    if (lines.length === 0) return { empty: true };
+    lines.forEach(function (p, i) { addPathCheck(pathRows, issues, 'line ' + (i + 1), p, root); });
+    return { kind: 'bulk path list (' + lines.length + ' line' + (lines.length === 1 ? '' : 's') + ')', issues, pathRows };
+  }
+
+  function validateClearToolUses(edit, i, issues) {
+    const p = 'edits[' + i + ']';
+    if ('trigger' in edit) {
+      if (!isPlainObject(edit.trigger) || ['input_tokens', 'tool_uses'].indexOf(edit.trigger.type) === -1 || typeof edit.trigger.value !== 'number') {
+        issues.push({ severity: 'high', message: p + '.trigger must be {"type": "input_tokens" | "tool_uses", "value": number} — got ' + JSON.stringify(edit.trigger) + '.' });
+      }
+    }
+    if ('keep' in edit) {
+      if (!isPlainObject(edit.keep) || edit.keep.type !== 'tool_uses' || typeof edit.keep.value !== 'number') {
+        issues.push({ severity: 'high', message: p + '.keep must be {"type": "tool_uses", "value": number} for this strategy — got ' + JSON.stringify(edit.keep) + '.' });
+      }
+    }
+    if ('clear_at_least' in edit) {
+      if (!isPlainObject(edit.clear_at_least) || edit.clear_at_least.type !== 'input_tokens' || typeof edit.clear_at_least.value !== 'number') {
+        issues.push({ severity: 'high', message: p + '.clear_at_least must be {"type": "input_tokens", "value": number} — got ' + JSON.stringify(edit.clear_at_least) + '.' });
+      }
+    }
+    if ('exclude_tools' in edit) {
+      if (!Array.isArray(edit.exclude_tools) || !edit.exclude_tools.every(function (x) { return typeof x === 'string'; })) {
+        issues.push({ severity: 'high', message: p + '.exclude_tools must be an array of strings — got ' + JSON.stringify(edit.exclude_tools) + '.' });
+      }
+    }
+    if ('clear_tool_inputs' in edit && typeof edit.clear_tool_inputs !== 'boolean') {
+      issues.push({ severity: 'high', message: p + '.clear_tool_inputs must be a boolean — got ' + JSON.stringify(edit.clear_tool_inputs) + '.' });
+    }
+  }
+
+  function validateClearThinking(edit, i, issues) {
+    const p = 'edits[' + i + ']';
+    if ('keep' in edit) {
+      const k = edit.keep;
+      if (k === 'all') {
+        // valid
+      } else if (isPlainObject(k)) {
+        if (k.type !== 'thinking_turns' || typeof k.value !== 'number' || k.value <= 0) {
+          issues.push({ severity: 'high', message: p + '.keep object must be {"type": "thinking_turns", "value": number > 0} — got ' + JSON.stringify(k) + '.' });
+        }
+      } else {
+        issues.push({ severity: 'high', message: p + '.keep must be the literal string "all" or {"type": "thinking_turns", "value": number} — got ' + JSON.stringify(k) + '.' });
+      }
+    }
+  }
+
+  function analyzeContext(raw) {
+    raw = raw.trim();
+    if (!raw) return { empty: true };
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return { fatal: 'Invalid JSON: ' + e.message };
+    }
+
+    let edits;
+    if (Array.isArray(parsed)) {
+      edits = parsed;
+    } else if (isPlainObject(parsed) && Array.isArray(parsed.edits)) {
+      edits = parsed.edits;
+    } else if (isPlainObject(parsed) && isPlainObject(parsed.context_management) && Array.isArray(parsed.context_management.edits)) {
+      edits = parsed.context_management.edits;
+    } else if (isPlainObject(parsed) && typeof parsed.type === 'string') {
+      edits = [parsed];
+    } else {
+      return { fatal: 'Paste a {"context_management":{"edits":[...]}} object, a bare {"edits":[...]}, a raw edits array, or a single edit object.' };
+    }
+
+    if (edits.length === 0) {
+      return { fatal: '"edits" must be a non-empty array.' };
+    }
+
+    const issues = [];
+    let seenThinkingIndex = -1;
+    let seenToolUsesIndex = -1;
+    const typeCounts = {};
+
+    edits.forEach(function (edit, i) {
+      if (!isPlainObject(edit)) {
+        issues.push({ severity: 'high', message: 'edits[' + i + '] must be an object.' });
+        return;
+      }
+      typeCounts[edit.type] = (typeCounts[edit.type] || 0) + 1;
+      if (edit.type === 'clear_tool_uses_20250919') {
+        if (seenToolUsesIndex === -1) seenToolUsesIndex = i;
+        validateClearToolUses(edit, i, issues);
+      } else if (edit.type === 'clear_thinking_20251015') {
+        if (seenThinkingIndex === -1) seenThinkingIndex = i;
+        validateClearThinking(edit, i, issues);
+      } else {
+        issues.push({ severity: 'high', message: 'edits[' + i + '].type must be "clear_tool_uses_20250919" or "clear_thinking_20251015" — got ' + JSON.stringify(edit.type) + '.' });
+      }
+    });
+
+    if (seenThinkingIndex !== -1 && seenToolUsesIndex !== -1 && seenThinkingIndex > seenToolUsesIndex) {
+      issues.push({ severity: 'high', message: 'When combining both strategies, "clear_thinking_20251015" must be listed before "clear_tool_uses_20250919" in the edits array — here it comes after.' });
+    }
+    Object.keys(typeCounts).forEach(function (t) {
+      if (typeCounts[t] > 1) {
+        issues.push({ severity: 'low', message: 'edits contains ' + typeCounts[t] + ' entries of type "' + t + '" — the docs don’t describe using the same strategy twice in one request; likely a mistake.' });
+      }
+    });
+
+    return { kind: edits.length + ' edit' + (edits.length === 1 ? '' : 's'), issues };
+  }
+
+  function renderIssues(issues) {
+    clearChildren(issuesList);
+    if (issues.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'color:var(--success);font-size:0.9rem;font-weight:600;';
+      ok.textContent = '✓ No issues found.';
+      issuesList.appendChild(ok);
+      return;
+    }
+    const sevColor = { high: 'var(--danger)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+    const sevLabel = { high: 'Spec violation', medium: 'Likely to break a handler', low: 'Note' };
+    for (const issue of issues) {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:0.6rem 0.75rem;border-radius:8px;border-left:3px solid ' + sevColor[issue.severity] + ';background:var(--bg-subtle);font-size:0.87rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;';
+      const badge = document.createElement('strong');
+      badge.style.cssText = 'text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:' + sevColor[issue.severity] + ';display:block;margin-bottom:0.2rem;';
+      badge.textContent = sevLabel[issue.severity];
+      row.appendChild(badge);
+      const msg = document.createElement('span');
+      msg.textContent = issue.message;
+      row.appendChild(msg);
+      issuesList.appendChild(row);
+    }
+  }
+
+  function renderPathRows(pathRows) {
+    clearChildren(pathList);
+    if (pathRows.length === 0) {
+      pathPanel.style.display = 'none';
+      return;
+    }
+    pathPanel.style.display = 'block';
+    for (const row of pathRows) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:0.5rem 0.65rem;border-radius:8px;background:var(--bg-subtle);font-size:0.82rem;';
+
+      const pathLine = document.createElement('div');
+      pathLine.style.cssText = 'font-family:var(--font-mono);overflow-wrap:anywhere;word-break:break-word;margin-bottom:0.35rem;';
+      pathLine.textContent = row.label + ': ' + row.rawPath;
+      wrap.appendChild(pathLine);
+
+      const badges = document.createElement('div');
+      badges.style.cssText = 'display:flex;gap:0.5rem;flex-wrap:wrap;';
+      function badge(text, safe) {
+        const b = document.createElement('span');
+        b.style.cssText = 'display:inline-block;padding:0.15rem 0.5rem;border-radius:999px;font-size:0.72rem;font-weight:600;background:' +
+          (safe ? 'color-mix(in srgb, var(--success) 18%, transparent)' : 'color-mix(in srgb, var(--danger) 18%, transparent)') +
+          ';color:' + (safe ? 'var(--success)' : 'var(--danger)') + ';';
+        b.textContent = text + ': ' + (safe ? 'PASS' : 'FAIL');
+        return b;
+      }
+      badges.appendChild(badge('Naive check', row.naiveSafe));
+      badges.appendChild(badge('Hardened check', row.hardenedSafe));
+      wrap.appendChild(badges);
+
+      if (row.naiveSafe && !row.hardenedSafe) {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'margin-top:0.35rem;color:var(--danger);font-size:0.78rem;font-weight:600;';
+        warn.textContent = '⚠ CVE-2026-34451 pattern: naive check wrongly accepts this path.';
+        wrap.appendChild(warn);
+      }
+
+      pathList.appendChild(wrap);
+    }
+  }
+
+  function process() {
+    const root = normalizeSlashRoot(rootInput.value);
+    const memRaw = memInput.value;
+    const ctxRaw = ctxInput.value;
+
+    const memResult = analyzeMemory(memRaw, root);
+    const ctxResult = analyzeContext(ctxRaw);
+
+    if (memResult.empty && ctxResult.empty) {
+      results.style.display = 'none';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const allIssues = [];
+    const kinds = [];
+    let pathRows = [];
+    const fatalMessages = [];
+
+    if (!memResult.empty) {
+      if (memResult.fatal) {
+        fatalMessages.push('Memory input: ' + memResult.fatal);
+      } else {
+        allIssues.push.apply(allIssues, memResult.issues);
+        kinds.push('Memory: ' + memResult.kind);
+        pathRows = pathRows.concat(memResult.pathRows || []);
+      }
+    }
+    if (!ctxResult.empty) {
+      if (ctxResult.fatal) {
+        fatalMessages.push('Context editing input: ' + ctxResult.fatal);
+      } else {
+        for (const x of ctxResult.issues) {
+          allIssues.push({ severity: x.severity, message: 'Context editing ' + x.message });
+        }
+        kinds.push('Context editing: ' + ctxResult.kind);
+      }
+    }
+
+    for (const f of fatalMessages) {
+      allIssues.unshift({ severity: 'high', message: f });
+    }
+
+    renderIssues(allIssues);
+    renderPathRows(pathRows);
+    summaryEl.textContent = kinds.length ? kinds.join('  |  ') : 'Could not determine shape.';
+    results.style.display = 'block';
+
+    const lines = ['Claude Memory Tool / Context Editing check'];
+    if (kinds.length) lines.push(kinds.join('  |  '));
+    if (allIssues.length === 0) {
+      lines.push('No issues found.');
+    } else {
+      for (const issue of allIssues) lines.push('[' + issue.severity.toUpperCase() + '] ' + issue.message);
+    }
+    lastReportText = lines.join('\n');
+
+    const highCount = allIssues.filter(function (x) { return x.severity === 'high'; }).length;
+    if (allIssues.length === 0) {
+      setStatus('✓ Looks correct — no issues found.', 'ok');
+    } else {
+      setStatus('✗ Found ' + allIssues.length + ' issue' + (allIssues.length === 1 ? '' : 's') + (highCount > 0 ? ' (' + highCount + ' spec violation' + (highCount === 1 ? '' : 's') + ')' : '') + '.', 'error');
+    }
+  }
+
+  document.getElementById('btn-clear-memory').addEventListener('click', () => {
+    memInput.value = '';
+    process();
+    memInput.focus();
+  });
+  document.getElementById('btn-clear-context').addEventListener('click', () => {
+    ctxInput.value = '';
+    process();
+  });
+
+  document.getElementById('btn-copy-report').addEventListener('click', function () {
+    if (!lastReportText) return;
+    const btn = this;
+    copyText(lastReportText).then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    }, function () {
+      btn.textContent = 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy report'; }, 1500);
+    });
+  });
+
+  rootInput.addEventListener('input', process);
+  memInput.addEventListener('input', process);
+  ctxInput.addEventListener('input', process);
+</script>

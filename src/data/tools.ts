@@ -1047,6 +1047,53 @@ export const tools: Tool[] = [
       },
     ],
   },
+  {
+    slug: "claude-memory-tool-validator",
+    title: "Claude Memory Tool & Context Editing Validator",
+    shortTitle: "Memory Tool Validator",
+    description:
+      "Check a Claude memory tool command (view/create/str_replace/insert/delete/rename) or a context_management config against Anthropic's published schemas, and test any path for the exact sandbox-escape bug class behind a real, patched CVE. 100% client-side.",
+    metaDescription:
+      "Validate Claude's memory tool commands and context_management config, and test paths against a real memory-tool path-traversal CVE. 100% client-side.",
+    keywords: [
+      "claude memory tool",
+      "memory_20250818 validator",
+      "claude context management",
+      "context editing api",
+      "clear_tool_uses_20250919",
+      "path traversal sandbox escape checker",
+    ],
+    icon: "MEM",
+    category: "AI",
+    content: [
+      {
+        heading: "Two related, still-beta Claude API features — and a real CVE in one of them",
+        body: "The memory tool (type memory_20250818) lets Claude store and retrieve files across conversations through six commands — view, create, str_replace, insert, delete, rename — that your application executes against storage you control; Claude only ever requests the operation. Because your handler decides what's safe, Anthropic's own docs carry an explicit warning: a path like /memories/../../secrets.env must be rejected, and a handler that only checks whether a path starts with /memories (without also rejecting a sibling directory like /memories-backup or resolving .. segments) can be walked outside the sandbox. This isn't hypothetical — GitHub Security Advisory GHSA-5474-4w2j-mq4c (CVE-2026-34451, CVSS 6.3) documents exactly this flaw in @anthropic-ai/sdk versions 0.79.0–0.80.x, fixed in 0.81.0: a bare string-prefix check with no trailing-separator guard let a crafted path escape to a sibling directory. Context editing (the context_management request parameter, beta header context-management-2025-06-27) is the other half — it automatically clears old tool results or thinking blocks from a long conversation via the clear_tool_uses_20250919 and clear_thinking_20251015 strategies, each with its own field schema that's easy to get subtly wrong (e.g. passing keep as a bare number instead of a {type,value} object, or listing the two strategies in the wrong order).",
+      },
+      {
+        heading: "What this tool checks",
+        body: "Paste a memory tool_use block (or just its input object), a bare {\"command\": ...} object, or — for a quick bulk scan — one path per line or a JSON array of path strings, along with the memory root you're validating against (defaults to /memories). Each command is checked against its documented required/optional fields, and every path found is run through two independent checks shown side by side: a naive check replicating the CVE's own vulnerable logic (a bare prefix match, no decoding or normalization) and a hardened check (URL-decoding repeatedly, normalizing . and .. segments, then verifying true containment under the root). Any path the naive check would wrongly accept but the hardened check correctly rejects is flagged explicitly as the CVE-2026-34451 pattern. Separately, paste a context_management object (or just its edits array) to check each edit's type-specific fields against Anthropic's published schema, including the rule that clear_thinking_20251015 must come before clear_tool_uses_20250919 when both are used together.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does this replace writing my own path-validation code?",
+        a: "No — it's a way to sanity-check specific paths and command shapes against the documented schema and a known real-world vulnerability pattern before you ship a handler, and to spot-check paths you're unsure about later. Anthropic's own recommended safeguards (validate the /memories prefix with a proper boundary check, resolve to canonical form, reject .. sequences, watch for URL-encoded traversal) are exactly what the hardened check here implements, but your production handler should use your language's own battle-tested path utilities rather than a browser tool.",
+      },
+      {
+        q: "Where does the CVE information come from?",
+        a: "GitHub Security Advisory GHSA-5474-4w2j-mq4c, published by Anthropic against the @anthropic-ai/sdk npm package (affected versions >=0.79.0 <0.81.0, patched in 0.81.0, CVE-2026-34451, CVSS 6.3). It's referenced here because it's a concrete, real-world instance of the exact bug class — a prefix check without a boundary guard — that this tool's naive-vs-hardened comparison is designed to catch in your own paths.",
+      },
+      {
+        q: "Are the memory tool and context editing stable APIs?",
+        a: "Both are currently in beta. The memory tool's shape has been stable since its introduction, but Anthropic explicitly solicits feedback on it; context editing requires the context-management-2025-06-27 beta header and gained the newer clear_thinking_20251015 strategy after its initial release. Treat a flagged field as a prompt to check the current docs, the same way this site's other spec-conformance tools handle actively evolving APIs.",
+      },
+      {
+        q: "Is my pasted data sent anywhere?",
+        a: "No. Parsing and validation both run locally in your browser with plain JavaScript — nothing you paste is transmitted or stored.",
+      },
+    ],
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
