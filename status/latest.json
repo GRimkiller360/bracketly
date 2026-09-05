@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-04T11:44:46.124Z",
+  "generated_at": "2026-09-05T10:55:55.964Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 93,
+    "performance": 97,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -35,9 +35,9 @@
           "64 base encoder"
         ],
         "clicks": 0,
-        "impressions": 4,
+        "impressions": 3,
         "ctr": 0,
-        "position": 76.25
+        "position": 71.66666666666667
       },
       {
         "keys": [
@@ -199,36 +199,36 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 72,
-        "ctr": 0.027777777777777776,
-        "position": 8.041666666666668
+        "impressions": 78,
+        "ctr": 0.02564102564102564,
+        "position": 8.038461538461538
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 1,
-        "impressions": 9,
-        "ctr": 0.1111111111111111,
-        "position": 5
+        "impressions": 5,
+        "ctr": 0.2,
+        "position": 4
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 1,
-        "impressions": 782,
-        "ctr": 0.0012787723785166241,
-        "position": 83.53580562659846
+        "impressions": 761,
+        "ctr": 0.001314060446780552,
+        "position": 83.4599211563732
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1530,
-        "ctr": 0.00065359477124183,
-        "position": 79.39477124183007
+        "impressions": 1583,
+        "ctr": 0.0006317119393556538,
+        "position": 79.41250789639925
       },
       {
         "keys": [
@@ -352,9 +352,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 18,
+        "impressions": 19,
         "ctr": 0,
-        "position": 19.11111111111111
+        "position": 18.63157894736842
       },
       {
         "keys": [
@@ -383,7 +383,7 @@
       {
         "domain": "pretoriahub.com",
         "state": "GETTING_READY",
-        "autoAdsEnabled": null
+        "autoAdsEnabled": true
       }
     ],
     "earnings_last_7_days": null,
@@ -393,7 +393,13 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 81,
+        "count": 13,
+        "dimensions": {
+          "date": "2026-09-05"
+        }
+      },
+      {
+        "count": 147,
         "dimensions": {
           "date": "2026-09-04"
         }
@@ -433,18 +439,12 @@
         "dimensions": {
           "date": "2026-08-29"
         }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "date": "2026-08-28"
-        }
       }
     ],
-    "total_pageloads": 817,
+    "total_pageloads": 891,
     "top_requests": [
       {
-        "count": 122,
+        "count": 127,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
@@ -452,7 +452,7 @@
         }
       },
       {
-        "count": 95,
+        "count": 98,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "",
@@ -468,15 +468,7 @@
         }
       },
       {
-        "count": 49,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/"
-        }
-      },
-      {
-        "count": 47,
+        "count": 52,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -484,7 +476,23 @@
         }
       },
       {
-        "count": 25,
+        "count": 52,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/"
+        }
+      },
+      {
+        "count": 26,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/section/food-drink/"
+        }
+      },
+      {
+        "count": 26,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
@@ -500,11 +508,19 @@
         }
       },
       {
-        "count": 23,
+        "count": 17,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 14,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/section/food-drink/"
+          "requestPath": "/list-your-business/"
         }
       },
       {
@@ -520,23 +536,15 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/list-your-business/"
-        }
-      },
-      {
-        "count": 11,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
           "requestPath": "/partners/"
         }
       },
       {
-        "count": 8,
+        "count": 10,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/about/"
         }
       },
       {
@@ -548,15 +556,15 @@
         }
       },
       {
-        "count": 6,
+        "count": 7,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/section/professional-financial/"
+          "requestPath": "/business/nando-s-pretoria-central/"
         }
       },
       {
-        "count": 6,
+        "count": 7,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "com.google.android.googlequicksearchbox",
@@ -568,7 +576,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/about/"
+          "requestPath": "/section/professional-financial/"
         }
       },
       {
@@ -576,7 +584,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/business/nando-s-pretoria-central/"
+          "requestPath": "/business/amberfield-college-amberfield/"
         }
       },
       {
@@ -585,14 +593,6 @@
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
           "requestPath": "/business/city-property-pretoria-central/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/guesthouses-bnbs/"
         }
       },
       {
@@ -608,6 +608,14 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
+          "requestPath": "/category/guesthouses-bnbs/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
           "requestPath": "/business/spar-clubview-clubview/"
         }
       },
@@ -616,7 +624,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/business/kfc-pretoria-central/"
+          "requestPath": "/suburb/irene/"
         }
       },
       {
@@ -632,7 +640,23 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/shopping-center/clubview-corner-clubview/"
+          "requestPath": "/business/beaver-canoe-pretoria-central/"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/flight-centre-waterkloof/"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/kfc-pretoria-central/"
         }
       },
       {
@@ -656,31 +680,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/suburb/irene/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/beaver-canoe-pretoria-central/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/suburb/equestria/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/flight-centre-waterkloof/"
+          "requestPath": "/shopping-center/clubview-corner-clubview/"
         }
       }
     ]
