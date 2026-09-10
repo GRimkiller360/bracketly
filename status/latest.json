@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-09T11:52:15.189Z",
+  "generated_at": "2026-09-10T11:49:53.065Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 93,
+    "performance": 95,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -179,9 +179,9 @@
           "b64 converter"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 3,
         "ctr": 0,
-        "position": 81.5
+        "position": 81.66666666666667
       },
       {
         "keys": [
@@ -199,18 +199,18 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 74,
-        "ctr": 0.02702702702702703,
-        "position": 7.905405405405405
+        "impressions": 77,
+        "ctr": 0.025974025974025976,
+        "position": 7.961038961038961
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1808,
-        "ctr": 0.0005530973451327434,
-        "position": 79.17256637168141
+        "impressions": 1872,
+        "ctr": 0.0005341880341880342,
+        "position": 78.94978632478633
       },
       {
         "keys": [
@@ -244,27 +244,27 @@
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 0,
-        "impressions": 702,
+        "impressions": 673,
         "ctr": 0,
-        "position": 83.52421652421653
+        "position": 83.63893016344726
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer"
         ],
         "clicks": 0,
-        "impressions": 11,
+        "impressions": 10,
         "ctr": 0,
-        "position": 44.81818181818182
+        "position": 44.8
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 23,
+        "impressions": 24,
         "ctr": 0,
-        "position": 27.130434782608695
+        "position": 26.375
       },
       {
         "keys": [
@@ -273,7 +273,7 @@
         "clicks": 0,
         "impressions": 7,
         "ctr": 0,
-        "position": 57.714285714285715
+        "position": 56.714285714285715
       },
       {
         "keys": [
@@ -343,9 +343,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 24,
+        "impressions": 25,
         "ctr": 0,
-        "position": 19.375
+        "position": 18.64
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 10,
         "ctr": 0,
-        "position": 30.444444444444443
+        "position": 27.8
       }
     ]
   },
@@ -387,7 +387,13 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 153,
+        "count": 50,
+        "dimensions": {
+          "date": "2026-09-10"
+        }
+      },
+      {
+        "count": 401,
         "dimensions": {
           "date": "2026-09-09"
         }
@@ -427,18 +433,12 @@
         "dimensions": {
           "date": "2026-09-03"
         }
-      },
-      {
-        "count": 97,
-        "dimensions": {
-          "date": "2026-09-02"
-        }
       }
     ],
-    "total_pageloads": 778,
+    "total_pageloads": 979,
     "top_requests": [
       {
-        "count": 71,
+        "count": 87,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
@@ -446,39 +446,7 @@
         }
       },
       {
-        "count": 45,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 44,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/"
-        }
-      },
-      {
-        "count": 37,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 35,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/suburb/"
-        }
-      },
-      {
-        "count": 23,
+        "count": 80,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
@@ -486,7 +454,63 @@
         }
       },
       {
-        "count": 16,
+        "count": 46,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/"
+        }
+      },
+      {
+        "count": 35,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 32,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 29,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/login/"
+        }
+      },
+      {
+        "count": 24,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/admin/"
+        }
+      },
+      {
+        "count": 20,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/suburb/"
+        }
+      },
+      {
+        "count": 15,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/partners/"
+        }
+      },
+      {
+        "count": 14,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "www.google.com",
@@ -494,11 +518,19 @@
         }
       },
       {
-        "count": 14,
+        "count": 13,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/partners/"
+          "requestPath": "/list-your-business/"
+        }
+      },
+      {
+        "count": 13,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
         }
       },
       {
@@ -512,33 +544,25 @@
       {
         "count": 12,
         "dimensions": {
-          "countryName": "US",
+          "countryName": "ZA",
           "refererHost": "",
-          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
+          "requestPath": "/owner-confirm-listing"
+        }
+      },
+      {
+        "count": 12,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/my-businesses/edit/"
         }
       },
       {
         "count": 11,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/list-your-business/"
-        }
-      },
-      {
-        "count": 11,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/login/"
-        }
-      },
-      {
-        "count": 10,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/shopping-center/"
+          "refererHost": "accounts.google.com",
+          "requestPath": "/admin/"
         }
       },
       {
@@ -553,8 +577,8 @@
         "count": 8,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/shopping-center/suncardia-shopping-centre/"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/about/"
         }
       },
       {
@@ -570,7 +594,23 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/about/"
+          "requestPath": "/my-businesses/claim/"
+        }
+      },
+      {
+        "count": 8,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/shopping-center/suncardia-shopping-centre/"
+        }
+      },
+      {
+        "count": 7,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/elite-construction-company-pretoria-central/"
         }
       },
       {
@@ -590,11 +630,27 @@
         }
       },
       {
+        "count": 6,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/register/"
+        }
+      },
+      {
         "count": 5,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/owner-confirm-listing"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/pretoria-tourism-information/"
+        }
+      },
+      {
+        "count": 5,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/bakeries/"
         }
       },
       {
@@ -606,75 +662,19 @@
         }
       },
       {
-        "count": 4,
+        "count": 5,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/pretoria-tourism-information/"
+          "requestPath": "/section/professional-financial/"
         }
       },
       {
-        "count": 4,
+        "count": 5,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrician-boardwalk-manor/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/my-businesses/claim/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/business/afri-services-pty-ltd-rietondale/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "bing.com",
-          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/register/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/nando-s-pretoria-central/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrician-faerie-glen/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "accounts.google.com",
-          "requestPath": "/my-businesses/"
+          "requestPath": "/admin/users/"
         }
       }
     ]
