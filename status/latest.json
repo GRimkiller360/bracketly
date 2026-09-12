@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-11T11:49:12.362Z",
+  "generated_at": "2026-09-12T11:16:41.597Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 93,
+    "performance": 78,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -89,9 +89,9 @@
           "64 encoder"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 2,
         "ctr": 0,
-        "position": 61
+        "position": 59.5
       },
       {
         "keys": [
@@ -199,72 +199,72 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 2,
-        "impressions": 86,
-        "ctr": 0.023255813953488372,
-        "position": 7.755813953488372
+        "impressions": 91,
+        "ctr": 0.02197802197802198,
+        "position": 7.527472527472527
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1916,
-        "ctr": 0.0005219206680584551,
-        "position": 78.7348643006263
+        "impressions": 1946,
+        "ctr": 0.0005138746145940391,
+        "position": 78.63874614594039
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 0,
-        "impressions": 7,
+        "impressions": 8,
         "ctr": 0,
-        "position": 7.285714285714286
+        "position": 7.875
       },
       {
         "keys": [
           "https://bracketly.pages.dev/about/"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 6.5
+        "position": 8
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 28,
+        "impressions": 26,
         "ctr": 0,
-        "position": 15.714285714285714
+        "position": 15.307692307692308
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 0,
-        "impressions": 646,
+        "impressions": 611,
         "ctr": 0,
-        "position": 83.843653250774
+        "position": 83.73813420621931
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 8,
         "ctr": 0,
-        "position": 44.8
+        "position": 45.625
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 23,
+        "impressions": 27,
         "ctr": 0,
-        "position": 27.130434782608695
+        "position": 24
       },
       {
         "keys": [
@@ -273,7 +273,7 @@
         "clicks": 0,
         "impressions": 9,
         "ctr": 0,
-        "position": 48.333333333333336
+        "position": 56.22222222222222
       },
       {
         "keys": [
@@ -334,9 +334,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 29,
+        "impressions": 32,
         "ctr": 0,
-        "position": 17.17241379310345
+        "position": 16.03125
       },
       {
         "keys": [
@@ -361,9 +361,9 @@
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 14,
+        "impressions": 17,
         "ctr": 0,
-        "position": 21.285714285714285
+        "position": 18.823529411764707
       },
       {
         "keys": [
@@ -386,6 +386,12 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-11"
+        }
+      },
       {
         "count": 51,
         "dimensions": {
@@ -421,15 +427,9 @@
         "dimensions": {
           "date": "2026-09-05"
         }
-      },
-      {
-        "count": 147,
-        "dimensions": {
-          "date": "2026-09-04"
-        }
       }
     ],
-    "total_pageloads": 904,
+    "total_pageloads": 758,
     "top_requests": [
       {
         "count": 80,
@@ -440,19 +440,11 @@
         }
       },
       {
-        "count": 80,
+        "count": 56,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 42,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/"
         }
       },
       {
@@ -464,19 +456,11 @@
         }
       },
       {
-        "count": 28,
+        "count": 25,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 27,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/"
         }
       },
       {
@@ -488,19 +472,19 @@
         }
       },
       {
-        "count": 18,
+        "count": 19,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/suburb/"
+          "refererHost": "",
+          "requestPath": "/"
         }
       },
       {
-        "count": 13,
+        "count": 18,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
-          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
+          "requestPath": "/"
         }
       },
       {
@@ -514,9 +498,9 @@
       {
         "count": 13,
         "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/"
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
         }
       },
       {
@@ -539,16 +523,16 @@
         "count": 11,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/list-your-business/"
+          "refererHost": "accounts.google.com",
+          "requestPath": "/admin/"
         }
       },
       {
         "count": 11,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "accounts.google.com",
-          "requestPath": "/admin/"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/list-your-business/"
         }
       },
       {
@@ -564,23 +548,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/about/"
-        }
-      },
-      {
-        "count": 8,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
           "requestPath": "/my-businesses/claim/"
-        }
-      },
-      {
-        "count": 7,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/elite-construction-company-pretoria-central/"
         }
       },
       {
@@ -595,24 +563,16 @@
         "count": 7,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "www.google.com",
-          "requestPath": "/shopping-center/suncardia-shopping-centre/"
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/elite-construction-company-pretoria-central/"
         }
       },
       {
         "count": 7,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/section/food-drink/"
-        }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/register/"
+          "refererHost": "www.google.com",
+          "requestPath": "/shopping-center/suncardia-shopping-centre/"
         }
       },
       {
@@ -624,11 +584,19 @@
         }
       },
       {
-        "count": 5,
+        "count": 6,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "www.google.com",
-          "requestPath": "/business/afri-services-pty-ltd-rietondale/"
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 6,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/register/"
         }
       },
       {
@@ -636,23 +604,7 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/category/bakeries/"
-        }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/amberfield-college-amberfield/"
-        }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/users/"
+          "requestPath": "/about/"
         }
       },
       {
@@ -668,7 +620,55 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/section/professional-financial/"
+          "requestPath": "/admin/users/"
+        }
+      },
+      {
+        "count": 5,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/afri-services-pty-ltd-rietondale/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/admin/submissions/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/kuso-electrical-wholesalers-hennopspark/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/section/food-drink/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/bakeries/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/shopping-center/"
         }
       }
     ]
