@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-14T13:21:48.878Z",
+  "generated_at": "2026-09-15T12:08:31.051Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 92,
+    "performance": 94,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -170,9 +170,9 @@
           "b64 converter"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 2,
         "ctr": 0,
-        "position": 81.66666666666667
+        "position": 81.5
       },
       {
         "keys": [
@@ -196,30 +196,30 @@
     "top_pages": [
       {
         "keys": [
-          "https://bracketly.pages.dev/tools/gemini-signature-validator/"
-        ],
-        "clicks": 2,
-        "impressions": 108,
-        "ctr": 0.018518518518518517,
-        "position": 7.666666666666667
-      },
-      {
-        "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1965,
-        "ctr": 0.0005089058524173028,
-        "position": 78.38575063613231
+        "impressions": 1995,
+        "ctr": 0.0005012531328320802,
+        "position": 78.31779448621553
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/gemini-signature-validator/"
+        ],
+        "clicks": 1,
+        "impressions": 118,
+        "ctr": 0.00847457627118644,
+        "position": 7.745762711864407
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 11,
         "ctr": 0,
-        "position": 7.4
+        "position": 7.181818181818182
       },
       {
         "keys": [
@@ -244,27 +244,27 @@
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 0,
-        "impressions": 438,
+        "impressions": 381,
         "ctr": 0,
-        "position": 82.9041095890411
+        "position": 82.71128608923884
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer"
         ],
         "clicks": 0,
-        "impressions": 5,
+        "impressions": 4,
         "ctr": 0,
-        "position": 42
+        "position": 52
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 26,
+        "impressions": 25,
         "ctr": 0,
-        "position": 22.384615384615383
+        "position": 22.88
       },
       {
         "keys": [
@@ -289,18 +289,18 @@
           "https://bracketly.pages.dev/tools/hash-generator/"
         ],
         "clicks": 0,
-        "impressions": 6,
+        "impressions": 4,
         "ctr": 0,
-        "position": 58.333333333333336
+        "position": 48.75
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/json-formatter/"
         ],
         "clicks": 0,
-        "impressions": 13,
+        "impressions": 12,
         "ctr": 0,
-        "position": 60.61538461538461
+        "position": 61.166666666666664
       },
       {
         "keys": [
@@ -316,9 +316,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 32,
+        "impressions": 34,
         "ctr": 0,
-        "position": 15.96875
+        "position": 15.470588235294118
       },
       {
         "keys": [
@@ -343,9 +343,9 @@
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 23,
+        "impressions": 24,
         "ctr": 0,
-        "position": 15.130434782608695
+        "position": 14.791666666666666
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 271,
+        "impressions": 263,
         "ctr": 0,
-        "position": 60.93726937269373
+        "position": 60.7148288973384
       }
     ]
   },
@@ -386,6 +386,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-15"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-14"
+        }
+      },
       {
         "count": 1,
         "dimensions": {
@@ -421,15 +433,9 @@
         "dimensions": {
           "date": "2026-09-08"
         }
-      },
-      {
-        "count": 65,
-        "dimensions": {
-          "date": "2026-09-07"
-        }
       }
     ],
-    "total_pageloads": 645,
+    "total_pageloads": 582,
     "top_requests": [
       {
         "count": 80,
@@ -464,17 +470,17 @@
         }
       },
       {
-        "count": 18,
+        "count": 16,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/"
+          "refererHost": "",
+          "requestPath": "/"
         }
       },
       {
-        "count": 17,
+        "count": 16,
         "dimensions": {
-          "countryName": "ZA",
+          "countryName": "US",
           "refererHost": "",
           "requestPath": "/"
         }
@@ -482,17 +488,9 @@
       {
         "count": 15,
         "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 13,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/category/"
         }
       },
       {
@@ -501,6 +499,14 @@
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
           "requestPath": "/api/confirm-listing"
+        }
+      },
+      {
+        "count": 13,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
         }
       },
       {
@@ -587,32 +593,16 @@
         "count": 5,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/users/"
+          "refererHost": "accounts.google.com",
+          "requestPath": "/my-businesses/"
         }
       },
       {
         "count": 5,
         "dimensions": {
           "countryName": "ZA",
-          "refererHost": "accounts.google.com",
-          "requestPath": "/my-businesses/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/category/bakeries/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrician-boardwalk-manor/"
+          "requestPath": "/admin/users/"
         }
       },
       {
@@ -640,19 +630,27 @@
         }
       },
       {
-        "count": 3,
+        "count": 4,
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/shopping-center/"
+          "requestPath": "/category/bakeries/"
+        }
+      },
+      {
+        "count": 4,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/pretoria-east-electrician-boardwalk-manor/"
         }
       },
       {
         "count": 3,
         "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/business/wild-route-nursery-zwavelpoort/"
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/admin/businesses/"
         }
       },
       {
@@ -660,7 +658,15 @@
         "dimensions": {
           "countryName": "ZA",
           "refererHost": "pretoriahub.com",
-          "requestPath": "/section/professional-financial/"
+          "requestPath": "/business/fournos-centurion/"
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/business/pretoria-east-electrician-faerie-glen/"
         }
       },
       {
