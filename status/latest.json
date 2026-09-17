@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-16T12:04:14.492Z",
+  "generated_at": "2026-09-17T12:06:22.479Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 97,
+    "performance": 83,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -122,15 +122,6 @@
       },
       {
         "keys": [
-          "alphabet base64"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 90
-      },
-      {
-        "keys": [
           "anthropic citations api"
         ],
         "clicks": 0,
@@ -191,6 +182,15 @@
         "impressions": 2,
         "ctr": 0,
         "position": 88.5
+      },
+      {
+        "keys": [
+          "b64 decode"
+        ],
+        "clicks": 0,
+        "impressions": 28,
+        "ctr": 0,
+        "position": 83.14285714285714
       }
     ],
     "top_pages": [
@@ -199,18 +199,18 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 2010,
-        "ctr": 0.0004975124378109452,
-        "position": 78.24029850746268
+        "impressions": 2008,
+        "ctr": 0.00049800796812749,
+        "position": 78.18575697211155
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 1,
-        "impressions": 128,
-        "ctr": 0.0078125,
-        "position": 7.71875
+        "impressions": 136,
+        "ctr": 0.007352941176470588,
+        "position": 7.6911764705882355
       },
       {
         "keys": [
@@ -235,18 +235,18 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 29,
+        "impressions": 28,
         "ctr": 0,
-        "position": 14.310344827586206
+        "position": 11.25
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 0,
-        "impressions": 318,
+        "impressions": 252,
         "ctr": 0,
-        "position": 82.32075471698113
+        "position": 81.6984126984127
       },
       {
         "keys": [
@@ -262,9 +262,9 @@
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 27,
+        "impressions": 26,
         "ctr": 0,
-        "position": 21.88888888888889
+        "position": 17.153846153846153
       },
       {
         "keys": [
@@ -298,18 +298,18 @@
           "https://bracketly.pages.dev/tools/json-formatter/"
         ],
         "clicks": 0,
-        "impressions": 12,
+        "impressions": 11,
         "ctr": 0,
-        "position": 61.166666666666664
+        "position": 61.90909090909091
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/jwt-decoder/"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 67
+        "position": 75
       },
       {
         "keys": [
@@ -325,27 +325,18 @@
           "https://bracketly.pages.dev/tools/regex-tester"
         ],
         "clicks": 0,
-        "impressions": 4,
+        "impressions": 3,
         "ctr": 0,
-        "position": 63.75
-      },
-      {
-        "keys": [
-          "https://bracketly.pages.dev/tools/regex-tester/"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 5
+        "position": 65.33333333333333
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 25,
+        "impressions": 26,
         "ctr": 0,
-        "position": 14.56
+        "position": 14.26923076923077
       },
       {
         "keys": [
@@ -361,18 +352,27 @@
           "https://bracketly.pages.dev/tools/token-counter"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 2,
         "ctr": 0,
-        "position": 71
+        "position": 65.5
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 253,
+        "impressions": 247,
         "ctr": 0,
-        "position": 60.359683794466406
+        "position": 60.465587044534416
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/url-encoder"
+        ],
+        "clicks": 0,
+        "impressions": 2,
+        "ctr": 0,
+        "position": 74.5
       }
     ]
   },
@@ -387,7 +387,13 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 3,
+        "dimensions": {
+          "date": "2026-09-17"
+        }
+      },
+      {
+        "count": 3,
         "dimensions": {
           "date": "2026-09-16"
         }
@@ -427,166 +433,16 @@
         "dimensions": {
           "date": "2026-09-10"
         }
-      },
-      {
-        "count": 401,
-        "dimensions": {
-          "date": "2026-09-09"
-        }
       }
     ],
-    "total_pageloads": 465,
+    "total_pageloads": 68,
     "top_requests": [
-      {
-        "count": 80,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/my-businesses/"
-        }
-      },
-      {
-        "count": 45,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 29,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/login/"
-        }
-      },
-      {
-        "count": 24,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/"
-        }
-      },
       {
         "count": 16,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 13,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/api/confirm-listing"
-        }
-      },
-      {
-        "count": 12,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/owner-confirm-listing"
-        }
-      },
-      {
-        "count": 12,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/my-businesses/edit/"
-        }
-      },
-      {
-        "count": 11,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "accounts.google.com",
-          "requestPath": "/admin/"
-        }
-      },
-      {
-        "count": 9,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/"
-        }
-      },
-      {
-        "count": 9,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 8,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/my-businesses/claim/"
-        }
-      },
-      {
-        "count": 7,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/list-your-business/"
-        }
-      },
-      {
-        "count": 7,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "",
-          "requestPath": "/verify-listing"
-        }
-      },
-      {
-        "count": 7,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/elite-construction-company-pretoria-central/"
-        }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/register/"
-        }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/business/silverton-bolt-nut-silverton/"
-        }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "accounts.google.com",
-          "requestPath": "/my-businesses/"
-        }
-      },
-      {
-        "count": 5,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/users/"
         }
       },
       {
@@ -598,83 +454,227 @@
         }
       },
       {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/submissions/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrician-boardwalk-manor/"
-        }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/category/bakeries/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/fournos-centurion/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/businesses/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrician-faerie-glen/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/business/pretoria-east-electrical-services-boardwalk-manor/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/admin/activity/"
-        }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "countryName": "ZA",
-          "refererHost": "pretoriahub.com",
-          "requestPath": "/section/professional-financial/"
-        }
-      },
-      {
         "count": 3,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/business/wild-route-nursery-zwavelpoort/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/frw-groundnuts-pty-ltd-sunderland-ridge/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "",
+          "requestPath": "/owner-confirm-listing"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "PK",
+          "refererHost": "pretoriahub.com",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/embrowdery-aesthetics-hazeldean/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/a-n-f-manufacturers-pty-ltd-sunderland-ridge/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/easy-brew-bar-and-grill-menlyn/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/suburb/raslouw/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/pt-online-florauna/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/mutag-house-thatchfield-estate/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/imvula-roads-civils-eersterust/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "PK",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/pretoria-coal-company-andeon/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/b-link-consultants-pty-ltd-bronberrik/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/crs-group-pty-ltd-centurion-amberfield-glen/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/brigade-elektronika-pty-ltd-kloofsig/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/lara-van-der-merwe-waterkloof/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/hi-fi-installations-zwavelpoort/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/biliyon-pty-ltd-zwartkop/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/tools/gemini-signature-validator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/4x4-direct-centurion-hennopspark/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/accuenergy-buffelsdrift/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/afri-services-pty-ltd-rietondale/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/truworths-atteridgeville-atteridgeville/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "bing.com",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/coffee-fox-elarduspark-elardus-park/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/business/upendi-group-of-services-kirkney/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ZA",
+          "refererHost": "www.google.com",
+          "requestPath": "/business/dfk-construction-rooiwal/"
         }
       }
     ]
