@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-18T11:50:01.141Z",
+  "generated_at": "2026-09-19T11:33:34.132Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 92,
+    "performance": 96,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -44,9 +44,18 @@
           "64 base encoder"
         ],
         "clicks": 0,
-        "impressions": 4,
+        "impressions": 3,
         "ctr": 0,
-        "position": 70.75
+        "position": 69
+      },
+      {
+        "keys": [
+          "64 base encoding"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 80
       },
       {
         "keys": [
@@ -122,15 +131,6 @@
       },
       {
         "keys": [
-          "anthropic citations api"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 65
-      },
-      {
-        "keys": [
           "anthropic's citations api"
         ],
         "clicks": 0,
@@ -179,9 +179,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 28,
+        "impressions": 26,
         "ctr": 0,
-        "position": 83.14285714285714
+        "position": 82.73076923076923
       },
       {
         "keys": [
@@ -199,27 +199,27 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 2032,
-        "ctr": 0.0004921259842519685,
-        "position": 78.13681102362204
+        "impressions": 2049,
+        "ctr": 0.0004880429477794046,
+        "position": 78.03611517813567
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 1,
-        "impressions": 155,
-        "ctr": 0.0064516129032258064,
-        "position": 7.696774193548387
+        "impressions": 148,
+        "ctr": 0.006756756756756757,
+        "position": 7.6891891891891895
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 0,
-        "impressions": 11,
+        "impressions": 10,
         "ctr": 0,
-        "position": 7.454545454545454
+        "position": 7.5
       },
       {
         "keys": [
@@ -235,45 +235,54 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 28,
+        "impressions": 27,
         "ctr": 0,
-        "position": 11.25
+        "position": 11.592592592592593
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64"
         ],
         "clicks": 0,
-        "impressions": 196,
+        "impressions": 131,
         "ctr": 0,
-        "position": 81.3265306122449
+        "position": 80.50381679389314
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 66
+        "position": 67
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 26,
+        "impressions": 29,
         "ctr": 0,
-        "position": 17.346153846153847
+        "position": 16.413793103448278
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/color-converter/"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 3
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 10,
         "ctr": 0,
-        "position": 46.55555555555556
+        "position": 46.5
       },
       {
         "keys": [
@@ -300,25 +309,16 @@
         "clicks": 0,
         "impressions": 11,
         "ctr": 0,
-        "position": 61.90909090909091
-      },
-      {
-        "keys": [
-          "https://bracketly.pages.dev/tools/jwt-decoder/"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 75
+        "position": 56.45454545454545
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 35,
+        "impressions": 37,
         "ctr": 0,
-        "position": 15.142857142857142
+        "position": 16.35135135135135
       },
       {
         "keys": [
@@ -334,27 +334,27 @@
           "https://bracketly.pages.dev/tools/timestamp-converter/"
         ],
         "clicks": 0,
-        "impressions": 14,
+        "impressions": 15,
         "ctr": 0,
-        "position": 3.2142857142857144
+        "position": 3.4
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/token-counter"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 65.5
+        "position": 63
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 238,
+        "impressions": 227,
         "ctr": 0,
-        "position": 60.46218487394958
+        "position": 59.83700440528634
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/url-encoder/"
         ],
         "clicks": 0,
-        "impressions": 39,
+        "impressions": 36,
         "ctr": 0,
-        "position": 63.743589743589745
+        "position": 62.55555555555556
       }
     ]
   },
@@ -387,7 +387,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 1,
+        "count": 5,
         "dimensions": {
           "date": "2026-09-18"
         }
@@ -427,21 +427,23 @@
         "dimensions": {
           "date": "2026-09-12"
         }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-09-11"
-        }
       }
     ],
-    "total_pageloads": 19,
+    "total_pageloads": 22,
     "top_requests": [
       {
         "count": 16,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ID",
+          "refererHost": "www.google.com",
           "requestPath": "/"
         }
       },
@@ -467,6 +469,22 @@
           "countryName": "US",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/uuid-generator/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ID",
+          "refererHost": "bracketly.pages.dev",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ID",
+          "refererHost": "",
+          "requestPath": "/"
         }
       }
     ]
