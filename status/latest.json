@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-24T12:12:27.937Z",
+  "generated_at": "2026-09-25T12:15:15.179Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 96,
+    "performance": 83,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -53,9 +53,9 @@
           "64 base encoder"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 2,
         "ctr": 0,
-        "position": 69
+        "position": 70.5
       },
       {
         "keys": [
@@ -170,9 +170,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 22,
+        "impressions": 23,
         "ctr": 0,
-        "position": 82.27272727272727
+        "position": 81.78260869565217
       },
       {
         "keys": [
@@ -208,9 +208,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1818,
-        "ctr": 0.00055005500550055,
-        "position": 77.73982398239824
+        "impressions": 1742,
+        "ctr": 0.000574052812858783,
+        "position": 77.60390355912745
       },
       {
         "keys": [
@@ -244,9 +244,9 @@
           "https://bracketly.pages.dev/tools/claude-memory-tool-validator/"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 3,
         "ctr": 0,
-        "position": 5
+        "position": 4.333333333333334
       },
       {
         "keys": [
@@ -262,9 +262,9 @@
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 8,
+        "impressions": 9,
         "ctr": 0,
-        "position": 38.125
+        "position": 39
       },
       {
         "keys": [
@@ -273,7 +273,7 @@
         "clicks": 0,
         "impressions": 155,
         "ctr": 0,
-        "position": 7.767741935483871
+        "position": 7.735483870967742
       },
       {
         "keys": [
@@ -298,54 +298,63 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 41,
+        "impressions": 42,
         "ctr": 0,
-        "position": 15.195121951219512
+        "position": 14.833333333333334
+      },
+      {
+        "keys": [
+          "https://bracketly.pages.dev/tools/regex-tester/"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 46
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 40,
+        "impressions": 42,
         "ctr": 0,
-        "position": 11.675
+        "position": 11.571428571428571
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/timestamp-converter/"
         ],
         "clicks": 0,
-        "impressions": 16,
+        "impressions": 17,
         "ctr": 0,
-        "position": 3.75
+        "position": 3.7058823529411766
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 179,
+        "impressions": 169,
         "ctr": 0,
-        "position": 59.1731843575419
+        "position": 59.25443786982248
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/url-encoder/"
         ],
         "clicks": 0,
-        "impressions": 30,
+        "impressions": 28,
         "ctr": 0,
-        "position": 59.2
+        "position": 58.357142857142854
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/uuid-generator/"
         ],
         "clicks": 0,
-        "impressions": 22,
+        "impressions": 20,
         "ctr": 0,
-        "position": 60.77272727272727
+        "position": 60.85
       },
       {
         "keys": [
@@ -368,6 +377,12 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-24"
+        }
+      },
       {
         "count": 1,
         "dimensions": {
@@ -403,18 +418,12 @@
         "dimensions": {
           "date": "2026-09-18"
         }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "date": "2026-09-17"
-        }
       }
     ],
-    "total_pageloads": 14,
+    "total_pageloads": 11,
     "top_requests": [
       {
-        "count": 9,
+        "count": 7,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -435,14 +444,6 @@
           "countryName": "ID",
           "refererHost": "www.google.com",
           "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/tools/gemini-signature-validator/"
         }
       },
       {
