@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-27T12:27:42.379Z",
+  "generated_at": "2026-09-28T14:29:36.209Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
@@ -20,6 +20,15 @@
         "impressions": 14,
         "ctr": 0.07142857142857142,
         "position": 5.285714285714286
+      },
+      {
+        "keys": [
+          "+site.agentskills.io specification skill.md frontmatter"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 8
       },
       {
         "keys": [
@@ -170,9 +179,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 20,
+        "impressions": 18,
         "ctr": 0,
-        "position": 81.45
+        "position": 81.11111111111111
       },
       {
         "keys": [
@@ -182,15 +191,6 @@
         "impressions": 2,
         "ctr": 0,
         "position": 37
-      },
-      {
-        "keys": [
-          "b64 encode"
-        ],
-        "clicks": 0,
-        "impressions": 14,
-        "ctr": 0,
-        "position": 81.35714285714286
       }
     ],
     "top_pages": [
@@ -199,18 +199,18 @@
           "https://bracketly.pages.dev/"
         ],
         "clicks": 1,
-        "impressions": 21,
-        "ctr": 0.047619047619047616,
-        "position": 6.333333333333333
+        "impressions": 22,
+        "ctr": 0.045454545454545456,
+        "position": 6.136363636363637
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 1,
-        "impressions": 1533,
-        "ctr": 0.0006523157208088715,
-        "position": 77.22700587084148
+        "impressions": 1429,
+        "ctr": 0.0006997900629811056,
+        "position": 77.16095171448565
       },
       {
         "keys": [
@@ -226,63 +226,63 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 27,
+        "impressions": 25,
         "ctr": 0,
-        "position": 11.11111111111111
+        "position": 9.48
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 32,
+        "impressions": 35,
         "ctr": 0,
-        "position": 13.625
+        "position": 12.771428571428572
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/claude-memory-tool-validator/"
         ],
         "clicks": 0,
-        "impressions": 4,
+        "impressions": 7,
         "ctr": 0,
-        "position": 5
+        "position": 5.285714285714286
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/color-converter/"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 2,
         "ctr": 0,
-        "position": 3
+        "position": 14.5
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 13,
+        "impressions": 16,
         "ctr": 0,
-        "position": 32.46153846153846
+        "position": 27.5
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 0,
-        "impressions": 166,
+        "impressions": 173,
         "ctr": 0,
-        "position": 7.656626506024097
+        "position": 7.624277456647399
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/hash-generator/"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 5,
         "ctr": 0,
-        "position": 6
+        "position": 5.6
       },
       {
         "keys": [
@@ -295,75 +295,84 @@
       },
       {
         "keys": [
+          "https://bracketly.pages.dev/tools/jwt-decoder/"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 4
+      },
+      {
+        "keys": [
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
         "impressions": 41,
         "ctr": 0,
-        "position": 13.073170731707316
+        "position": 11.536585365853659
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 4,
         "ctr": 0,
-        "position": 46
+        "position": 28.25
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 44,
+        "impressions": 47,
         "ctr": 0,
-        "position": 8.5
+        "position": 8.553191489361701
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/timestamp-converter/"
         ],
         "clicks": 0,
-        "impressions": 18,
+        "impressions": 19,
         "ctr": 0,
-        "position": 4
+        "position": 4.368421052631579
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 129,
+        "impressions": 118,
         "ctr": 0,
-        "position": 57.83720930232558
+        "position": 56.70338983050848
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/url-encoder/"
         ],
         "clicks": 0,
-        "impressions": 28,
+        "impressions": 27,
         "ctr": 0,
-        "position": 53.5
+        "position": 47.77777777777778
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/uuid-generator/"
         ],
         "clicks": 0,
-        "impressions": 14,
+        "impressions": 11,
         "ctr": 0,
-        "position": 58.142857142857146
+        "position": 52.09090909090909
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/x402-payment-validator/"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 10,
         "ctr": 0,
-        "position": 6.666666666666667
+        "position": 6.2
       }
     ]
   },
@@ -377,6 +386,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 3,
+        "dimensions": {
+          "date": "2026-09-28"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-27"
+        }
+      },
       {
         "count": 1,
         "dimensions": {
@@ -412,18 +433,12 @@
         "dimensions": {
           "date": "2026-09-21"
         }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-09-20"
-        }
       }
     ],
-    "total_pageloads": 7,
+    "total_pageloads": 10,
     "top_requests": [
       {
-        "count": 6,
+        "count": 7,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -431,11 +446,19 @@
         }
       },
       {
-        "count": 1,
+        "count": 2,
         "dimensions": {
-          "countryName": "MX",
+          "countryName": "IN",
           "refererHost": "",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "IN",
+          "refererHost": "",
+          "requestPath": "/about/"
         }
       }
     ]
