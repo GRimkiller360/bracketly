@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-21T12:26:18.861Z",
+  "generated_at": "2026-10-22T12:27:21.710Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 96,
+    "performance": 91,
     "accessibility": 100,
     "best-practices": 78,
     "seo": 100,
@@ -125,9 +125,9 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 6,
+        "impressions": 7,
         "ctr": 0,
-        "position": 65.66666666666667
+        "position": 66.57142857142857
       },
       {
         "keys": [
@@ -199,9 +199,9 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 1,
-        "impressions": 15,
-        "ctr": 0.06666666666666667,
-        "position": 7.066666666666666
+        "impressions": 16,
+        "ctr": 0.0625,
+        "position": 6.875
       },
       {
         "keys": [
@@ -217,18 +217,18 @@
           "https://bracketly.pages.dev/"
         ],
         "clicks": 0,
-        "impressions": 30,
+        "impressions": 25,
         "ctr": 0,
-        "position": 5.533333333333333
+        "position": 5.72
       },
       {
         "keys": [
           "https://bracketly.pages.dev/about/"
         ],
         "clicks": 0,
-        "impressions": 7,
+        "impressions": 4,
         "ctr": 0,
-        "position": 6.857142857142857
+        "position": 5
       },
       {
         "keys": [
@@ -262,18 +262,18 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 313,
+        "impressions": 316,
         "ctr": 0,
-        "position": 48.61341853035144
+        "position": 48.484177215189874
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 51,
+        "impressions": 53,
         "ctr": 0,
-        "position": 10.470588235294118
+        "position": 10.415094339622641
       },
       {
         "keys": [
@@ -298,18 +298,18 @@
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 75,
+        "impressions": 77,
         "ctr": 0,
-        "position": 14.68
+        "position": 15.922077922077921
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 0,
-        "impressions": 91,
+        "impressions": 92,
         "ctr": 0,
-        "position": 6.857142857142857
+        "position": 6.8478260869565215
       },
       {
         "keys": [
@@ -334,9 +334,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 66,
+        "impressions": 65,
         "ctr": 0,
-        "position": 5.651515151515151
+        "position": 5.584615384615384
       },
       {
         "keys": [
@@ -361,18 +361,18 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 78,
+        "impressions": 81,
         "ctr": 0,
-        "position": 36.56410256410256
+        "position": 36.55555555555556
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 82,
+        "impressions": 83,
         "ctr": 0,
-        "position": 6.890243902439025
+        "position": 6.903614457831325
       }
     ]
   },
@@ -387,7 +387,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 4,
         "dimensions": {
           "date": "2026-10-21"
         }
@@ -427,18 +427,12 @@
         "dimensions": {
           "date": "2026-10-15"
         }
-      },
-      {
-        "count": 3,
-        "dimensions": {
-          "date": "2026-10-14"
-        }
       }
     ],
-    "total_pageloads": 16,
+    "total_pageloads": 15,
     "top_requests": [
       {
-        "count": 7,
+        "count": 6,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -480,17 +474,17 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "RU",
+          "countryName": "CA",
           "refererHost": "",
-          "requestPath": "/tools/cron-parser/"
+          "requestPath": "/"
         }
       },
       {
         "count": 1,
         "dimensions": {
-          "countryName": "BR",
+          "countryName": "GB",
           "refererHost": "",
-          "requestPath": "/tools/base64/"
+          "requestPath": "/tools/json-formatter/"
         }
       },
       {
