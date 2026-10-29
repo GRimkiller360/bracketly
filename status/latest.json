@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-28T13:32:58.708Z",
+  "generated_at": "2026-10-29T13:43:57.621Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 89,
+    "performance": 96,
     "accessibility": 100,
-    "best-practices": 93,
+    "best-practices": 100,
     "seo": 100,
     "pwa": 63
   },
@@ -20,15 +20,6 @@
         "impressions": 1,
         "ctr": 1,
         "position": 1
-      },
-      {
-        "keys": [
-          "+site.agentskills.io specification skill.md frontmatter"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 11
       },
       {
         "keys": [
@@ -98,9 +89,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 4,
         "ctr": 0,
-        "position": 74.66666666666667
+        "position": 74.5
       },
       {
         "keys": [
@@ -191,6 +182,15 @@
         "impressions": 2,
         "ctr": 0,
         "position": 67.5
+      },
+      {
+        "keys": [
+          "base 64 encode"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 9
       }
     ],
     "top_pages": [
@@ -199,27 +199,27 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 1,
-        "impressions": 14,
-        "ctr": 0.07142857142857142,
-        "position": 6.857142857142857
+        "impressions": 12,
+        "ctr": 0.08333333333333333,
+        "position": 6.75
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/jwt-decoder/"
         ],
         "clicks": 1,
-        "impressions": 11,
-        "ctr": 0.09090909090909091,
-        "position": 3.909090909090909
+        "impressions": 10,
+        "ctr": 0.1,
+        "position": 3.7
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 1,
-        "impressions": 69,
-        "ctr": 0.014492753623188406,
-        "position": 6.3478260869565215
+        "impressions": 64,
+        "ctr": 0.015625,
+        "position": 6.171875
       },
       {
         "keys": [
@@ -228,16 +228,16 @@
         "clicks": 0,
         "impressions": 27,
         "ctr": 0,
-        "position": 6.444444444444445
+        "position": 6.592592592592593
       },
       {
         "keys": [
           "https://bracketly.pages.dev/about/"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 4,
         "ctr": 0,
-        "position": 3
+        "position": 5
       },
       {
         "keys": [
@@ -271,9 +271,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 369,
+        "impressions": 373,
         "ctr": 0,
-        "position": 47.34146341463415
+        "position": 47.34048257372654
       },
       {
         "keys": [
@@ -289,9 +289,9 @@
           "https://bracketly.pages.dev/tools/claude-memory-tool-validator/"
         ],
         "clicks": 0,
-        "impressions": 51,
+        "impressions": 48,
         "ctr": 0,
-        "position": 6.392156862745098
+        "position": 6.4375
       },
       {
         "keys": [
@@ -307,9 +307,9 @@
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 71,
+        "impressions": 69,
         "ctr": 0,
-        "position": 18.08450704225352
+        "position": 18.463768115942027
       },
       {
         "keys": [
@@ -318,7 +318,7 @@
         "clicks": 0,
         "impressions": 55,
         "ctr": 0,
-        "position": 6.872727272727273
+        "position": 7.036363636363636
       },
       {
         "keys": [
@@ -327,7 +327,7 @@
         "clicks": 0,
         "impressions": 13,
         "ctr": 0,
-        "position": 6.461538461538462
+        "position": 11.076923076923077
       },
       {
         "keys": [
@@ -343,9 +343,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 65,
+        "impressions": 70,
         "ctr": 0,
-        "position": 5.769230769230769
+        "position": 5.828571428571428
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 109,
+        "impressions": 114,
         "ctr": 0,
-        "position": 38.36697247706422
+        "position": 37.51754385964912
       }
     ]
   },
@@ -386,6 +386,12 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-10-28"
+        }
+      },
       {
         "count": 1,
         "dimensions": {
@@ -421,18 +427,12 @@
         "dimensions": {
           "date": "2026-10-22"
         }
-      },
-      {
-        "count": 4,
-        "dimensions": {
-          "date": "2026-10-21"
-        }
       }
     ],
-    "total_pageloads": 17,
+    "total_pageloads": 14,
     "top_requests": [
       {
-        "count": 11,
+        "count": 12,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -453,38 +453,6 @@
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/tools/url-encoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "CN",
-          "refererHost": "",
-          "requestPath": "/tools/gemini-signature-validator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "CA",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "",
-          "requestPath": "/tools/json-formatter/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "GB",
-          "refererHost": "www.google.com",
-          "requestPath": "/tools/skill-md-validator/"
         }
       }
     ]
