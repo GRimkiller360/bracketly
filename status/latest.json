@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-01T13:47:41.467Z",
+  "generated_at": "2026-11-02T16:33:38.418Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 89,
+    "performance": 95,
     "accessibility": 100,
     "best-practices": 100,
     "seo": 100,
@@ -44,9 +44,9 @@
           "64 base encode"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 74.5
+        "position": 75
       },
       {
         "keys": [
@@ -98,9 +98,9 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 8,
         "ctr": 0,
-        "position": 68.88888888888889
+        "position": 68.125
       },
       {
         "keys": [
@@ -188,9 +188,9 @@
           "base 64 encoding"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 71.5
+        "position": 69
       }
     ],
     "top_pages": [
@@ -201,7 +201,7 @@
         "clicks": 1,
         "impressions": 13,
         "ctr": 0.07692307692307693,
-        "position": 6.3076923076923075
+        "position": 7.846153846153846
       },
       {
         "keys": [
@@ -217,18 +217,18 @@
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 1,
-        "impressions": 58,
-        "ctr": 0.017241379310344827,
-        "position": 7.051724137931035
+        "impressions": 62,
+        "ctr": 0.016129032258064516,
+        "position": 7.016129032258065
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 0,
-        "impressions": 22,
+        "impressions": 26,
         "ctr": 0,
-        "position": 6.7727272727272725
+        "position": 6.1923076923076925
       },
       {
         "keys": [
@@ -271,18 +271,18 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 382,
+        "impressions": 387,
         "ctr": 0,
-        "position": 47.410994764397905
+        "position": 46.90180878552972
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 0,
-        "impressions": 43,
+        "impressions": 42,
         "ctr": 0,
-        "position": 14.023255813953488
+        "position": 14.166666666666666
       },
       {
         "keys": [
@@ -291,7 +291,7 @@
         "clicks": 0,
         "impressions": 32,
         "ctr": 0,
-        "position": 6.25
+        "position": 6.40625
       },
       {
         "keys": [
@@ -316,9 +316,9 @@
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 0,
-        "impressions": 52,
+        "impressions": 57,
         "ctr": 0,
-        "position": 8.442307692307693
+        "position": 8.210526315789473
       },
       {
         "keys": [
@@ -343,9 +343,9 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 76,
+        "impressions": 79,
         "ctr": 0,
-        "position": 6.2631578947368425
+        "position": 6.341772151898734
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 157,
+        "impressions": 181,
         "ctr": 0,
-        "position": 36.76433121019108
+        "position": 35.44198895027624
       }
     ]
   },
@@ -387,7 +387,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 3,
         "dimensions": {
           "date": "2026-11-01"
         }
@@ -426,12 +426,6 @@
         "count": 2,
         "dimensions": {
           "date": "2026-10-26"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-10-25"
         }
       }
     ],
