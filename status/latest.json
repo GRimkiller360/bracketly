@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-09T16:52:10.772Z",
+  "generated_at": "2026-11-10T15:14:35.625Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 94,
+    "performance": 92,
     "accessibility": 100,
     "best-practices": 100,
     "seo": 100,
@@ -77,15 +77,6 @@
       },
       {
         "keys": [
-          "b64 decoder"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 73
-      },
-      {
-        "keys": [
           "b64 encode"
         ],
         "clicks": 0,
@@ -98,18 +89,18 @@
           "b64 encoding"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 4,
         "ctr": 0,
-        "position": 78
+        "position": 73.25
       },
       {
         "keys": [
           "b64encode"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 2,
         "ctr": 0,
-        "position": 94
+        "position": 60.5
       },
       {
         "keys": [
@@ -140,12 +131,39 @@
       },
       {
         "keys": [
+          "base 64 decoder"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 5
+      },
+      {
+        "keys": [
           "base 64 encoder"
         ],
         "clicks": 0,
         "impressions": 8,
         "ctr": 0,
         "position": 47.875
+      },
+      {
+        "keys": [
+          "base decode 64"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 65
+      },
+      {
+        "keys": [
+          "base-64 encoding"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 91
       },
       {
         "keys": [
@@ -173,24 +191,6 @@
         "impressions": 13,
         "ctr": 0,
         "position": 27.384615384615383
-      },
-      {
-        "keys": [
-          "base64 bake"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 9
-      },
-      {
-        "keys": [
-          "base64 characters"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 63
       }
     ],
     "top_pages": [
@@ -217,9 +217,9 @@
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 1,
-        "impressions": 63,
-        "ctr": 0.015873015873015872,
-        "position": 14.873015873015873
+        "impressions": 61,
+        "ctr": 0.01639344262295082,
+        "position": 15.081967213114755
       },
       {
         "keys": [
@@ -262,9 +262,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 0,
-        "impressions": 398,
+        "impressions": 394,
         "ctr": 0,
-        "position": 48.48994974874372
+        "position": 49.2741116751269
       },
       {
         "keys": [
@@ -298,9 +298,9 @@
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 31,
+        "impressions": 29,
         "ctr": 0,
-        "position": 27.35483870967742
+        "position": 28.82758620689655
       },
       {
         "keys": [
@@ -316,18 +316,18 @@
           "https://bracketly.pages.dev/tools/hash-generator/"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 9,
         "ctr": 0,
-        "position": 15.9
+        "position": 16.555555555555557
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/json-formatter/"
         ],
         "clicks": 0,
-        "impressions": 9,
+        "impressions": 8,
         "ctr": 0,
-        "position": 23
+        "position": 25.125
       },
       {
         "keys": [
@@ -343,18 +343,18 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 66,
+        "impressions": 68,
         "ctr": 0,
-        "position": 6.863636363636363
+        "position": 7.323529411764706
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/mcp-server-json-validator/"
         ],
         "clicks": 0,
-        "impressions": 12,
+        "impressions": 11,
         "ctr": 0,
-        "position": 8.166666666666668
+        "position": 8
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 258,
+        "impressions": 273,
         "ctr": 0,
-        "position": 29.68217054263566
+        "position": 29.4029304029304
       }
     ]
   },
@@ -386,6 +386,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 3,
+        "dimensions": {
+          "date": "2026-11-10"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "date": "2026-11-09"
+        }
+      },
       {
         "count": 6,
         "dimensions": {
@@ -421,15 +433,9 @@
         "dimensions": {
           "date": "2026-11-03"
         }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "date": "2026-11-02"
-        }
       }
     ],
-    "total_pageloads": 16,
+    "total_pageloads": 20,
     "top_requests": [
       {
         "count": 10,
@@ -445,6 +451,22 @@
           "countryName": "IT",
           "refererHost": "",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "NL",
+          "refererHost": "",
+          "requestPath": "/tools/base64/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "US",
+          "refererHost": "",
+          "requestPath": "/tools/citations-viewer/"
         }
       },
       {
@@ -469,6 +491,14 @@
           "countryName": "US",
           "refererHost": "bing.com",
           "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "NL",
+          "refererHost": "www.google.com",
+          "requestPath": "/tools/base64/"
         }
       },
       {
