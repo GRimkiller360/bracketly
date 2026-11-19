@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-18T15:58:40.557Z",
+  "generated_at": "2026-11-19T16:04:26.600Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
     "performance": 74,
     "accessibility": 100,
-    "best-practices": 78,
+    "best-practices": 100,
     "seo": 100,
     "pwa": 63
   },
@@ -17,9 +17,9 @@
           "base64 encode"
         ],
         "clicks": 2,
-        "impressions": 73,
-        "ctr": 0.0273972602739726,
-        "position": 46.19178082191781
+        "impressions": 74,
+        "ctr": 0.02702702702702703,
+        "position": 46.567567567567565
       },
       {
         "keys": [
@@ -44,9 +44,9 @@
           "base 64 encoder"
         ],
         "clicks": 1,
-        "impressions": 9,
-        "ctr": 0.1111111111111111,
-        "position": 40.22222222222222
+        "impressions": 10,
+        "ctr": 0.1,
+        "position": 43.4
       },
       {
         "keys": [
@@ -77,21 +77,30 @@
       },
       {
         "keys": [
+          "agent skills validator"
+        ],
+        "clicks": 0,
+        "impressions": 1,
+        "ctr": 0,
+        "position": 71
+      },
+      {
+        "keys": [
           "agentskills.io specification skill.md frontmatter fields name description license allowed-tools compatibility metadata"
         ],
         "clicks": 0,
-        "impressions": 3,
+        "impressions": 4,
         "ctr": 0,
-        "position": 37.666666666666664
+        "position": 34.75
       },
       {
         "keys": [
           "antigravity skills skill.md .agents/skills frontmatter name description allowed-tools"
         ],
         "clicks": 0,
-        "impressions": 1,
+        "impressions": 2,
         "ctr": 0,
-        "position": 33
+        "position": 32.5
       },
       {
         "keys": [
@@ -182,15 +191,6 @@
         "impressions": 1,
         "ctr": 0,
         "position": 79
-      },
-      {
-        "keys": [
-          "base 64 encoding"
-        ],
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 62
       }
     ],
     "top_pages": [
@@ -199,9 +199,9 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 4,
-        "impressions": 478,
-        "ctr": 0.008368200836820083,
-        "position": 51.60251046025105
+        "impressions": 476,
+        "ctr": 0.008403361344537815,
+        "position": 51.78361344537815
       },
       {
         "keys": [
@@ -217,18 +217,18 @@
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 1,
-        "impressions": 29,
-        "ctr": 0.034482758620689655,
-        "position": 21.448275862068964
+        "impressions": 30,
+        "ctr": 0.03333333333333333,
+        "position": 20.9
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 1,
-        "impressions": 171,
-        "ctr": 0.005847953216374269,
-        "position": 30.637426900584796
+        "impressions": 190,
+        "ctr": 0.005263157894736842,
+        "position": 31.194736842105264
       },
       {
         "keys": [
@@ -289,18 +289,18 @@
           "https://bracketly.pages.dev/tools/cron-parser/"
         ],
         "clicks": 0,
-        "impressions": 8,
+        "impressions": 7,
         "ctr": 0,
-        "position": 55.25
+        "position": 54.714285714285715
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/gemini-signature-validator/"
         ],
         "clicks": 0,
-        "impressions": 42,
+        "impressions": 44,
         "ctr": 0,
-        "position": 12.357142857142858
+        "position": 12.113636363636363
       },
       {
         "keys": [
@@ -316,18 +316,18 @@
           "https://bracketly.pages.dev/tools/json-formatter/"
         ],
         "clicks": 0,
-        "impressions": 6,
+        "impressions": 4,
         "ctr": 0,
-        "position": 30
+        "position": 20.75
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 64,
+        "impressions": 68,
         "ctr": 0,
-        "position": 15.953125
+        "position": 17.16176470588235
       },
       {
         "keys": [
@@ -354,7 +354,7 @@
         "clicks": 0,
         "impressions": 368,
         "ctr": 0,
-        "position": 29.997282608695652
+        "position": 29.508152173913043
       },
       {
         "keys": [
@@ -370,9 +370,9 @@
           "https://bracketly.pages.dev/tools/token-counter/"
         ],
         "clicks": 0,
-        "impressions": 105,
+        "impressions": 106,
         "ctr": 0,
-        "position": 50.23809523809524
+        "position": 50.235849056603776
       }
     ]
   },
@@ -387,7 +387,7 @@
   "last_7_days": {
     "daily_pageloads": [
       {
-        "count": 2,
+        "count": 3,
         "dimensions": {
           "date": "2026-11-18"
         }
@@ -427,15 +427,9 @@
         "dimensions": {
           "date": "2026-11-12"
         }
-      },
-      {
-        "count": 6,
-        "dimensions": {
-          "date": "2026-11-11"
-        }
       }
     ],
-    "total_pageloads": 30,
+    "total_pageloads": 25,
     "top_requests": [
       {
         "count": 11,
@@ -448,33 +442,9 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "US",
-          "refererHost": "",
-          "requestPath": "/tools/citations-viewer/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
           "countryName": "JM",
           "refererHost": "",
           "requestPath": "/tools/mcp-tool-validator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "SG",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "SG",
-          "refererHost": "",
-          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
@@ -491,14 +461,6 @@
           "countryName": "ID",
           "refererHost": "",
           "requestPath": "/tools/json-formatter/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "NL",
-          "refererHost": "",
-          "requestPath": "/tools/citations-viewer/"
         }
       },
       {
@@ -555,14 +517,6 @@
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/tools/otel-genai-span-validator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "SG",
-          "refererHost": "",
-          "requestPath": "/tools/citations-viewer/"
         }
       },
       {
