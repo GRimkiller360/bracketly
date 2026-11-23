@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-22T14:54:49.354Z",
+  "generated_at": "2026-11-23T18:45:29.917Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 70,
+    "performance": 88,
     "accessibility": 100,
-    "best-practices": 100,
+    "best-practices": 78,
     "seo": 100,
     "pwa": 63
   },
@@ -17,18 +17,18 @@
           "base64 encode"
         ],
         "clicks": 2,
-        "impressions": 84,
-        "ctr": 0.023809523809523808,
-        "position": 48.5
+        "impressions": 85,
+        "ctr": 0.023529411764705882,
+        "position": 48.16470588235294
       },
       {
         "keys": [
           "bracketly"
         ],
         "clicks": 2,
-        "impressions": 42,
-        "ctr": 0.047619047619047616,
-        "position": 5.833333333333333
+        "impressions": 43,
+        "ctr": 0.046511627906976744,
+        "position": 5.767441860465116
       },
       {
         "keys": [
@@ -71,9 +71,9 @@
           "64 base encoder"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 3,
         "ctr": 0,
-        "position": 68.5
+        "position": 69.33333333333333
       },
       {
         "keys": [
@@ -143,9 +143,9 @@
           "b64 decode"
         ],
         "clicks": 0,
-        "impressions": 11,
+        "impressions": 12,
         "ctr": 0,
-        "position": 62.54545454545455
+        "position": 57.833333333333336
       },
       {
         "keys": [
@@ -199,36 +199,36 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 4,
-        "impressions": 548,
-        "ctr": 0.0072992700729927005,
-        "position": 51.456204379562045
+        "impressions": 554,
+        "ctr": 0.007220216606498195,
+        "position": 50.3971119133574
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 2,
-        "impressions": 42,
-        "ctr": 0.047619047619047616,
-        "position": 6.023809523809524
+        "impressions": 43,
+        "ctr": 0.046511627906976744,
+        "position": 5.953488372093023
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 1,
-        "impressions": 32,
-        "ctr": 0.03125,
-        "position": 21.1875
+        "impressions": 35,
+        "ctr": 0.02857142857142857,
+        "position": 21.34285714285714
       },
       {
         "keys": [
           "https://bracketly.pages.dev/about/"
         ],
         "clicks": 0,
-        "impressions": 6,
+        "impressions": 7,
         "ctr": 0,
-        "position": 7.666666666666667
+        "position": 7.714285714285714
       },
       {
         "keys": [
@@ -253,18 +253,18 @@
           "https://bracketly.pages.dev/tools/ai-sdk-stream-debugger/"
         ],
         "clicks": 0,
-        "impressions": 14,
+        "impressions": 13,
         "ctr": 0,
-        "position": 15.857142857142858
+        "position": 15.923076923076923
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/claude-memory-tool-validator/"
         ],
         "clicks": 0,
-        "impressions": 7,
+        "impressions": 8,
         "ctr": 0,
-        "position": 17.571428571428573
+        "position": 16.375
       },
       {
         "keys": [
@@ -291,7 +291,7 @@
         "clicks": 0,
         "impressions": 48,
         "ctr": 0,
-        "position": 11.979166666666666
+        "position": 11.9375
       },
       {
         "keys": [
@@ -316,18 +316,18 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 87,
+        "impressions": 92,
         "ctr": 0,
-        "position": 20.908045977011493
+        "position": 21.652173913043477
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/mcp-server-json-validator/"
         ],
         "clicks": 0,
-        "impressions": 11,
+        "impressions": 12,
         "ctr": 0,
-        "position": 7.818181818181818
+        "position": 7.5
       },
       {
         "keys": [
@@ -343,27 +343,27 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 354,
+        "impressions": 349,
         "ctr": 0,
-        "position": 29.220338983050848
+        "position": 28.908309455587393
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/skill-md-validator/"
         ],
         "clicks": 0,
-        "impressions": 245,
+        "impressions": 256,
         "ctr": 0,
-        "position": 31.538775510204083
+        "position": 31.3359375
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/timestamp-converter/"
         ],
         "clicks": 0,
-        "impressions": 2,
+        "impressions": 1,
         "ctr": 0,
-        "position": 6.5
+        "position": 10
       },
       {
         "keys": [
@@ -372,7 +372,7 @@
         "clicks": 0,
         "impressions": 124,
         "ctr": 0,
-        "position": 46.62096774193548
+        "position": 46.556451612903224
       }
     ]
   },
@@ -386,6 +386,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-11-23"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-11-22"
+        }
+      },
       {
         "count": 5,
         "dimensions": {
@@ -421,18 +433,12 @@
         "dimensions": {
           "date": "2026-11-16"
         }
-      },
-      {
-        "count": 8,
-        "dimensions": {
-          "date": "2026-11-15"
-        }
       }
     ],
-    "total_pageloads": 30,
+    "total_pageloads": 24,
     "top_requests": [
       {
-        "count": 14,
+        "count": 11,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -445,6 +451,14 @@
           "countryName": "SA",
           "refererHost": "",
           "requestPath": "/about/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "IN",
+          "refererHost": "www.google.com",
+          "requestPath": "/tools/timestamp-converter/"
         }
       },
       {
@@ -474,14 +488,6 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "ID",
-          "refererHost": "",
-          "requestPath": "/tools/url-encoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
           "countryName": "US",
           "refererHost": "",
           "requestPath": "/tools/gemini-signature-validator/"
@@ -491,22 +497,6 @@
         "count": 1,
         "dimensions": {
           "countryName": "FR",
-          "refererHost": "",
-          "requestPath": "/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "CO",
-          "refererHost": "",
-          "requestPath": "/tools/jwt-decoder/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "NL",
           "refererHost": "",
           "requestPath": "/"
         }
@@ -525,14 +515,6 @@
           "countryName": "US",
           "refererHost": "bracketly.pages.dev",
           "requestPath": "/tools/uuid-generator/"
-        }
-      },
-      {
-        "count": 1,
-        "dimensions": {
-          "countryName": "ID",
-          "refererHost": "",
-          "requestPath": "/tools/mcp-migration-checker/"
         }
       },
       {
