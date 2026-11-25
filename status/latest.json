@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-24T18:20:09.727Z",
+  "generated_at": "2026-11-25T17:38:07.656Z",
   "site_status_code": "200",
   "broken_pages": [],
   "lighthouse": {
-    "performance": 95,
+    "performance": 94,
     "accessibility": 100,
     "best-practices": 100,
     "seo": 100,
@@ -17,18 +17,18 @@
           "base64 encode"
         ],
         "clicks": 2,
-        "impressions": 89,
-        "ctr": 0.02247191011235955,
-        "position": 48.12359550561798
+        "impressions": 92,
+        "ctr": 0.021739130434782608,
+        "position": 48.41304347826087
       },
       {
         "keys": [
           "bracketly"
         ],
         "clicks": 2,
-        "impressions": 43,
-        "ctr": 0.046511627906976744,
-        "position": 5.767441860465116
+        "impressions": 41,
+        "ctr": 0.04878048780487805,
+        "position": 5.7073170731707314
       },
       {
         "keys": [
@@ -44,9 +44,9 @@
           "base 64 encoder"
         ],
         "clicks": 1,
-        "impressions": 9,
-        "ctr": 0.1111111111111111,
-        "position": 36.55555555555556
+        "impressions": 12,
+        "ctr": 0.08333333333333333,
+        "position": 29.25
       },
       {
         "keys": [
@@ -161,27 +161,27 @@
           "b64 encode"
         ],
         "clicks": 0,
-        "impressions": 7,
+        "impressions": 6,
         "ctr": 0,
-        "position": 68.85714285714286
+        "position": 67.66666666666667
       },
       {
         "keys": [
           "b64 encoding"
         ],
         "clicks": 0,
-        "impressions": 4,
+        "impressions": 3,
         "ctr": 0,
-        "position": 53.75
+        "position": 45.666666666666664
       },
       {
         "keys": [
           "b64encode"
         ],
         "clicks": 0,
-        "impressions": 5,
+        "impressions": 4,
         "ctr": 0,
-        "position": 51.6
+        "position": 41
       },
       {
         "keys": [
@@ -199,27 +199,27 @@
           "https://bracketly.pages.dev/tools/base64/"
         ],
         "clicks": 4,
-        "impressions": 561,
-        "ctr": 0.0071301247771836,
-        "position": 50.110516934046345
+        "impressions": 585,
+        "ctr": 0.006837606837606838,
+        "position": 49.032478632478636
       },
       {
         "keys": [
           "https://bracketly.pages.dev/"
         ],
         "clicks": 2,
-        "impressions": 43,
-        "ctr": 0.046511627906976744,
-        "position": 5.953488372093023
+        "impressions": 42,
+        "ctr": 0.047619047619047616,
+        "position": 7.309523809523809
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/citations-viewer/"
         ],
         "clicks": 1,
-        "impressions": 34,
-        "ctr": 0.029411764705882353,
-        "position": 21.852941176470587
+        "impressions": 35,
+        "ctr": 0.02857142857142857,
+        "position": 21.514285714285716
       },
       {
         "keys": [
@@ -244,9 +244,9 @@
           "https://bracketly.pages.dev/tools/agent-plugin-validator/"
         ],
         "clicks": 0,
-        "impressions": 11,
+        "impressions": 12,
         "ctr": 0,
-        "position": 14.272727272727273
+        "position": 13.166666666666666
       },
       {
         "keys": [
@@ -291,7 +291,7 @@
         "clicks": 0,
         "impressions": 47,
         "ctr": 0,
-        "position": 12.212765957446809
+        "position": 12.127659574468085
       },
       {
         "keys": [
@@ -316,18 +316,18 @@
           "https://bracketly.pages.dev/tools/mcp-migration-checker/"
         ],
         "clicks": 0,
-        "impressions": 93,
+        "impressions": 97,
         "ctr": 0,
-        "position": 22.0752688172043
+        "position": 21.670103092783506
       },
       {
         "keys": [
           "https://bracketly.pages.dev/tools/mcp-server-json-validator/"
         ],
         "clicks": 0,
-        "impressions": 10,
+        "impressions": 11,
         "ctr": 0,
-        "position": 7.9
+        "position": 7.909090909090909
       },
       {
         "keys": [
@@ -343,9 +343,9 @@
           "https://bracketly.pages.dev/tools/regex-tester/"
         ],
         "clicks": 0,
-        "impressions": 340,
+        "impressions": 335,
         "ctr": 0,
-        "position": 28.638235294117646
+        "position": 28.277611940298506
       },
       {
         "keys": [
@@ -372,7 +372,7 @@
         "clicks": 0,
         "impressions": 130,
         "ctr": 0,
-        "position": 46.207692307692305
+        "position": 45.684615384615384
       }
     ]
   },
@@ -386,6 +386,18 @@
   },
   "last_7_days": {
     "daily_pageloads": [
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-11-25"
+        }
+      },
+      {
+        "count": 10,
+        "dimensions": {
+          "date": "2026-11-24"
+        }
+      },
       {
         "count": 2,
         "dimensions": {
@@ -421,18 +433,12 @@
         "dimensions": {
           "date": "2026-11-18"
         }
-      },
-      {
-        "count": 2,
-        "dimensions": {
-          "date": "2026-11-17"
-        }
       }
     ],
-    "total_pageloads": 22,
+    "total_pageloads": 31,
     "top_requests": [
       {
-        "count": 11,
+        "count": 15,
         "dimensions": {
           "countryName": "US",
           "refererHost": "",
@@ -445,6 +451,14 @@
           "countryName": "SA",
           "refererHost": "",
           "requestPath": "/about/"
+        }
+      },
+      {
+        "count": 2,
+        "dimensions": {
+          "countryName": "NL",
+          "refererHost": "",
+          "requestPath": "/"
         }
       },
       {
@@ -482,9 +496,17 @@
       {
         "count": 1,
         "dimensions": {
-          "countryName": "US",
+          "countryName": "FR",
           "refererHost": "",
-          "requestPath": "/tools/otel-genai-span-validator/"
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "CA",
+          "refererHost": "",
+          "requestPath": "/"
         }
       },
       {
@@ -498,9 +520,25 @@
       {
         "count": 1,
         "dimensions": {
+          "countryName": "DE",
+          "refererHost": "",
+          "requestPath": "/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
           "countryName": "AL",
           "refererHost": "",
           "requestPath": "/tools/color-converter/"
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "countryName": "ES",
+          "refererHost": "",
+          "requestPath": "/"
         }
       }
     ]
